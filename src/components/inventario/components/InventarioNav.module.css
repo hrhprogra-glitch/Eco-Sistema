@@ -1,0 +1,29 @@
+.nav {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 4px;
+  margin-right: 20px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.item:hover {
+  color: var(--text-primary);
+}
+
+.active {
+  color: var(--accent-text);
+  border-bottom-color: var(--accent);
+}

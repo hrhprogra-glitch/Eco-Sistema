@@ -1,0 +1,29 @@
+export type Producto = {
+  id: number;
+  nombre: string;
+  sku: string;
+  stock: number;
+  precio: number;
+  favorito: boolean;
+  foto_url: string | null;
+  limite_stock: number;
+  tipo: "bienes" | "servicio" | "combo";
+  rastrear_inventario: boolean;
+  unidad: string;
+  impuesto_venta: string | null;
+  codigo_detraccion: string | null;
+  costo: number;
+  categoria: string | null;
+  referencia: string | null;
+  codigo_barras: string | null;
+  notas_internas: string | null;
+  created_at: string;
+};
+
+export type InventarioTables = {
+  productos: {
+    Row: Producto;
+    Insert: Omit<Producto, "id" | "created_at"> & Partial<Pick<Producto, "id" | "created_at">>;
+    Update: Partial<Producto>;
+  };
+};

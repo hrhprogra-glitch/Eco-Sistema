@@ -1,0 +1,98 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.toolbar {
+  padding: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-surface-glass);
+}
+
+.createBtn {
+  background: var(--accent);
+  color: var(--accent-contrast);
+  border: none;
+  padding: 8px 16px;
+  border-radius: var(--radius);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.createBtn:hover {
+  background: var(--accent-strong);
+  color: white;
+  transform: translateY(-1px);
+}
+
+.tableWrapper {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.th {
+  padding: 12px 16px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  border-bottom: 2px solid var(--border-color);
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.2s;
+  white-space: nowrap;
+}
+
+.th:hover {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.thContent {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sortIcon {
+  font-size: 0.8em;
+  opacity: 0.5;
+}
+
+.td {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+.tr {
+  transition: background 0.2s;
+  cursor: pointer;
+}
+
+.tr:hover {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.emptyState {
+  padding: 32px;
+  text-align: center;
+  color: var(--text-secondary);
+}

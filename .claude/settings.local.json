@@ -1,0 +1,32 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir -p \"E:/Programacion/eco-sistema/src/lib\" \"E:/Programacion/eco-sistema/src/app/[slug]\")",
+      "Bash(node \"C:\\\\Users\\\\ADMIN\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\E--Programacion-eco-sistema\\\\dcf9df4f-d4b3-4f0b-827e-53ae30f75a6f\\\\scratchpad\\\\gen.mjs\")",
+      "Bash(pnpm add *)",
+      "Bash(npx tsc *)",
+      "Bash(timeout 20 pnpm dev --port 51234)",
+      "Bash(npx eslint *)",
+      "Bash(where psql *)",
+      "Bash(where pg_ctl)",
+      "Bash(where docker *)",
+      "PowerShell(winget --version)",
+      "PowerShell(winget list --id PostgreSQL.PostgreSQL 2>$null)",
+      "Bash(node \"C:\\\\Users\\\\ADMIN\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\E--Programacion-eco-sistema\\\\dcf9df4f-d4b3-4f0b-827e-53ae30f75a6f\\\\scratchpad\\\\gen-placeholders.mjs\")",
+      "Bash(grep -rn \"#[0-9a-fA-F]\\\\{3,6\\\\}\" src/components/contacto src/app/page.module.css src/components/Topbar.module.css src/components/ModuleLayout.module.css)",
+      "Bash(grep -rn \"color: var\\(--accent-strong\\)\" src)",
+      "Bash(grep -rln \"accent-strong\" src)",
+      "Bash(grep -rl \"db/supabase\" src --include=\"*.tsx\" --include=\"*.ts\")",
+      "Bash(find src/components/inventario src/components/empleados -type f)",
+      "Bash(netstat -ano)",
+      "Bash(grep -v \"set-state-in-effect\\\\|Effects are intended\\\\|Calling setState\\\\|In general\\\\|Update external\\\\|Subscribe for\\\\|https://react.dev\\\\|^$\\\\|^E:\\\\\\\\\\\\\\\\Programacion\\\\\\\\\\\\\\\\eco-sistema\\\\\\\\\\\\\\\\src\\\\\\\\\\\\\\\\components\\\\\\\\\\\\\\\\\\\\\\(calendario\\\\\\\\\\\\\\\\index\\\\\\\\\\\\\\\\.tsx\\\\\\\\|piscina\\\\\\\\\\\\\\\\index\\\\\\\\\\\\\\\\.tsx\\\\\\):\")",
+      "Bash(where gh *)",
+      "Bash(git config *)",
+      "Bash(\"/c/Program Files/PostgreSQL/16/bin/pg_dump.exe\" \"postgresql://harry:pollo1245@127.0.0.1:5432/eco_sistema\" --no-owner --no-privileges -f \"E:\\\\Programacion\\\\eco-sistema\\\\db\\\\eco_sistema_dump.sql\")",
+      "Bash(echo \"EXIT:$?\")",
+      "Bash(PGPASSWORD='pollo1245' \"/c/Program Files/PostgreSQL/16/bin/pg_dump.exe\" -h 127.0.0.1 -p 5432 -U harry -d eco_sistema --no-owner --no-privileges -f \"db/eco_sistema_dump.sql\")",
+      "Bash(git init *)",
+      "Bash(git add *)"
+    ]
+  }
+}

@@ -1,0 +1,21 @@
+.wrapper {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(280px, 1fr);
+  gap: 24px;
+  align-items: start;
+  width: 100%;
+}
+
+.gridColumn {
+  min-width: 0;
+}
+
+.panelColumn {
+  min-width: 0;
+}
+
+@media (max-width: 900px) {
+  .wrapper {
+    grid-template-columns: 1fr;
+  }
+}

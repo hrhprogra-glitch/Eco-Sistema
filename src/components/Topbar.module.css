@@ -1,0 +1,139 @@
+.topbar {
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 32px;
+  background: var(--bg-surface);
+  border-bottom: 4px solid var(--eco-celeste);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-shrink: 0;
+}
+
+.logo {
+  height: 32px;
+  width: auto;
+}
+
+.divider {
+  color: var(--border-color);
+  font-weight: 400;
+}
+
+.separator {
+  width: 1px;
+  height: 24px;
+  background: var(--border-color);
+}
+
+.icon {
+  color: var(--text-primary);
+  opacity: 0.7;
+  flex-shrink: 0;
+}
+
+.title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.navLinks {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-left: 16px;
+  padding-left: 16px;
+  border-left: 1px solid var(--border-color);
+}
+
+.navButton {
+  background: transparent;
+  border: none;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: color 0.2s ease;
+  position: relative;
+  padding: 4px 0;
+}
+
+.navButton:hover,
+.navButton.active {
+  color: var(--text-primary);
+}
+
+.navButton.active::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--eco-celeste);
+  border-radius: 2px;
+}
+
+.back {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent-text);
+  white-space: nowrap;
+}
+
+.back:hover {
+  text-decoration: underline;
+}
+
+.user {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-primary);
+  flex-shrink: 0;
+}
+
+.userName {
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.logoutButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: var(--radius);
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.logoutButton:hover {
+  color: var(--text-primary);
+  background: var(--border-color);
+}
