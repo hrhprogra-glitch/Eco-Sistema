@@ -2,14 +2,15 @@
 -- PostgreSQL database dump
 --
 
-\restrict K3szXoxSR408JS6sErx0rGeCh5AJx6uSW5DKpCMyapdE36GytzPL2Q5FfabDeyS
+\restrict BED6Xb112cJfQCKHQsrW4f3QonDKCnvXaW3MIHIc0UrqfdsYliaq6cL9fBRnGUp
 
--- Dumped from database version 16.14
--- Dumped by pg_dump version 16.14
+-- Dumped from database version 17.10
+-- Dumped by pg_dump version 17.10
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
+SET transaction_timeout = 0;
 SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
 SELECT pg_catalog.set_config('search_path', '', false);
@@ -35,7 +36,7 @@ CREATE TABLE public.calendario_eventos (
     created_at timestamp without time zone DEFAULT now(),
     piscina_id integer,
     estado character varying(20) DEFAULT 'pendiente'::character varying NOT NULL,
-    CONSTRAINT calendario_eventos_estado_check CHECK (((estado)::text = ANY ((ARRAY['pendiente'::character varying, 'completado'::character varying, 'cancelado'::character varying])::text[])))
+    CONSTRAINT calendario_eventos_estado_check CHECK (((estado)::text = ANY (ARRAY[('pendiente'::character varying)::text, ('completado'::character varying)::text, ('cancelado'::character varying)::text])))
 );
 
 
@@ -78,7 +79,7 @@ CREATE TABLE public.contactos (
     contactos_relacionados jsonb DEFAULT '[]'::jsonb NOT NULL,
     notas text DEFAULT ''::text NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
-    CONSTRAINT contactos_tipo_check CHECK (((tipo)::text = ANY ((ARRAY['cliente'::character varying, 'proveedor'::character varying, 'otro'::character varying])::text[])))
+    CONSTRAINT contactos_tipo_check CHECK (((tipo)::text = ANY (ARRAY[('cliente'::character varying)::text, ('proveedor'::character varying)::text, ('otro'::character varying)::text])))
 );
 
 
@@ -143,6 +144,79 @@ ALTER SEQUENCE public.empleados_id_seq OWNED BY public.empleados.id;
 
 
 --
+-- Name: piscina_materiales; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.piscina_materiales (
+    id integer NOT NULL,
+    piscina_id integer NOT NULL,
+    nombre_material character varying(150) NOT NULL,
+    cantidad numeric(10,2) DEFAULT 1 NOT NULL,
+    monto numeric(12,2) DEFAULT 0 NOT NULL,
+    fecha date DEFAULT CURRENT_DATE NOT NULL,
+    notas text DEFAULT ''::text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: piscina_materiales_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.piscina_materiales_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: piscina_materiales_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.piscina_materiales_id_seq OWNED BY public.piscina_materiales.id;
+
+
+--
+-- Name: piscina_pagos; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.piscina_pagos (
+    id integer NOT NULL,
+    piscina_id integer NOT NULL,
+    monto numeric(12,2) DEFAULT 0 NOT NULL,
+    periodo_inicio date NOT NULL,
+    periodo_fin date NOT NULL,
+    pagado boolean DEFAULT false NOT NULL,
+    fecha_pago date,
+    notas text DEFAULT ''::text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: piscina_pagos_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.piscina_pagos_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: piscina_pagos_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.piscina_pagos_id_seq OWNED BY public.piscina_pagos.id;
+
+
+--
 -- Name: piscinas; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -156,7 +230,7 @@ CREATE TABLE public.piscinas (
     nivel_cloro numeric(5,2),
     notas text DEFAULT ''::text NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
-    CONSTRAINT piscinas_estado_check CHECK (((estado)::text = ANY ((ARRAY['operativa'::character varying, 'mantenimiento'::character varying, 'cerrada'::character varying])::text[])))
+    CONSTRAINT piscinas_estado_check CHECK (((estado)::text = ANY (ARRAY[('operativa'::character varying)::text, ('mantenimiento'::character varying)::text, ('cerrada'::character varying)::text])))
 );
 
 
@@ -207,7 +281,7 @@ CREATE TABLE public.productos (
     codigo_barras character varying(100),
     notas_internas text,
     limite_stock integer DEFAULT 0 NOT NULL,
-    CONSTRAINT productos_tipo_check CHECK (((tipo)::text = ANY ((ARRAY['bienes'::character varying, 'servicio'::character varying, 'combo'::character varying])::text[])))
+    CONSTRAINT productos_tipo_check CHECK (((tipo)::text = ANY (ARRAY[('bienes'::character varying)::text, ('servicio'::character varying)::text, ('combo'::character varying)::text])))
 );
 
 
@@ -363,6 +437,20 @@ ALTER TABLE ONLY public.empleados ALTER COLUMN id SET DEFAULT nextval('public.em
 
 
 --
+-- Name: piscina_materiales id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.piscina_materiales ALTER COLUMN id SET DEFAULT nextval('public.piscina_materiales_id_seq'::regclass);
+
+
+--
+-- Name: piscina_pagos id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.piscina_pagos ALTER COLUMN id SET DEFAULT nextval('public.piscina_pagos_id_seq'::regclass);
+
+
+--
 -- Name: piscinas id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -402,6 +490,7 @@ ALTER TABLE ONLY public.usuarios ALTER COLUMN id SET DEFAULT nextval('public.usu
 --
 
 COPY public.calendario_eventos (id, titulo, fecha, descripcion, proyecto_id, created_at, piscina_id, estado) FROM stdin;
+1	mantenimiento	2026-07-02	\N	\N	2026-07-06 20:16:17.825175	\N	pendiente
 \.
 
 
@@ -428,6 +517,22 @@ COPY public.empleados (id, nombre, puesto, area, created_at, foto_url, email_tra
 10	Amador			2026-07-05 22:54:56.766021-05	\N	\N	\N	Ulices	\N	\N	0.00
 11	Jose			2026-07-05 22:54:56.766021-05	\N	\N	\N	Ulices	\N	\N	0.00
 12	Ulices	Jefe		2026-07-05 22:54:56.766021-05	\N	\N	\N	\N	\N	\N	0.00
+\.
+
+
+--
+-- Data for Name: piscina_materiales; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.piscina_materiales (id, piscina_id, nombre_material, cantidad, monto, fecha, notas, created_at) FROM stdin;
+\.
+
+
+--
+-- Data for Name: piscina_pagos; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.piscina_pagos (id, piscina_id, monto, periodo_inicio, periodo_fin, pagado, fecha_pago, notas, created_at) FROM stdin;
 \.
 
 
@@ -492,7 +597,7 @@ COPY public.usuarios (id, username, password_hash, nombre_completo, created_at) 
 -- Name: calendario_eventos_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.calendario_eventos_id_seq', 1, false);
+SELECT pg_catalog.setval('public.calendario_eventos_id_seq', 1, true);
 
 
 --
@@ -507,6 +612,20 @@ SELECT pg_catalog.setval('public.contactos_id_seq', 1, true);
 --
 
 SELECT pg_catalog.setval('public.empleados_id_seq', 12, true);
+
+
+--
+-- Name: piscina_materiales_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+--
+
+SELECT pg_catalog.setval('public.piscina_materiales_id_seq', 1, false);
+
+
+--
+-- Name: piscina_pagos_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+--
+
+SELECT pg_catalog.setval('public.piscina_pagos_id_seq', 1, false);
 
 
 --
@@ -566,6 +685,22 @@ ALTER TABLE ONLY public.contactos
 
 ALTER TABLE ONLY public.empleados
     ADD CONSTRAINT empleados_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: piscina_materiales piscina_materiales_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.piscina_materiales
+    ADD CONSTRAINT piscina_materiales_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: piscina_pagos piscina_pagos_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.piscina_pagos
+    ADD CONSTRAINT piscina_pagos_pkey PRIMARY KEY (id);
 
 
 --
@@ -633,6 +768,20 @@ ALTER TABLE ONLY public.usuarios
 
 
 --
+-- Name: idx_piscina_materiales_piscina; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_piscina_materiales_piscina ON public.piscina_materiales USING btree (piscina_id);
+
+
+--
+-- Name: idx_piscina_pagos_piscina; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_piscina_pagos_piscina ON public.piscina_pagos USING btree (piscina_id);
+
+
+--
 -- Name: idx_piscinas_contacto; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -653,6 +802,22 @@ ALTER TABLE ONLY public.calendario_eventos
 
 ALTER TABLE ONLY public.calendario_eventos
     ADD CONSTRAINT calendario_eventos_proyecto_id_fkey FOREIGN KEY (proyecto_id) REFERENCES public.proyectos(id) ON DELETE SET NULL;
+
+
+--
+-- Name: piscina_materiales piscina_materiales_piscina_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.piscina_materiales
+    ADD CONSTRAINT piscina_materiales_piscina_id_fkey FOREIGN KEY (piscina_id) REFERENCES public.piscinas(id) ON DELETE CASCADE;
+
+
+--
+-- Name: piscina_pagos piscina_pagos_piscina_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.piscina_pagos
+    ADD CONSTRAINT piscina_pagos_piscina_id_fkey FOREIGN KEY (piscina_id) REFERENCES public.piscinas(id) ON DELETE CASCADE;
 
 
 --
@@ -699,5 +864,5 @@ ALTER TABLE ONLY public.proyecto_items
 -- PostgreSQL database dump complete
 --
 
-\unrestrict K3szXoxSR408JS6sErx0rGeCh5AJx6uSW5DKpCMyapdE36GytzPL2Q5FfabDeyS
+\unrestrict BED6Xb112cJfQCKHQsrW4f3QonDKCnvXaW3MIHIc0UrqfdsYliaq6cL9fBRnGUp
 

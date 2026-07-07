@@ -110,6 +110,9 @@ export function DiaPanel({
       </div>
 
       <form onSubmit={handleSubmit} className={styles.form}>
+        <h4 style={{ fontSize: 13, fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
+          ➕ Agregar Tarea o Mantenimiento
+        </h4>
         <input
           type="text"
           value={titulo}
@@ -118,6 +121,19 @@ export function DiaPanel({
           className={styles.input}
           required
         />
+
+        <div className={styles.templates}>
+          {["Mantenimiento de Piscina", "Mantenimiento de Electrobomba", "Limpieza", "Revisión"].map((t) => (
+            <button
+              key={t}
+              type="button"
+              className={styles.templateBtn}
+              onClick={() => setTitulo(t)}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
 
         <div className={styles.vinculoRow}>
           {(

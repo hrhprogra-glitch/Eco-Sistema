@@ -26,6 +26,7 @@ export default function CalendarioModule() {
   const [piscinas, setPiscinas] = useState<PiscinaOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState<string>(todayISO());
+  const [viewMode, setViewMode] = useState<"split" | "full">("split");
 
   const fetchAll = async () => {
     setLoading(true);
@@ -83,24 +84,46 @@ export default function CalendarioModule() {
           Cargando calendario...
         </div>
       ) : (
-        <div className={styles.wrapper}>
-          <div className={styles.gridColumn}>
-            <CalendarioGrid
-              eventos={eventos}
-              selectedDate={selectedDate}
-              onSelectDay={setSelectedDate}
-            />
+        <div>
+          <div className={styles.headerActions}>
+            <button
+              type="button"
+              className={styles.toggleViewBtn}
+              onClick={() => setViewMode((prev) => (prev === "split" ? "full" : "split"))}
+            >
+              {viewMode === "split" ? (
+                <>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+                  Vista Completa
+                </>
+              ) : (
+                <>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3"/><path d="M21 8h-3a2 2 0 0 1-2-2V3"/><path d="M3 16h3a2 2 0 0 1 2 2v3"/><path d="M16 21v-3a2 2 0 0 1 2-2h3"/></svg>
+                  Vista Dividida
+                </>
+              )}
+            </button>
           </div>
-          <div className={styles.panelColumn}>
-            <DiaPanel
-              fecha={selectedDate}
-              eventos={eventosDelDia}
-              proyectos={proyectos}
-              piscinas={piscinas}
-              onCreate={handleCreate}
-              onUpdateEstado={handleUpdateEstado}
-              onDelete={handleDelete}
-            />
+          <div className={viewMode === "full" ? styles.wrapperFull : styles.wrapper}>
+            <div className={styles.gridColumn}>
+              <CalendarioGrid
+                eventos={eventos}
+                selectedDate={selectedDate}
+                onSelectDay={setSelectedDate}
+                viewMode={viewMode}
+              />
+            </div>
+            <div className={styles.panelColumn}>
+              <DiaPanel
+                fecha={selectedDate}
+                eventos={eventosDelDia}
+                proyectos={proyectos}
+                piscinas={piscinas}
+                onCreate={handleCreate}
+                onUpdateEstado={handleUpdateEstado}
+                onDelete={handleDelete}
+              />
+            </div>
           </div>
         </div>
       )}

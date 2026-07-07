@@ -1,5 +1,5 @@
 import type { EventoCalendario } from "@/components/calendario/types";
-import type { Piscina } from "./types";
+import type { Piscina, PiscinaPago } from "./types";
 
 export const CLORO_MIN = 1;
 export const CLORO_MAX = 3;
@@ -28,5 +28,18 @@ export function esEventoProximo(evento: EventoCalendario, dias = 3): boolean {
   const limite = new Date();
   limite.setDate(hoy.getDate() + dias);
   const fecha = new Date(`${evento.fecha}T00:00:00`);
+  return fecha >= new Date(hoyISO()) && fecha <= limite;
+}
+
+export function esPagoVencido(pago: PiscinaPago): boolean {
+  return !pago.pagado && pago.periodo_fin < hoyISO();
+}
+
+export function esPagoProximo(pago: PiscinaPago, dias = 5): boolean {
+  if (pago.pagado) return false;
+  const hoy = new Date();
+  const limite = new Date();
+  limite.setDate(hoy.getDate() + dias);
+  const fecha = new Date(`${pago.periodo_fin}T00:00:00`);
   return fecha >= new Date(hoyISO()) && fecha <= limite;
 }

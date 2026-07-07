@@ -4,8 +4,8 @@
   gap: 12px;
   background: var(--bg-surface);
   border: 1px solid var(--border-color);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-card);
+  border-radius: 0;
+  box-shadow: var(--shadow-sm);
   padding: 20px;
 }
 
@@ -35,7 +35,7 @@
   justify-content: center;
   height: 30px;
   border: 1px solid var(--border-color);
-  border-radius: var(--radius);
+  border-radius: 0;
   background: transparent;
   color: var(--text-primary);
   cursor: pointer;
@@ -59,6 +59,9 @@
 .weekdays {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-bottom: none;
 }
 
 .weekday {
@@ -68,17 +71,24 @@
   text-transform: uppercase;
   letter-spacing: 0.3px;
   color: var(--text-secondary);
-  padding-bottom: 6px;
+  padding: 8px 0;
+  border-right: 1px solid var(--border-color);
+}
+.weekday:last-child {
+  border-right: none;
 }
 
 .grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 4px;
+  gap: 1px;
+  background: var(--border-color);
+  border: 1px solid var(--border-color);
 }
 
 .emptyCell {
   min-height: 92px;
+  background: var(--bg-surface);
 }
 
 .cell {
@@ -88,8 +98,8 @@
   gap: 4px;
   min-height: 92px;
   padding: 6px;
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius);
+  border: none;
+  border-radius: 0;
   background: var(--bg-page);
   cursor: pointer;
   text-align: left;
@@ -97,16 +107,16 @@
 }
 
 .cell:hover {
-  border-color: var(--accent);
+  background: var(--bg-surface);
 }
 
 .today {
-  border-color: var(--accent);
+  background: #fdfdfd;
+  box-shadow: inset 0 0 0 2px var(--accent);
 }
 
 .selected {
   background: var(--badge-cliente-bg);
-  border-color: var(--accent);
 }
 
 .dayNumber {
@@ -128,25 +138,29 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  padding: 2px 5px;
-  border-radius: var(--radius);
+  padding: 2px 4px;
+  border-radius: 2px;
+  border-left: 3px solid transparent;
   font-size: 10px;
   font-weight: 600;
 }
 
 .pendiente {
-  background: var(--badge-proveedor-bg);
-  color: var(--badge-proveedor-text);
+  background: #fff8e1;
+  color: #b45309;
+  border-left-color: #f59e0b;
 }
 
 .completado {
-  background: rgba(34, 197, 94, 0.16);
-  color: #16a34a;
+  background: #f0fdf4;
+  color: #15803d;
+  border-left-color: #22c55e;
 }
 
 .cancelado {
-  background: var(--badge-otro-bg);
-  color: var(--badge-otro-text);
+  background: #f1f5f9;
+  color: #64748b;
+  border-left-color: #94a3b8;
   text-decoration: line-through;
 }
 
@@ -154,4 +168,28 @@
   font-size: 10px;
   font-weight: 700;
   color: var(--text-secondary);
+}
+
+.wrapperFull {
+  border: none;
+  box-shadow: none;
+  background: transparent;
+  padding: 0;
+}
+
+.gridFull .cell {
+  min-height: 140px;
+}
+
+.eventChipFull {
+  font-size: 11px;
+  padding: 4px 6px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.chipIcon {
+  flex-shrink: 0;
+  opacity: 0.8;
 }

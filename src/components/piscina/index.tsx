@@ -8,8 +8,8 @@ import { PiscinaNav } from "./components/PiscinaNav";
 import { PiscinasCatalog } from "./components/PiscinasCatalog";
 import { PiscinaDetailView } from "./components/PiscinaDetailView";
 import { AlertasMantenimiento } from "./components/AlertasMantenimiento";
-import { esEventoProximo, esEventoVencido, tieneAlertaCloro } from "./alertas";
-import type { Piscina, PiscinaInput } from "./types";
+import { esEventoProximo, esEventoVencido, esPagoProximo, esPagoVencido, tieneAlertaCloro } from "./alertas";
+import type { Piscina, PiscinaInput, PiscinaPago, PiscinaPagoInput } from "./types";
 
 const app = getApp("piscina")!;
 
@@ -20,6 +20,7 @@ export default function PiscinaModule() {
   const [piscinas, setPiscinas] = useState<Piscina[]>([]);
   const [contactos, setContactos] = useState<ContactoOption[]>([]);
   const [eventos, setEventos] = useState<EventoCalendario[]>([]);
+  const [pagos, setPagos] = useState<PiscinaPago[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [vista, setVista] = useState<Vista>("piscinas");
@@ -29,14 +30,16 @@ export default function PiscinaModule() {
 
   const fetchAll = async () => {
     setLoading(true);
-    const [piscinasRes, contactosRes, eventosRes] = await Promise.all([
+    const [piscinasRes, contactosRes, eventosRes, pagosRes] = await Promise.all([
       fetch("/api/piscinas"),
       fetch("/api/contactos"),
       fetch("/api/calendario"),
+      fetch("/api/piscina-pagos"),
     ]);
     if (piscinasRes.ok) setPiscinas(await piscinasRes.json());
     if (contactosRes.ok) setContactos(await contactosRes.json());
     if (eventosRes.ok) setEventos(await eventosRes.json());
+    if (pagosRes.ok) setPagos(await pagosRes.json());
     setLoading(false);
   };
 
@@ -124,9 +127,34 @@ export default function PiscinaModule() {
     if (res.ok) await fetchAll();
   }
 
+  async function handleAddPago(input: PiscinaPagoInput) {
+    const res = await fetch("/api/piscina-pagos", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    });
+    if (res.ok) await fetchAll();
+  }
+
+  async function handleUpdatePago(id: number, input: PiscinaPagoInput) {
+    const res = await fetch(`/api/piscina-pagos/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    });
+    if (res.ok) await fetchAll();
+  }
+
+  async function handleDeletePago(id: number) {
+    const res = await fetch(`/api/piscina-pagos/${id}`, { method: "DELETE" });
+    if (res.ok) await fetchAll();
+  }
+
   const alertasCount =
     eventos.filter((e) => e.piscina_id !== null && (esEventoVencido(e) || esEventoProximo(e)))
-      .length + piscinas.filter(tieneAlertaCloro).length;
+      .length +
+    piscinas.filter(tieneAlertaCloro).length +
+    pagos.filter((p) => esPagoVencido(p) || esPagoProximo(p)).length;
 
   return (
     <ModuleLayout app={app}>
@@ -145,7 +173,7 @@ export default function PiscinaModule() {
       ) : vista === "piscinas" ? (
         <PiscinasCatalog piscinas={piscinas} onNuevo={handleNuevo} onEditar={handleEditar} />
       ) : vista === "alertas" ? (
-        <AlertasMantenimiento eventos={eventos} piscinas={piscinas} />
+        <AlertasMantenimiento eventos={eventos} piscinas={piscinas} pagos={pagos} />
       ) : (
         <PiscinaDetailView
           piscina={activePiscina!}
@@ -153,11 +181,15 @@ export default function PiscinaModule() {
           isSaving={isSaving}
           contactos={contactos}
           eventos={eventos.filter((e) => e.piscina_id === activePiscina?.id)}
+          pagos={pagos.filter((p) => p.piscina_id === activePiscina?.id)}
           onBack={handleVolver}
           onSave={handleGuardar}
           onDelete={!isCreating ? handleEliminar : undefined}
           onAddEvento={handleAddEvento}
           onDeleteEvento={handleDeleteEvento}
+          onAddPago={handleAddPago}
+          onUpdatePago={handleUpdatePago}
+          onDeletePago={handleDeletePago}
         />
       )}
     </ModuleLayout>

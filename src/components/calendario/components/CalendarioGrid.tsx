@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Briefcase, Waves } from "lucide-react";
 import type { EventoCalendario } from "../types";
 import styles from "./CalendarioGrid.module.css";
 
@@ -38,10 +38,12 @@ export function CalendarioGrid({
   eventos,
   selectedDate,
   onSelectDay,
+  viewMode = "split",
 }: {
   eventos: EventoCalendario[];
   selectedDate: string | null;
   onSelectDay: (iso: string) => void;
+  viewMode?: "split" | "full";
 }) {
   const today = new Date();
   const [cursor, setCursor] = useState({ year: today.getFullYear(), month: today.getMonth() });
@@ -59,9 +61,10 @@ export function CalendarioGrid({
   }, [eventos]);
 
   const todayISO = toISODate(today);
+  const maxEvents = viewMode === "full" ? 8 : 3;
 
   return (
-    <div className={styles.wrapper}>
+    <div className={`${styles.wrapper} ${viewMode === "full" ? styles.wrapperFull : ""}`}>
       <div className={styles.header}>
         <h3 className={styles.monthLabel}>
           {MESES[cursor.month]} {cursor.year}
@@ -101,7 +104,7 @@ export function CalendarioGrid({
         ))}
       </div>
 
-      <div className={styles.grid}>
+      <div className={`${styles.grid} ${viewMode === "full" ? styles.gridFull : ""}`}>
         {cells.map((date, index) => {
           if (!date) {
             return <div key={`empty-${index}`} className={styles.emptyCell} />;
@@ -122,13 +125,14 @@ export function CalendarioGrid({
             >
               <span className={styles.dayNumber}>{date.getDate()}</span>
               <div className={styles.events}>
-                {eventosDelDia.slice(0, 3).map((evento) => (
-                  <span key={evento.id} className={`${styles.eventChip} ${styles[evento.estado]}`}>
-                    {evento.piscina_nombre || evento.proyecto_nombre || evento.titulo}
+                {eventosDelDia.slice(0, maxEvents).map((evento) => (
+                  <span key={evento.id} className={`${styles.eventChip} ${styles[evento.estado]} ${viewMode === "full" ? styles.eventChipFull : ""}`}>
+                    {evento.piscina_id ? <Waves size={10} className={styles.chipIcon} /> : evento.proyecto_id ? <Briefcase size={10} className={styles.chipIcon} /> : null}
+                    <span>{evento.piscina_nombre || evento.proyecto_nombre || evento.titulo}</span>
                   </span>
                 ))}
-                {eventosDelDia.length > 3 && (
-                  <span className={styles.moreChip}>+{eventosDelDia.length - 3}</span>
+                {eventosDelDia.length > maxEvents && (
+                  <span className={styles.moreChip}>+{eventosDelDia.length - maxEvents}</span>
                 )}
               </div>
             </button>

@@ -26,7 +26,32 @@
       "Bash(echo \"EXIT:$?\")",
       "Bash(PGPASSWORD='pollo1245' \"/c/Program Files/PostgreSQL/16/bin/pg_dump.exe\" -h 127.0.0.1 -p 5432 -U harry -d eco_sistema --no-owner --no-privileges -f \"db/eco_sistema_dump.sql\")",
       "Bash(git init *)",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "PowerShell(corepack --version 2>&1)",
+      "PowerShell(corepack enable 2>&1)",
+      "PowerShell(npm config get prefix)",
+      "PowerShell(npm install -g pnpm 2>&1)",
+      "PowerShell(pnpm --version 2>&1)",
+      "PowerShell(winget --version; Write-Output \"---checking dbeaver---\"; Get-ChildItem \"C:\\\\Program Files\\\\DBeaver\" -ErrorAction SilentlyContinue; Get-ChildItem \"$env:LOCALAPPDATA\\\\Programs\\\\dbeaver\" -ErrorAction SilentlyContinue)",
+      "PowerShell(winget list --id PostgreSQL.PostgreSQL 2>&1)",
+      "PowerShell(winget list --id dbeaver.dbeaver 2>&1)",
+      "PowerShell(winget install --id PostgreSQL.PostgreSQL.17 --source winget --accept-package-agreements --accept-source-agreements --silent 2>&1)",
+      "PowerShell(winget list --id dbeaver.dbeaver --source winget --accept-source-agreements 2>&1)",
+      "PowerShell(winget install --id dbeaver.dbeaver --source winget --accept-package-agreements --accept-source-agreements --silent 2>&1)",
+      "PowerShell(winget search dbeaver --source winget --accept-source-agreements 2>&1)",
+      "PowerShell(winget install --id DBeaver.DBeaver.Community --source winget --accept-package-agreements --accept-source-agreements --silent 2>&1)",
+      "PowerShell(Get-Process -Id 8756 -ErrorAction SilentlyContinue)",
+      "PowerShell(Get-WmiObject Win32_Service -Filter \"Name='postgresql-x64-17'\")",
+      "Bash(cp \"/c/Program Files/PostgreSQL/17/data/pg_hba.conf\" \"/c/Program Files/PostgreSQL/17/data/pg_hba.conf.bak\")",
+      "PowerShell(Restart-Service postgresql-x64-17 -Force)",
+      "PowerShell(Get-Service postgresql-x64-17)",
+      "PowerShell(\\([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent\\(\\)\\).IsInRole\\([Security.Principal.WindowsBuiltInRole]::Administrator\\))",
+      "Bash(\"/c/Program Files/PostgreSQL/17/bin/pg_ctl.exe\" reload -D \"/c/Program Files/PostgreSQL/17/data\")",
+      "PowerShell(Start-Process powershell -Verb RunAs -ArgumentList '-NoProfile -Command \"Restart-Service postgresql-x64-17 -Force; Start-Sleep -Seconds 2\"' -Wait)",
+      "PowerShell(& \"C:\\\\Program Files\\\\PostgreSQL\\\\17\\\\bin\\\\psql.exe\" -U postgres -h 127.0.0.1 -c \"SELECT version\\(\\);\" 2>&1)",
+      "PowerShell(& \"C:\\\\Program Files\\\\PostgreSQL\\\\17\\\\bin\\\\psql.exe\" -U postgres -h 127.0.0.1 -tc \"SELECT 1 FROM pg_database WHERE datname='eco_sistema'\" 2>&1)",
+      "PowerShell(& \"C:\\\\Program Files\\\\PostgreSQL\\\\17\\\\bin\\\\psql.exe\" -U postgres -h 127.0.0.1 -v ON_ERROR_STOP=1 -c \"CREATE DATABASE eco_sistema OWNER harry;\" 2>&1)",
+      "Bash(node -e \"const bcrypt=require\\('bcryptjs'\\); console.log\\(bcrypt.compareSync\\('pollo1245', '\\\\$2b\\\\$10\\\\$2oO0ysur9CFTXVPZJ81Smenyt6MkD6tmmcZ7Lln.cPf/y0GwPrrmC'\\)\\)\")"
     ]
   }
 }
