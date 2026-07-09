@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict GYErwAPbxOMab5DyHLg0dzGGhVbubZtqluhJ6cNBNKwedPK97Jd9E0inFaxT25X
+\restrict 7Ot2ylY4aaewbVsje87nYr9IofSnRn9pv6qTZmj3nfh6aCS2kiphLLj02EGjzEC
 
 -- Dumped from database version 16.14
 -- Dumped by pg_dump version 16.14
@@ -17,6 +17,24 @@ SET check_function_bodies = false;
 SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
+
+--
+-- Name: sync_outbox_capture(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.sync_outbox_capture() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+  IF TG_OP = 'DELETE' THEN
+    INSERT INTO sync_outbox(table_name, operation, payload) VALUES (TG_TABLE_NAME, TG_OP, to_jsonb(OLD));
+  ELSE
+    INSERT INTO sync_outbox(table_name, operation, payload) VALUES (TG_TABLE_NAME, TG_OP, to_jsonb(NEW));
+  END IF;
+  RETURN NULL;
+END;
+$$;
+
 
 SET default_tablespace = '';
 
@@ -287,6 +305,79 @@ ALTER SEQUENCE public.piscina_consumos_id_seq OWNED BY public.piscina_consumos.i
 
 
 --
+-- Name: piscina_materiales; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.piscina_materiales (
+    id integer NOT NULL,
+    piscina_id integer NOT NULL,
+    nombre_material character varying(150) NOT NULL,
+    cantidad numeric(10,2) DEFAULT 1 NOT NULL,
+    monto numeric(12,2) DEFAULT 0 NOT NULL,
+    fecha date DEFAULT CURRENT_DATE NOT NULL,
+    notas text DEFAULT ''::text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: piscina_materiales_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.piscina_materiales_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: piscina_materiales_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.piscina_materiales_id_seq OWNED BY public.piscina_materiales.id;
+
+
+--
+-- Name: piscina_pagos; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.piscina_pagos (
+    id integer NOT NULL,
+    piscina_id integer NOT NULL,
+    monto numeric(12,2) DEFAULT 0 NOT NULL,
+    periodo_inicio date NOT NULL,
+    periodo_fin date NOT NULL,
+    pagado boolean DEFAULT false NOT NULL,
+    fecha_pago date,
+    notas text DEFAULT ''::text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: piscina_pagos_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.piscina_pagos_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: piscina_pagos_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.piscina_pagos_id_seq OWNED BY public.piscina_pagos.id;
+
+
+--
 -- Name: piscinas; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -490,6 +581,54 @@ ALTER SEQUENCE public.proyectos_id_seq OWNED BY public.proyectos.id;
 
 
 --
+-- Name: sync_outbox; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.sync_outbox (
+    id bigint NOT NULL,
+    table_name text NOT NULL,
+    operation text NOT NULL,
+    payload jsonb NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    synced_at timestamp with time zone,
+    attempts integer DEFAULT 0 NOT NULL,
+    last_error text
+);
+
+
+--
+-- Name: sync_outbox_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.sync_outbox_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: sync_outbox_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.sync_outbox_id_seq OWNED BY public.sync_outbox.id;
+
+
+--
+-- Name: sync_state; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.sync_state (
+    id boolean DEFAULT true NOT NULL,
+    is_online boolean DEFAULT false NOT NULL,
+    last_check_at timestamp with time zone,
+    last_success_at timestamp with time zone,
+    CONSTRAINT sync_state_id_check CHECK (id)
+);
+
+
+--
 -- Name: usuarios; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -643,6 +782,20 @@ ALTER TABLE ONLY public.piscina_consumos ALTER COLUMN id SET DEFAULT nextval('pu
 
 
 --
+-- Name: piscina_materiales id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.piscina_materiales ALTER COLUMN id SET DEFAULT nextval('public.piscina_materiales_id_seq'::regclass);
+
+
+--
+-- Name: piscina_pagos id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.piscina_pagos ALTER COLUMN id SET DEFAULT nextval('public.piscina_pagos_id_seq'::regclass);
+
+
+--
 -- Name: piscinas id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -675,6 +828,13 @@ ALTER TABLE ONLY public.proyecto_items ALTER COLUMN id SET DEFAULT nextval('publ
 --
 
 ALTER TABLE ONLY public.proyectos ALTER COLUMN id SET DEFAULT nextval('public.proyectos_id_seq'::regclass);
+
+
+--
+-- Name: sync_outbox id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sync_outbox ALTER COLUMN id SET DEFAULT nextval('public.sync_outbox_id_seq'::regclass);
 
 
 --
@@ -763,6 +923,22 @@ COPY public.gastos (id, concepto, categoria, monto, fecha, estado, notas, compro
 
 COPY public.piscina_consumos (id, piscina_id, producto_id, nombre_externo, cantidad, notas, created_at) FROM stdin;
 1	1	153	\N	1	\N	2026-07-08 19:23:58.377284-05
+\.
+
+
+--
+-- Data for Name: piscina_materiales; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.piscina_materiales (id, piscina_id, nombre_material, cantidad, monto, fecha, notas, created_at) FROM stdin;
+\.
+
+
+--
+-- Data for Name: piscina_pagos; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.piscina_pagos (id, piscina_id, monto, periodo_inicio, periodo_fin, pagado, fecha_pago, notas, created_at) FROM stdin;
 \.
 
 
@@ -984,6 +1160,30 @@ COPY public.proyectos (id, nombre, estado, created_at) FROM stdin;
 
 
 --
+-- Data for Name: sync_outbox; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.sync_outbox (id, table_name, operation, payload, created_at, synced_at, attempts, last_error) FROM stdin;
+1	contactos	INSERT	{"id": 2, "tipo": "cliente", "email": "test@sync.com", "notas": "", "nombre": "Test Sync E2E", "telefono": "", "direccion": {}, "etiquetas": [], "sitio_web": "", "created_at": "2026-07-09T12:50:27.135803-05:00", "es_empresa": true, "puesto_trabajo": "", "identificaciones": [], "contactos_relacionados": []}	2026-07-09 12:50:27.135803-05	2026-07-09 12:50:37.007663-05	0	\N
+2	contactos	UPDATE	{"id": 2, "tipo": "cliente", "email": "test@sync.com", "notas": "", "nombre": "Test Sync E2E Updated", "telefono": "", "direccion": {}, "etiquetas": [], "sitio_web": "", "created_at": "2026-07-09T12:50:27.135803-05:00", "es_empresa": true, "puesto_trabajo": "", "identificaciones": [], "contactos_relacionados": []}	2026-07-09 12:51:02.035757-05	2026-07-09 12:51:10.884841-05	0	\N
+3	contactos	DELETE	{"id": 2, "tipo": "cliente", "email": "test@sync.com", "notas": "", "nombre": "Test Sync E2E Updated", "telefono": "", "direccion": {}, "etiquetas": [], "sitio_web": "", "created_at": "2026-07-09T12:50:27.135803-05:00", "es_empresa": true, "puesto_trabajo": "", "identificaciones": [], "contactos_relacionados": []}	2026-07-09 12:51:27.136863-05	2026-07-09 12:51:36.025892-05	0	\N
+4	contactos	INSERT	{"id": 3, "tipo": "cliente", "email": "", "notas": "", "nombre": "Test Offline", "telefono": "", "direccion": {}, "etiquetas": [], "sitio_web": "", "created_at": "2026-07-09T12:51:53.524764-05:00", "es_empresa": true, "puesto_trabajo": "", "identificaciones": [], "contactos_relacionados": []}	2026-07-09 12:51:53.524764-05	2026-07-09 12:52:08.649091-05	0	\N
+5	contactos	DELETE	{"id": 3, "tipo": "cliente", "email": "", "notas": "", "nombre": "Test Offline", "telefono": "", "direccion": {}, "etiquetas": [], "sitio_web": "", "created_at": "2026-07-09T12:51:53.524764-05:00", "es_empresa": true, "puesto_trabajo": "", "identificaciones": [], "contactos_relacionados": []}	2026-07-09 12:52:12.888238-05	2026-07-09 12:52:23.739838-05	0	\N
+6	usuarios	INSERT	{"id": 6, "username": "preview_test", "created_at": "2026-07-09T13:03:29.460414-05:00", "password_hash": "$2b$10$V7UJ5A9hXaP5Cx5CWYXP8urg4f2nBFsLn6gcvI1ihw5BXKuQfYO5C", "nombre_completo": "Preview Test"}	2026-07-09 13:03:29.460414-05	2026-07-09 13:05:00.871722-05	0	\N
+7	usuarios	DELETE	{"id": 6, "username": "preview_test", "created_at": "2026-07-09T13:03:29.460414-05:00", "password_hash": "$2b$10$V7UJ5A9hXaP5Cx5CWYXP8urg4f2nBFsLn6gcvI1ihw5BXKuQfYO5C", "nombre_completo": "Preview Test"}	2026-07-09 13:04:47.179024-05	2026-07-09 13:05:01.021175-05	0	\N
+\.
+
+
+--
+-- Data for Name: sync_state; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.sync_state (id, is_online, last_check_at, last_success_at) FROM stdin;
+t	t	2026-07-09 13:05:00.707637-05	2026-07-09 13:05:01.021668-05
+\.
+
+
+--
 -- Data for Name: usuarios; Type: TABLE DATA; Schema: public; Owner: -
 --
 
@@ -1033,7 +1233,7 @@ SELECT pg_catalog.setval('public.calendario_eventos_id_seq', 1, true);
 -- Name: contactos_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.contactos_id_seq', 1, true);
+SELECT pg_catalog.setval('public.contactos_id_seq', 3, true);
 
 
 --
@@ -1055,6 +1255,20 @@ SELECT pg_catalog.setval('public.gastos_id_seq', 2, true);
 --
 
 SELECT pg_catalog.setval('public.piscina_consumos_id_seq', 1, true);
+
+
+--
+-- Name: piscina_materiales_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+--
+
+SELECT pg_catalog.setval('public.piscina_materiales_id_seq', 1, false);
+
+
+--
+-- Name: piscina_pagos_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+--
+
+SELECT pg_catalog.setval('public.piscina_pagos_id_seq', 1, false);
 
 
 --
@@ -1093,10 +1307,17 @@ SELECT pg_catalog.setval('public.proyectos_id_seq', 7, true);
 
 
 --
+-- Name: sync_outbox_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+--
+
+SELECT pg_catalog.setval('public.sync_outbox_id_seq', 7, true);
+
+
+--
 -- Name: usuarios_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.usuarios_id_seq', 5, true);
+SELECT pg_catalog.setval('public.usuarios_id_seq', 6, true);
 
 
 --
@@ -1170,6 +1391,22 @@ ALTER TABLE ONLY public.piscina_consumos
 
 
 --
+-- Name: piscina_materiales piscina_materiales_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.piscina_materiales
+    ADD CONSTRAINT piscina_materiales_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: piscina_pagos piscina_pagos_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.piscina_pagos
+    ADD CONSTRAINT piscina_pagos_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: piscinas piscinas_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1234,6 +1471,22 @@ ALTER TABLE ONLY public.proyectos
 
 
 --
+-- Name: sync_outbox sync_outbox_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sync_outbox
+    ADD CONSTRAINT sync_outbox_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: sync_state sync_state_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sync_state
+    ADD CONSTRAINT sync_state_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: usuarios usuarios_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1287,6 +1540,139 @@ CREATE INDEX idx_piscinas_contacto ON public.piscinas USING btree (contacto_id);
 
 
 --
+-- Name: idx_sync_outbox_pending; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_sync_outbox_pending ON public.sync_outbox USING btree (id) WHERE (synced_at IS NULL);
+
+
+--
+-- Name: asiento_lineas trg_sync_outbox; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_sync_outbox AFTER INSERT OR DELETE OR UPDATE ON public.asiento_lineas FOR EACH ROW EXECUTE FUNCTION public.sync_outbox_capture();
+
+
+--
+-- Name: asientos_contables trg_sync_outbox; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_sync_outbox AFTER INSERT OR DELETE OR UPDATE ON public.asientos_contables FOR EACH ROW EXECUTE FUNCTION public.sync_outbox_capture();
+
+
+--
+-- Name: calendario_eventos trg_sync_outbox; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_sync_outbox AFTER INSERT OR DELETE OR UPDATE ON public.calendario_eventos FOR EACH ROW EXECUTE FUNCTION public.sync_outbox_capture();
+
+
+--
+-- Name: contactos trg_sync_outbox; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_sync_outbox AFTER INSERT OR DELETE OR UPDATE ON public.contactos FOR EACH ROW EXECUTE FUNCTION public.sync_outbox_capture();
+
+
+--
+-- Name: empleados trg_sync_outbox; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_sync_outbox AFTER INSERT OR DELETE OR UPDATE ON public.empleados FOR EACH ROW EXECUTE FUNCTION public.sync_outbox_capture();
+
+
+--
+-- Name: gastos trg_sync_outbox; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_sync_outbox AFTER INSERT OR DELETE OR UPDATE ON public.gastos FOR EACH ROW EXECUTE FUNCTION public.sync_outbox_capture();
+
+
+--
+-- Name: piscina_consumos trg_sync_outbox; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_sync_outbox AFTER INSERT OR DELETE OR UPDATE ON public.piscina_consumos FOR EACH ROW EXECUTE FUNCTION public.sync_outbox_capture();
+
+
+--
+-- Name: piscina_materiales trg_sync_outbox; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_sync_outbox AFTER INSERT OR DELETE OR UPDATE ON public.piscina_materiales FOR EACH ROW EXECUTE FUNCTION public.sync_outbox_capture();
+
+
+--
+-- Name: piscina_pagos trg_sync_outbox; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_sync_outbox AFTER INSERT OR DELETE OR UPDATE ON public.piscina_pagos FOR EACH ROW EXECUTE FUNCTION public.sync_outbox_capture();
+
+
+--
+-- Name: piscinas trg_sync_outbox; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_sync_outbox AFTER INSERT OR DELETE OR UPDATE ON public.piscinas FOR EACH ROW EXECUTE FUNCTION public.sync_outbox_capture();
+
+
+--
+-- Name: plan_cuentas trg_sync_outbox; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_sync_outbox AFTER INSERT OR DELETE OR UPDATE ON public.plan_cuentas FOR EACH ROW EXECUTE FUNCTION public.sync_outbox_capture();
+
+
+--
+-- Name: productos trg_sync_outbox; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_sync_outbox AFTER INSERT OR DELETE OR UPDATE ON public.productos FOR EACH ROW EXECUTE FUNCTION public.sync_outbox_capture();
+
+
+--
+-- Name: proyecto_empleados trg_sync_outbox; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_sync_outbox AFTER INSERT OR DELETE OR UPDATE ON public.proyecto_empleados FOR EACH ROW EXECUTE FUNCTION public.sync_outbox_capture();
+
+
+--
+-- Name: proyecto_items trg_sync_outbox; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_sync_outbox AFTER INSERT OR DELETE OR UPDATE ON public.proyecto_items FOR EACH ROW EXECUTE FUNCTION public.sync_outbox_capture();
+
+
+--
+-- Name: proyectos trg_sync_outbox; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_sync_outbox AFTER INSERT OR DELETE OR UPDATE ON public.proyectos FOR EACH ROW EXECUTE FUNCTION public.sync_outbox_capture();
+
+
+--
+-- Name: usuarios trg_sync_outbox; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_sync_outbox AFTER INSERT OR DELETE OR UPDATE ON public.usuarios FOR EACH ROW EXECUTE FUNCTION public.sync_outbox_capture();
+
+
+--
+-- Name: venta_lineas trg_sync_outbox; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_sync_outbox AFTER INSERT OR DELETE OR UPDATE ON public.venta_lineas FOR EACH ROW EXECUTE FUNCTION public.sync_outbox_capture();
+
+
+--
+-- Name: ventas trg_sync_outbox; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_sync_outbox AFTER INSERT OR DELETE OR UPDATE ON public.ventas FOR EACH ROW EXECUTE FUNCTION public.sync_outbox_capture();
+
+
+--
 -- Name: asiento_lineas asiento_lineas_asiento_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1332,6 +1718,22 @@ ALTER TABLE ONLY public.piscina_consumos
 
 ALTER TABLE ONLY public.piscina_consumos
     ADD CONSTRAINT piscina_consumos_producto_id_fkey FOREIGN KEY (producto_id) REFERENCES public.productos(id);
+
+
+--
+-- Name: piscina_materiales piscina_materiales_piscina_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.piscina_materiales
+    ADD CONSTRAINT piscina_materiales_piscina_id_fkey FOREIGN KEY (piscina_id) REFERENCES public.piscinas(id) ON DELETE CASCADE;
+
+
+--
+-- Name: piscina_pagos piscina_pagos_piscina_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.piscina_pagos
+    ADD CONSTRAINT piscina_pagos_piscina_id_fkey FOREIGN KEY (piscina_id) REFERENCES public.piscinas(id) ON DELETE CASCADE;
 
 
 --
@@ -1386,5 +1788,5 @@ ALTER TABLE ONLY public.venta_lineas
 -- PostgreSQL database dump complete
 --
 
-\unrestrict GYErwAPbxOMab5DyHLg0dzGGhVbubZtqluhJ6cNBNKwedPK97Jd9E0inFaxT25X
+\unrestrict 7Ot2ylY4aaewbVsje87nYr9IofSnRn9pv6qTZmj3nfh6aCS2kiphLLj02EGjzEC
 

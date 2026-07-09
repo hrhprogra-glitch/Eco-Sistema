@@ -17,6 +17,8 @@ module.exports.PRIMARY_KEYS = {
   proyectos: singleId,
   proyecto_items: singleId,
   proyecto_empleados: ["proyecto_id", "empleado_id"],
+  piscina_materiales: singleId,
+  piscina_pagos: singleId,
 };
 
 module.exports.SYNC_INTERVAL_MS = 20000;
