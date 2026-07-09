@@ -1,17 +1,23 @@
 "use client";
 
 import { useState } from "react";
-import { AlertTriangle, ArrowLeft, Droplet, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, ExternalLink, Plus, Trash2 } from "lucide-react";
 import type { EventoCalendario, EventoCalendarioInput } from "@/components/calendario/types";
 import type { Piscina, PiscinaInput } from "../types";
-import { tieneAlertaCloro } from "../alertas";
 import { ContactoPicker } from "./ContactoPicker";
+import { RegistroMantenimiento } from "./RegistroMantenimiento";
+import { SimpleSelect } from "./SimpleSelect";
 import styles from "./PiscinaDetailView.module.css";
 
 const ESTADO_OPCIONES: { value: Piscina["estado"]; label: string }[] = [
   { value: "operativa", label: "Operativa" },
   { value: "mantenimiento", label: "En mantenimiento" },
   { value: "cerrada", label: "Cerrada" },
+];
+
+const FRECUENCIA_OPCIONES: { value: Piscina["frecuencia"]; label: string }[] = [
+  { value: "semanal", label: "Semanal" },
+  { value: "quincenal", label: "Quincenal" },
 ];
 
 export function PiscinaDetailView({
@@ -41,10 +47,10 @@ export function PiscinaDetailView({
     contacto_id: piscina.contacto_id || 0,
     nombre: piscina.nombre,
     ubicacion: piscina.ubicacion,
-    volumen_m3: piscina.volumen_m3,
     estado: piscina.estado,
-    nivel_cloro: piscina.nivel_cloro,
     notas: piscina.notas,
+    frecuencia: piscina.frecuencia,
+    precio_mantenimiento: piscina.precio_mantenimiento,
   });
   const [nuevoTitulo, setNuevoTitulo] = useState("");
   const [nuevaFecha, setNuevaFecha] = useState("");
@@ -52,10 +58,6 @@ export function PiscinaDetailView({
   function update<K extends keyof PiscinaInput>(key: K, value: PiscinaInput[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
-
-  const alertaCloro =
-    form.nivel_cloro !== null &&
-    tieneAlertaCloro({ ...piscina, nivel_cloro: form.nivel_cloro });
 
   function handleAddEvento(event: React.FormEvent) {
     event.preventDefault();
@@ -143,68 +145,61 @@ export function PiscinaDetailView({
             />
           </label>
 
-          <div className={styles.row2}>
-            <label className={styles.fieldLabel}>
-              Ubicación
+          <label className={styles.fieldLabel}>
+            Ubicación (link de Google Maps)
+            <div className={styles.ubicacionRow}>
               <input
-                type="text"
+                type="url"
                 value={form.ubicacion}
                 onChange={(event) => update("ubicacion", event.target.value)}
-                placeholder="Ej. Jardín trasero"
+                placeholder="https://maps.google.com/..."
                 className={styles.input}
               />
-            </label>
-
-            <label className={styles.fieldLabel}>
-              Volumen (m³)
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={form.volumen_m3}
-                onChange={(event) => update("volumen_m3", Number(event.target.value))}
-                className={styles.input}
-              />
-            </label>
-          </div>
+              {form.ubicacion && (
+                <a
+                  href={form.ubicacion}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={styles.mapLinkButton}
+                  title="Abrir en Google Maps"
+                >
+                  <ExternalLink size={14} />
+                </a>
+              )}
+            </div>
+          </label>
 
           <div className={styles.row2}>
             <label className={styles.fieldLabel}>
               Estado
-              <select
+              <SimpleSelect
                 value={form.estado}
-                onChange={(event) => update("estado", event.target.value as Piscina["estado"])}
-                className={styles.input}
-              >
-                {ESTADO_OPCIONES.map((opcion) => (
-                  <option key={opcion.value} value={opcion.value}>
-                    {opcion.label}
-                  </option>
-                ))}
-              </select>
+                options={ESTADO_OPCIONES}
+                onChange={(value) => update("estado", value)}
+              />
             </label>
 
             <label className={styles.fieldLabel}>
-              <span className={styles.labelWithIcon}>
-                <Droplet size={14} /> Nivel de cloro (ppm)
-              </span>
-              <input
-                type="number"
-                min="0"
-                step="0.1"
-                value={form.nivel_cloro ?? ""}
-                onChange={(event) =>
-                  update("nivel_cloro", event.target.value === "" ? null : Number(event.target.value))
-                }
-                className={styles.input}
+              Frecuencia de mantenimiento
+              <SimpleSelect
+                value={form.frecuencia}
+                options={FRECUENCIA_OPCIONES}
+                onChange={(value) => update("frecuencia", value)}
               />
-              {alertaCloro && (
-                <span className={styles.cloroWarning}>
-                  <AlertTriangle size={12} /> Fuera del rango recomendado (1–3 ppm)
-                </span>
-              )}
             </label>
           </div>
+
+          <label className={styles.fieldLabel}>
+            Precio por mantenimiento (S/)
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={form.precio_mantenimiento}
+              onChange={(event) => update("precio_mantenimiento", Number(event.target.value))}
+              className={styles.input}
+            />
+          </label>
 
           <label className={styles.fieldLabel}>
             Notas
@@ -267,6 +262,13 @@ export function PiscinaDetailView({
             </div>
           )}
         </aside>
+
+        {!isNew && (
+          <RegistroMantenimiento
+            piscinaId={piscina.id}
+            precioMantenimiento={form.precio_mantenimiento}
+          />
+        )}
       </div>
     </form>
   );

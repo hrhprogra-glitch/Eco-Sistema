@@ -134,20 +134,29 @@
   font-weight: 600;
 }
 
-.pendiente {
-  background: var(--badge-proveedor-bg);
-  color: var(--badge-proveedor-text);
+.tipo-nota {
+  background: rgba(148, 163, 184, 0.2);
+  color: #64748b;
 }
 
-.completado {
-  background: rgba(34, 197, 94, 0.16);
-  color: #16a34a;
+.tipo-recordatorio {
+  background: rgba(245, 158, 11, 0.2);
+  color: #d97706;
 }
 
-.cancelado {
-  background: var(--badge-otro-bg);
-  color: var(--badge-otro-text);
-  text-decoration: line-through;
+.tipo-mantenimiento {
+  background: rgba(6, 182, 212, 0.2);
+  color: #0891b2;
+}
+
+.tipo-visita {
+  background: rgba(139, 92, 246, 0.2);
+  color: #7c3aed;
+}
+
+.tipo-obra {
+  background: rgba(239, 68, 68, 0.2);
+  color: #dc2626;
 }
 
 .moreChip {

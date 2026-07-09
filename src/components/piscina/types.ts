@@ -1,4 +1,5 @@
 export type EstadoPiscina = "operativa" | "mantenimiento" | "cerrada";
+export type FrecuenciaPiscina = "semanal" | "quincenal";
 
 export type Piscina = {
   id: number;
@@ -6,10 +7,10 @@ export type Piscina = {
   contacto_nombre: string;
   nombre: string;
   ubicacion: string;
-  volumen_m3: number;
   estado: EstadoPiscina;
-  nivel_cloro: number | null;
   notas: string;
+  frecuencia: FrecuenciaPiscina;
+  precio_mantenimiento: number;
   created_at: string;
 };
 
@@ -17,10 +18,10 @@ export type PiscinaInput = {
   contacto_id: number;
   nombre: string;
   ubicacion: string;
-  volumen_m3: number;
   estado: EstadoPiscina;
-  nivel_cloro: number | null;
   notas: string;
+  frecuencia: FrecuenciaPiscina;
+  precio_mantenimiento: number;
 };
 
 export type PiscinaTables = {
@@ -29,4 +30,22 @@ export type PiscinaTables = {
     Insert: PiscinaInput;
     Update: Partial<PiscinaInput>;
   };
+};
+
+export type PiscinaConsumo = {
+  id: number;
+  piscina_id: number;
+  producto_id: number | null;
+  nombre_externo: string | null;
+  cantidad: number;
+  notas: string | null;
+  created_at: string;
+  producto_nombre?: string;
+};
+
+export type PiscinaConsumoInput = {
+  producto_id: number | null;
+  nombre_externo: string | null;
+  cantidad: number;
+  notas: string | null;
 };

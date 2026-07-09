@@ -1,4 +1,5 @@
 export type EstadoEvento = "pendiente" | "completado" | "cancelado";
+export type TipoEvento = "nota" | "recordatorio" | "mantenimiento" | "visita" | "obra";
 
 export type EventoCalendario = {
   id: number;
@@ -6,6 +7,8 @@ export type EventoCalendario = {
   fecha: string;
   descripcion: string | null;
   estado: EstadoEvento;
+  tipo: TipoEvento;
+  trabajadores: string | null;
   proyecto_id: number | null;
   proyecto_nombre: string | null;
   piscina_id: number | null;
@@ -19,6 +22,8 @@ export type EventoCalendarioInput = {
   fecha: string;
   descripcion: string | null;
   estado: EstadoEvento;
+  tipo: TipoEvento;
+  trabajadores: string | null;
   proyecto_id: number | null;
   piscina_id: number | null;
 };

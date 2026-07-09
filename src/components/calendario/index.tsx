@@ -24,19 +24,22 @@ export default function CalendarioModule() {
   const [eventos, setEventos] = useState<EventoCalendario[]>([]);
   const [proyectos, setProyectos] = useState<ProyectoOption[]>([]);
   const [piscinas, setPiscinas] = useState<PiscinaOption[]>([]);
+  const [empleados, setEmpleados] = useState<{ id: number; nombre: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState<string>(todayISO());
 
   const fetchAll = async () => {
     setLoading(true);
-    const [eventosRes, proyectosRes, piscinasRes] = await Promise.all([
+    const [eventosRes, proyectosRes, piscinasRes, empleadosRes] = await Promise.all([
       fetch("/api/calendario"),
       fetch("/api/proyectos"),
       fetch("/api/piscinas"),
+      fetch("/api/empleados"),
     ]);
     if (eventosRes.ok) setEventos(await eventosRes.json());
     if (proyectosRes.ok) setProyectos(await proyectosRes.json());
     if (piscinasRes.ok) setPiscinas(await piscinasRes.json());
+    if (empleadosRes.ok) setEmpleados(await empleadosRes.json());
     setLoading(false);
   };
 
@@ -62,6 +65,8 @@ export default function CalendarioModule() {
         fecha: evento.fecha,
         descripcion: evento.descripcion,
         estado,
+        tipo: evento.tipo,
+        trabajadores: evento.trabajadores,
         proyecto_id: evento.proyecto_id,
         piscina_id: evento.piscina_id,
       } satisfies EventoCalendarioInput),
@@ -97,6 +102,7 @@ export default function CalendarioModule() {
               eventos={eventosDelDia}
               proyectos={proyectos}
               piscinas={piscinas}
+              empleados={empleados}
               onCreate={handleCreate}
               onUpdateEstado={handleUpdateEstado}
               onDelete={handleDelete}

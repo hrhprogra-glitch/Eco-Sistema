@@ -5,7 +5,7 @@ import type { Piscina, PiscinaInput } from "@/components/piscina/types";
 
 const SELECT_QUERY = `
   SELECT p.id, p.contacto_id, c.nombre AS "contacto_nombre", p.nombre, p.ubicacion,
-         p.volumen_m3, p.estado, p.nivel_cloro, p.notas, p.created_at
+         p.estado, p.notas, p.frecuencia, p.precio_mantenimiento, p.created_at
   FROM piscinas p
   JOIN contactos c ON c.id = p.contacto_id
 `;
@@ -21,15 +21,15 @@ export async function PATCH(
 
   const { id } = await params;
   const body = await request.json();
-  const { contacto_id, nombre, ubicacion, volumen_m3, estado, nivel_cloro, notas } =
+  const { contacto_id, nombre, ubicacion, estado, notas, frecuencia, precio_mantenimiento } =
     body as PiscinaInput;
 
   const updated = await query(
     `UPDATE piscinas SET
-       contacto_id = $1, nombre = $2, ubicacion = $3, volumen_m3 = $4,
-       estado = $5, nivel_cloro = $6, notas = $7
+       contacto_id = $1, nombre = $2, ubicacion = $3, estado = $4,
+       notas = $5, frecuencia = $6, precio_mantenimiento = $7
      WHERE id = $8`,
-    [contacto_id, nombre, ubicacion, volumen_m3, estado, nivel_cloro, notas, id]
+    [contacto_id, nombre, ubicacion, estado, notas, frecuencia, precio_mantenimiento, id]
   );
 
   if (updated.rowCount === 0) {

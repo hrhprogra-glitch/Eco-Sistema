@@ -4,7 +4,7 @@ import { query } from "@/lib/db";
 import type { EventoCalendario, EventoCalendarioInput } from "@/components/calendario/types";
 
 const SELECT_QUERY = `
-  SELECT c.id, c.titulo, c.fecha, c.descripcion, c.estado,
+  SELECT c.id, c.titulo, c.fecha, c.descripcion, c.estado, c.tipo, c.trabajadores,
          c.proyecto_id, pr.nombre AS "proyecto_nombre",
          c.piscina_id, pi.nombre AS "piscina_nombre", co.nombre AS "contacto_nombre",
          c.created_at
@@ -31,14 +31,23 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json();
-  const { titulo, fecha, descripcion, estado, proyecto_id, piscina_id } =
+  const { titulo, fecha, descripcion, estado, proyecto_id, piscina_id, tipo, trabajadores } =
     body as EventoCalendarioInput;
 
   const inserted = await query<{ id: number }>(
-    `INSERT INTO calendario_eventos (titulo, fecha, descripcion, estado, proyecto_id, piscina_id)
-     VALUES ($1, $2, $3, $4, $5, $6)
+    `INSERT INTO calendario_eventos (titulo, fecha, descripcion, estado, proyecto_id, piscina_id, tipo, trabajadores)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
      RETURNING id`,
-    [titulo, fecha, descripcion, estado ?? "pendiente", proyecto_id, piscina_id]
+    [
+      titulo, 
+      fecha, 
+      descripcion, 
+      estado ?? "pendiente", 
+      proyecto_id, 
+      piscina_id,
+      tipo || 'nota',
+      trabajadores || null
+    ]
   );
 
   const result = await query<EventoCalendario>(`${SELECT_QUERY} WHERE c.id = $1`, [

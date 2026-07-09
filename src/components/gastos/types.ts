@@ -1,9 +1,12 @@
 export type Gasto = {
-  id: string;
+  id: number;
   concepto: string;
-  monto: number;
   categoria: string;
-  estado: "pendiente" | "aprobado" | "rechazado";
+  monto: number;
+  fecha: string;
+  estado: "pendiente" | "pagado";
+  notas: string | null;
+  comprobante_url: string | null;
   created_at: string;
 };
 

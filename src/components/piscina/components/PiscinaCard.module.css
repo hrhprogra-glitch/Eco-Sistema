@@ -51,11 +51,6 @@
   color: var(--badge-otro-text);
 }
 
-.cloroAlert {
-  display: flex;
-  color: #dc2626;
-}
-
 .name {
   font-size: 15px;
   font-weight: 700;
@@ -75,7 +70,17 @@
   color: var(--text-secondary);
 }
 
-.detailAlert {
-  color: #dc2626;
+.mapLink {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--accent-text);
   font-weight: 600;
+  text-decoration: none;
+  width: fit-content;
+}
+
+.mapLink:hover {
+  text-decoration: underline;
 }

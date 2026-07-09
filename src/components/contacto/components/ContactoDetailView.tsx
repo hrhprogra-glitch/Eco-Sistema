@@ -36,12 +36,14 @@ export function ContactoDetailView({
   isSaving = false,
   onBack,
   onSave,
+  onDelete,
 }: {
   contacto: Contacto;
   isNew?: boolean;
   isSaving?: boolean;
   onBack: () => void;
   onSave: (contacto: Contacto) => void;
+  onDelete?: (contacto: Contacto) => void;
 }) {
   const [form, setForm] = useState(contacto);
   const [tab, setTab] = useState<Tab>("contactos");
@@ -125,6 +127,16 @@ export function ContactoDetailView({
         </span>
 
         <div className={styles.topBarActions}>
+          {!isNew && onDelete && (
+            <button
+              type="button"
+              onClick={() => onDelete(form)}
+              className={styles.deleteButton}
+              disabled={isSaving}
+            >
+              Eliminar
+            </button>
+          )}
           <button
             type="button"
             onClick={onBack}

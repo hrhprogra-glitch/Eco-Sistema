@@ -22,8 +22,8 @@ export function ContactoPicker({
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return contactos;
-    return contactos.filter((c) => c.nombre.toLowerCase().includes(q));
+    if (!q) return [];
+    return contactos.filter((c) => c.nombre.toLowerCase().includes(q)).slice(0, 20);
   }, [contactos, query]);
 
   if (selected && !open) {
@@ -62,24 +62,27 @@ export function ContactoPicker({
         )}
       </div>
       <div className={styles.list}>
-        {filtered.length === 0 && (
+        {query.trim() === "" ? (
+          <p className={styles.empty}>Escribí para buscar un contacto...</p>
+        ) : filtered.length === 0 ? (
           <p className={styles.empty}>Sin resultados. Cargalo primero en Contactos.</p>
+        ) : (
+          filtered.map((contacto) => (
+            <button
+              key={contacto.id}
+              type="button"
+              className={styles.option}
+              onClick={() => {
+                onSelect(contacto.id);
+                setOpen(false);
+                setQuery("");
+              }}
+            >
+              <User size={14} />
+              {contacto.nombre}
+            </button>
+          ))
         )}
-        {filtered.map((contacto) => (
-          <button
-            key={contacto.id}
-            type="button"
-            className={styles.option}
-            onClick={() => {
-              onSelect(contacto.id);
-              setOpen(false);
-              setQuery("");
-            }}
-          >
-            <User size={14} />
-            {contacto.nombre}
-          </button>
-        ))}
       </div>
     </div>
   );

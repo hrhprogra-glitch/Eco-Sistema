@@ -8,7 +8,7 @@ import { PiscinaNav } from "./components/PiscinaNav";
 import { PiscinasCatalog } from "./components/PiscinasCatalog";
 import { PiscinaDetailView } from "./components/PiscinaDetailView";
 import { AlertasMantenimiento } from "./components/AlertasMantenimiento";
-import { esEventoProximo, esEventoVencido, tieneAlertaCloro } from "./alertas";
+import { esEventoProximo, esEventoVencido } from "./alertas";
 import type { Piscina, PiscinaInput } from "./types";
 
 const app = getApp("piscina")!;
@@ -51,10 +51,10 @@ export default function PiscinaModule() {
       contacto_nombre: "",
       nombre: "",
       ubicacion: "",
-      volumen_m3: 0,
       estado: "operativa",
-      nivel_cloro: null,
       notas: "",
+      frecuencia: "semanal",
+      precio_mantenimiento: 0,
       created_at: new Date().toISOString(),
     });
     setIsCreating(true);
@@ -124,9 +124,9 @@ export default function PiscinaModule() {
     if (res.ok) await fetchAll();
   }
 
-  const alertasCount =
-    eventos.filter((e) => e.piscina_id !== null && (esEventoVencido(e) || esEventoProximo(e)))
-      .length + piscinas.filter(tieneAlertaCloro).length;
+  const alertasCount = eventos.filter(
+    (e) => e.piscina_id !== null && (esEventoVencido(e) || esEventoProximo(e))
+  ).length;
 
   return (
     <ModuleLayout app={app}>
@@ -145,7 +145,7 @@ export default function PiscinaModule() {
       ) : vista === "piscinas" ? (
         <PiscinasCatalog piscinas={piscinas} onNuevo={handleNuevo} onEditar={handleEditar} />
       ) : vista === "alertas" ? (
-        <AlertasMantenimiento eventos={eventos} piscinas={piscinas} />
+        <AlertasMantenimiento eventos={eventos} />
       ) : (
         <PiscinaDetailView
           piscina={activePiscina!}

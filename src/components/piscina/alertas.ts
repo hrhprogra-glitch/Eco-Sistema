@@ -1,15 +1,4 @@
 import type { EventoCalendario } from "@/components/calendario/types";
-import type { Piscina } from "./types";
-
-export const CLORO_MIN = 1;
-export const CLORO_MAX = 3;
-
-export function tieneAlertaCloro(piscina: Piscina): boolean {
-  return (
-    piscina.nivel_cloro !== null &&
-    (piscina.nivel_cloro < CLORO_MIN || piscina.nivel_cloro > CLORO_MAX)
-  );
-}
 
 function hoyISO(): string {
   const now = new Date();

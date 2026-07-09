@@ -123,7 +123,7 @@ export function CalendarioGrid({
               <span className={styles.dayNumber}>{date.getDate()}</span>
               <div className={styles.events}>
                 {eventosDelDia.slice(0, 3).map((evento) => (
-                  <span key={evento.id} className={`${styles.eventChip} ${styles[evento.estado]}`}>
+                  <span key={evento.id} className={`${styles.eventChip} ${styles[`tipo-${evento.tipo}`] || ""}`}>
                     {evento.piscina_nombre || evento.proyecto_nombre || evento.titulo}
                   </span>
                 ))}

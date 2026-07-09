@@ -26,7 +26,17 @@
       "Bash(echo \"EXIT:$?\")",
       "Bash(PGPASSWORD='pollo1245' \"/c/Program Files/PostgreSQL/16/bin/pg_dump.exe\" -h 127.0.0.1 -p 5432 -U harry -d eco_sistema --no-owner --no-privileges -f \"db/eco_sistema_dump.sql\")",
       "Bash(git init *)",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git branch *)",
+      "Bash(git remote *)",
+      "Bash(git push *)",
+      "Bash(PGPASSWORD='pollo1245' \"/c/Program Files/PostgreSQL/16/bin/psql.exe\" -h 127.0.0.1 -p 5432 -U harry -d eco_sistema -f \"sql/003_piscinas_registro.sql\")",
+      "Bash(pnpm exec *)",
+      "Bash(PGPASSWORD='pollo1245' \"/c/Program Files/PostgreSQL/16/bin/psql.exe\" -h 127.0.0.1 -p 5432 -U harry -d eco_sistema -c \"SELECT id, username FROM usuarios;\")",
+      "Bash(DATABASE_URL='postgresql://harry:pollo1245@127.0.0.1:5432/eco_sistema' node scripts/seed-user.mjs preview_test test1234 \"Preview Test\")",
+      "Bash(PGPASSWORD='pollo1245' \"/c/Program Files/PostgreSQL/16/bin/psql.exe\" -h 127.0.0.1 -p 5432 -U harry -d eco_sistema -c \"DELETE FROM usuarios WHERE username = 'preview_test';\")",
+      "Bash(node -e \"console.log\\(require\\('dotenv'\\)\\)\")"
     ]
   }
 }

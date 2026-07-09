@@ -4,7 +4,7 @@ import { query } from "@/lib/db";
 import type { EventoCalendario, EventoCalendarioInput } from "@/components/calendario/types";
 
 const SELECT_QUERY = `
-  SELECT c.id, c.titulo, c.fecha, c.descripcion, c.estado,
+  SELECT c.id, c.titulo, c.fecha, c.descripcion, c.estado, c.tipo, c.trabajadores,
          c.proyecto_id, pr.nombre AS "proyecto_nombre",
          c.piscina_id, pi.nombre AS "piscina_nombre", co.nombre AS "contacto_nombre",
          c.created_at
@@ -25,14 +25,14 @@ export async function PATCH(
 
   const { id } = await params;
   const body = await request.json();
-  const { titulo, fecha, descripcion, estado, proyecto_id, piscina_id } =
+  const { titulo, fecha, descripcion, estado, proyecto_id, piscina_id, tipo, trabajadores } =
     body as EventoCalendarioInput;
 
   const updated = await query(
     `UPDATE calendario_eventos SET
-       titulo = $1, fecha = $2, descripcion = $3, estado = $4, proyecto_id = $5, piscina_id = $6
-     WHERE id = $7`,
-    [titulo, fecha, descripcion, estado, proyecto_id, piscina_id, id]
+       titulo = $1, fecha = $2, descripcion = $3, estado = $4, proyecto_id = $5, piscina_id = $6, tipo = $7, trabajadores = $8
+     WHERE id = $9`,
+    [titulo, fecha, descripcion, estado, proyecto_id, piscina_id, tipo || 'nota', trabajadores || null, id]
   );
 
   if (updated.rowCount === 0) {

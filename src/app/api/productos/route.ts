@@ -3,10 +3,23 @@ import { getSession } from "@/lib/auth";
 import { query } from "@/lib/db";
 import type { Producto } from "@/components/inventario/types";
 
-export async function GET() {
+export async function GET(request: Request) {
   const session = await getSession();
   if (!session) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+  }
+
+  const q = new URL(request.url).searchParams.get("q")?.trim();
+
+  if (q) {
+    const result = await query<Producto>(
+      `SELECT * FROM productos
+       WHERE nombre ILIKE $1 OR sku ILIKE $1
+       ORDER BY nombre ASC
+       LIMIT 30`,
+      [`%${q}%`]
+    );
+    return NextResponse.json(result.rows);
   }
 
   const result = await query<Producto>(

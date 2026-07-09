@@ -66,3 +66,22 @@ export async function PATCH(
 
   return NextResponse.json(result.rows[0]);
 }
+
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await getSession();
+  if (!session) {
+    return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+  }
+
+  const { id } = await params;
+  const result = await query(`DELETE FROM contactos WHERE id = $1 RETURNING id`, [id]);
+
+  if (result.rowCount === 0) {
+    return NextResponse.json({ error: "Contacto no encontrado" }, { status: 404 });
+  }
+
+  return NextResponse.json({ success: true });
+}

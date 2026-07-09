@@ -1,0 +1,46 @@
+.badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.tipoActivo {
+  background: var(--badge-cliente-bg);
+  color: var(--badge-cliente-text);
+}
+
+.tipoPasivo {
+  background: rgba(211, 47, 47, 0.14);
+  color: #d32f2f;
+}
+
+.tipoPatrimonio {
+  background: rgba(56, 142, 60, 0.14);
+  color: #388e3c;
+}
+
+.tipoIngreso {
+  background: rgba(2, 132, 199, 0.14);
+  color: var(--eco-azul);
+}
+
+.tipoGasto {
+  background: var(--badge-proveedor-bg);
+  color: var(--badge-proveedor-text);
+}
+
+.deleteBtn {
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 4px;
+  display: inline-flex;
+}
+
+.deleteBtn:hover {
+  color: #d32f2f;
+}

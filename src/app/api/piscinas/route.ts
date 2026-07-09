@@ -5,7 +5,7 @@ import type { Piscina, PiscinaInput } from "@/components/piscina/types";
 
 const SELECT_QUERY = `
   SELECT p.id, p.contacto_id, c.nombre AS "contacto_nombre", p.nombre, p.ubicacion,
-         p.volumen_m3, p.estado, p.nivel_cloro, p.notas, p.created_at
+         p.estado, p.notas, p.frecuencia, p.precio_mantenimiento, p.created_at
   FROM piscinas p
   JOIN contactos c ON c.id = p.contacto_id
 `;
@@ -27,14 +27,14 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json();
-  const { contacto_id, nombre, ubicacion, volumen_m3, estado, nivel_cloro, notas } =
+  const { contacto_id, nombre, ubicacion, estado, notas, frecuencia, precio_mantenimiento } =
     body as PiscinaInput;
 
   const inserted = await query<{ id: number }>(
-    `INSERT INTO piscinas (contacto_id, nombre, ubicacion, volumen_m3, estado, nivel_cloro, notas)
+    `INSERT INTO piscinas (contacto_id, nombre, ubicacion, estado, notas, frecuencia, precio_mantenimiento)
      VALUES ($1, $2, $3, $4, $5, $6, $7)
      RETURNING id`,
-    [contacto_id, nombre, ubicacion, volumen_m3, estado, nivel_cloro, notas]
+    [contacto_id, nombre, ubicacion, estado, notas, frecuencia, precio_mantenimiento]
   );
 
   const result = await query<Piscina>(`${SELECT_QUERY} WHERE p.id = $1`, [

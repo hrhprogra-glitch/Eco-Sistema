@@ -72,6 +72,20 @@ export default function ContactoModule() {
     setIsSaving(false);
   }
 
+  async function handleEliminar(contacto: Contacto) {
+    if (!confirm(`¿Eliminar a "${contacto.nombre || "este contacto"}"? Esta acción no se puede deshacer.`)) {
+      return;
+    }
+    const res = await fetch(`/api/contactos/${contacto.id}`, { method: "DELETE" });
+    if (res.ok) {
+      await fetchContactos();
+      handleVolver();
+    } else {
+      const body = await res.json().catch(() => ({}));
+      alert(body.error || "No se pudo eliminar el contacto");
+    }
+  }
+
   return (
     <ModuleLayout app={app}>
       {loading ? (
@@ -87,6 +101,7 @@ export default function ContactoModule() {
           isSaving={isSaving}
           onBack={handleVolver}
           onSave={handleGuardar}
+          onDelete={handleEliminar}
         />
       )}
     </ModuleLayout>

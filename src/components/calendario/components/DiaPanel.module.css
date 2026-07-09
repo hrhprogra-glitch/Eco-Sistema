@@ -21,7 +21,7 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
-  max-height: 320px;
+  max-height: 400px;
   overflow-y: auto;
 }
 
@@ -33,12 +33,20 @@
 .item {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 10px;
+  gap: 8px;
+  padding: 12px;
   border: 1px solid var(--border-color);
+  border-left-width: 4px;
   border-radius: var(--radius);
   background: var(--bg-page);
 }
+
+/* Event Type Borders */
+.tipo-nota { border-left-color: #94a3b8; }
+.tipo-recordatorio { border-left-color: #f59e0b; }
+.tipo-mantenimiento { border-left-color: #06b6d4; }
+.tipo-visita { border-left-color: #8b5cf6; }
+.tipo-obra { border-left-color: #ef4444; }
 
 .itemHeader {
   display: flex;
@@ -47,8 +55,22 @@
   gap: 8px;
 }
 
+.itemTitleWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tipoBadge {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary);
+}
+
 .itemTitle {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
   color: var(--text-primary);
 }
@@ -68,11 +90,16 @@
   color: #dc2626;
 }
 
+.badgesWrapper {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
 .linkBadge {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  align-self: flex-start;
   padding: 2px 8px;
   border-radius: var(--radius);
   background: var(--badge-cliente-bg);
@@ -84,6 +111,10 @@
 .itemDesc {
   font-size: 12px;
   color: var(--text-secondary);
+  background: var(--bg-surface);
+  padding: 8px;
+  border-radius: 4px;
+  border: 1px dashed var(--border-color);
 }
 
 .estadoSelect {
@@ -101,9 +132,15 @@
 .form {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding-top: 12px;
+  gap: 12px;
+  padding-top: 16px;
   border-top: 1px solid var(--border-color);
+}
+
+.formHeader {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
 }
 
 .input,
@@ -127,6 +164,37 @@
   min-height: 60px;
   resize: vertical;
   font-family: inherit;
+}
+
+.trabajadoresWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  background: var(--bg-surface-glass);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius);
+}
+
+.label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.checkboxGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 8px;
+}
+
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-primary);
+  cursor: pointer;
 }
 
 .vinculoRow {
@@ -157,7 +225,7 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 9px;
+  padding: 10px;
   border: none;
   border-radius: var(--radius);
   background: var(--accent);

@@ -1,23 +1,28 @@
-import { Plus, MoreVertical, Clock, Settings, LayoutDashboard } from "lucide-react";
+import { useState } from "react";
+import { Plus, MoreVertical, Clock, Trash2 } from "lucide-react";
 import type { Proyecto } from "../types";
 
 export function ProyectosList({
   proyectos,
   onCreate,
   onSelect,
+  onDelete,
 }: {
   proyectos: Proyecto[];
   onCreate: () => void;
   onSelect: (p: Proyecto) => void;
+  onDelete: (id: number) => void;
 }) {
+  const [openMenuId, setOpenMenuId] = useState<number | null>(null);
+
   return (
     <div style={{ height: "100%", display: "flex", flexDirection: "column", background: "var(--bg-body)" }}>
       {/* Odoo Control Panel */}
-      <div style={{ 
+      <div style={{
         padding: "12px 16px", background: "var(--bg-surface)", borderBottom: "1px solid var(--border-color)",
         display: "flex", alignItems: "center", gap: "16px"
       }}>
-        <button 
+        <button
           onClick={onCreate}
           style={{
             background: "var(--accent-strong)", color: "white", border: "none",
@@ -33,7 +38,7 @@ export function ProyectosList({
       </div>
 
       {/* Grid of Odoo Project Cards */}
-      <div style={{ 
+      <div style={{
         flex: 1, padding: "16px", overflowY: "auto",
         display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(350px, 1fr))", gap: "16px",
         alignItems: "start", alignContent: "start"
@@ -41,9 +46,10 @@ export function ProyectosList({
         {proyectos.map(p => {
           const isFinished = p.estado === 'finalizado';
           const leftColor = isFinished ? "#10b981" : "var(--eco-azul)";
-          
+          const isMenuOpen = openMenuId === p.id;
+
           return (
-            <div 
+            <div
               key={p.id}
               onClick={() => onSelect(p)}
               style={{
@@ -56,7 +62,8 @@ export function ProyectosList({
                 flexDirection: "column",
                 boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
                 transition: "box-shadow 0.2s",
-                height: "160px" // Fixed height for Odoo card feel
+                height: "160px", // Fixed height for Odoo card feel
+                position: "relative",
               }}
               onMouseEnter={e => e.currentTarget.style.boxShadow = "0 3px 6px rgba(0,0,0,0.1)"}
               onMouseLeave={e => e.currentTarget.style.boxShadow = "0 1px 2px rgba(0,0,0,0.05)"}
@@ -67,12 +74,51 @@ export function ProyectosList({
                   <h4 style={{ margin: 0, fontSize: "16px", fontWeight: "600", color: "var(--text-primary)" }}>
                     {p.nombre}
                   </h4>
-                  <button 
-                    onClick={e => e.stopPropagation()}
+                  <button
+                    onClick={e => {
+                      e.stopPropagation();
+                      setOpenMenuId(isMenuOpen ? null : p.id);
+                    }}
                     style={{ background: "none", border: "none", color: "var(--text-secondary)", cursor: "pointer", padding: "4px" }}
                   >
                     <MoreVertical size={16} />
                   </button>
+
+                  {isMenuOpen && (
+                    <>
+                      <div
+                        onClick={e => {
+                          e.stopPropagation();
+                          setOpenMenuId(null);
+                        }}
+                        style={{ position: "fixed", inset: 0, zIndex: 20 }}
+                      />
+                      <div
+                        onClick={e => e.stopPropagation()}
+                        style={{
+                          position: "absolute", top: "40px", right: "12px", zIndex: 21,
+                          background: "var(--bg-surface)", border: "1px solid var(--border-color)",
+                          boxShadow: "0 4px 12px rgba(0,0,0,0.15)", minWidth: "160px",
+                        }}
+                      >
+                        <button
+                          onClick={() => {
+                            setOpenMenuId(null);
+                            if (confirm(`¿Eliminar el proyecto "${p.nombre}" definitivamente?`)) {
+                              onDelete(p.id);
+                            }
+                          }}
+                          style={{
+                            width: "100%", padding: "10px 14px", background: "none", border: "none",
+                            color: "#ef4444", cursor: "pointer", fontSize: "13px", fontWeight: "500",
+                            display: "flex", alignItems: "center", gap: "8px", textAlign: "left",
+                          }}
+                        >
+                          <Trash2 size={14} /> Eliminar proyecto
+                        </button>
+                      </div>
+                    </>
+                  )}
                 </div>
                 <div style={{ marginTop: "12px", color: "var(--text-secondary)", fontSize: "14px", display: "flex", flexDirection: "column", gap: "6px" }}>
                   <span><strong style={{ color: "var(--text-primary)" }}>{p.items?.length || 0}</strong> Consumos</span>
@@ -81,16 +127,14 @@ export function ProyectosList({
               </div>
 
               {/* Card Footer (grey area in Odoo) */}
-              <div style={{ 
+              <div style={{
                 background: "rgba(0,0,0,0.02)", borderTop: "1px solid var(--border-color)",
                 padding: "8px 16px", display: "flex", justifyContent: "space-between", alignItems: "center"
               }}>
                 <div style={{ display: "flex", gap: "12px", color: "var(--text-secondary)" }}>
-                  <Clock size={16} title="Fecha" />
-                  <Settings size={16} title="Configuración" />
-                  <LayoutDashboard size={16} title="Tablero" />
+                  <Clock size={16} />
                 </div>
-                
+
                 {/* Employee Avatars (overlapping) */}
                 <div style={{ display: "flex", alignItems: "center" }}>
                   {p.empleados?.slice(0, 3).map((emp, i) => (
@@ -98,7 +142,7 @@ export function ProyectosList({
                       width: "26px", height: "26px", borderRadius: "0", background: "var(--eco-azul)",
                       color: "white", display: "flex", alignItems: "center", justifyContent: "center",
                       fontSize: "11px", fontWeight: "bold", border: "2px solid var(--bg-surface)",
-                      marginLeft: i > 0 ? "-8px" : "0", 
+                      marginLeft: i > 0 ? "-8px" : "0",
                       backgroundImage: emp.foto_url ? `url(${emp.foto_url})` : 'none',
                       backgroundSize: "cover", backgroundPosition: "center",
                       zIndex: 10 - i
@@ -125,6 +169,3 @@ export function ProyectosList({
     </div>
   );
 }
-
-
-

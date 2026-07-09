@@ -73,13 +73,14 @@ export default function ProyectosModule() {
           Cargando proyectos...
         </div>
       ) : vista === "lista" ? (
-        <ProyectosList 
-          proyectos={proyectos} 
+        <ProyectosList
+          proyectos={proyectos}
           onCreate={() => setVista("form")}
           onSelect={(p) => {
             setSelectedProyectoId(p.id);
             setVista("detalle");
           }}
+          onDelete={handleDelete}
         />
       ) : vista === "form" ? (
         <ProyectoForm 

@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
-import { Check, Minus, Package, Plus, Search, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Trash2, Users } from "lucide-react";
+import { MaterialPicker, type PickerProducto } from "./MaterialPicker";
+import { QtyInput } from "./QtyInput";
 import styles from "./ProyectoForm.module.css";
 
 type CartItem = {
@@ -7,6 +9,7 @@ type CartItem = {
   producto_id: number | null;
   nombre: string;
   cantidad: number;
+  precio: number;
   justificacion: string | null;
   stock?: number;
 };
@@ -25,27 +28,15 @@ export function ProyectoForm({
   const [nombre, setNombre] = useState("");
   const [empleados, setEmpleados] = useState<any[]>([]);
   const [selectedEmpleados, setSelectedEmpleados] = useState<number[]>([]);
-  const [productos, setProductos] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [workersOpen, setWorkersOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  const [search, setSearch] = useState("");
   const [cart, setCart] = useState<CartItem[]>([]);
 
-  const [showExternalForm, setShowExternalForm] = useState(false);
-  const [extNombre, setExtNombre] = useState("");
-  const [extCantidad, setExtCantidad] = useState(1);
-  const [extFactura, setExtFactura] = useState("");
-
   useEffect(() => {
-    Promise.all([
-      fetch("/api/empleados").then((res) => res.json()),
-      fetch("/api/productos").then((res) => res.json()),
-    ]).then(([empData, prodData]) => {
-      setEmpleados(Array.isArray(empData) ? empData : []);
-      setProductos(Array.isArray(prodData) ? prodData : []);
-      setLoading(false);
-    });
+    fetch("/api/empleados")
+      .then((res) => res.json())
+      .then((data) => setEmpleados(Array.isArray(data) ? data : []));
   }, []);
 
   const toggleEmpleado = (id: number) => {
@@ -54,7 +45,7 @@ export function ProyectoForm({
     );
   };
 
-  const addProductoToCart = (producto: any) => {
+  const addProductoToCart = (producto: PickerProducto) => {
     setCart((prev) => {
       const existing = prev.find((item) => item.producto_id === producto.id);
       if (existing) {
@@ -69,6 +60,7 @@ export function ProyectoForm({
           producto_id: producto.id,
           nombre: producto.nombre,
           cantidad: 1,
+          precio: producto.precio,
           justificacion: null,
           stock: producto.stock,
         },
@@ -76,25 +68,18 @@ export function ProyectoForm({
     });
   };
 
-  const addExternalToCart = () => {
-    if (!extNombre || extCantidad <= 0 || !extFactura) {
-      alert("Completa nombre, cantidad y N° de factura del producto externo.");
-      return;
-    }
+  const addExternalToCart = (nombreExt: string, cantidad: number, justificacion: string) => {
     setCart((prev) => [
       ...prev,
       {
         key: `ext-${Date.now()}`,
         producto_id: null,
-        nombre: extNombre,
-        cantidad: extCantidad,
-        justificacion: extFactura,
+        nombre: nombreExt,
+        cantidad,
+        precio: 0,
+        justificacion,
       },
     ]);
-    setExtNombre("");
-    setExtCantidad(1);
-    setExtFactura("");
-    setShowExternalForm(false);
   };
 
   const updateCartQty = (key: string, cantidad: number) => {
@@ -105,6 +90,9 @@ export function ProyectoForm({
   const removeFromCart = (key: string) => {
     setCart((prev) => prev.filter((item) => item.key !== key));
   };
+
+  const totalMateriales = cart.reduce((sum, item) => sum + item.cantidad, 0);
+  const totalValor = cart.reduce((sum, item) => sum + item.cantidad * item.precio, 0);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -121,32 +109,17 @@ export function ProyectoForm({
     });
   };
 
-  const filteredProductos = productos.filter(
-    (p) =>
-      p.nombre.toLowerCase().includes(search.toLowerCase()) ||
-      (p.sku && p.sku.toLowerCase().includes(search.toLowerCase()))
-  );
-
   return (
-    <form className={styles.wrapper} onSubmit={handleSubmit}>
+    <form className={styles.page} onSubmit={handleSubmit}>
       <div className={styles.topBar}>
         <button type="button" onClick={onCancel} className={styles.back}>
           Proyectos
         </button>
         <span className={styles.crumbSeparator}>/</span>
         <span className={styles.crumbCurrent}>Nuevo Proyecto</span>
-
-        <div className={styles.topBarActions}>
-          <button type="button" onClick={onCancel} className={styles.discardButton} disabled={isSaving}>
-            Descartar
-          </button>
-          <button type="submit" className={styles.saveButton} disabled={isSaving}>
-            {isSaving ? "Guardando..." : "Guardar"}
-          </button>
-        </div>
       </div>
 
-      <div className={styles.headerRow}>
+      <div className={styles.nameRow}>
         <input
           type="text"
           value={nombre}
@@ -157,284 +130,126 @@ export function ProyectoForm({
         />
       </div>
 
-      <div className={styles.mainGrid}>
-        <div className={styles.column}>
-          <div className={styles.fieldRow}>
-            <span className={styles.fieldLabel}>Asignar Trabajadores</span>
-            {loading ? (
-              <div style={{ color: "var(--text-secondary)", fontSize: "14px" }}>Cargando empleados...</div>
-            ) : (
-              <div className={styles.employeeGrid}>
-                {empleados.map((emp) => {
-                  const isSelected = selectedEmpleados.includes(emp.id);
-                  return (
-                    <div
-                      key={emp.id}
-                      onClick={() => toggleEmpleado(emp.id)}
-                      className={`${styles.employeeItem} ${isSelected ? styles.employeeItemSelected : ""}`}
-                    >
-                      <div
-                        className={styles.employeeAvatar}
-                        style={{ backgroundImage: emp.foto_url ? `url(${emp.foto_url})` : "none" }}
-                      >
-                        {!emp.foto_url && emp.nombre.charAt(0).toUpperCase()}
-                      </div>
-                      <div style={{ flex: 1, overflow: "hidden" }}>
-                        <div
-                          style={{
-                            fontWeight: "600",
-                            fontSize: "13px",
-                            color: "var(--text-primary)",
-                            whiteSpace: "nowrap",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                          }}
-                        >
-                          {emp.nombre}
-                        </div>
-                        <div style={{ fontSize: "11px", color: "var(--text-secondary)" }}>{emp.puesto}</div>
-                      </div>
-                      {isSelected && <Check size={16} color="var(--eco-azul)" />}
-                    </div>
-                  );
-                })}
-              </div>
+      <div className={styles.workersSection}>
+        <div className={styles.workersHeader} onClick={() => setWorkersOpen((o) => !o)}>
+          <div className={styles.workersHeaderLeft}>
+            <Users size={15} />
+            <span className={styles.workersLabel}>Trabajadores</span>
+            {selectedEmpleados.length > 0 && (
+              <span className={styles.workersBadge}>{selectedEmpleados.length}</span>
             )}
           </div>
-
-          <div className={styles.fieldRow}>
-            <span className={styles.fieldLabel}>Materiales Agregados ({cart.length})</span>
-            {cart.length === 0 ? (
-              <div
-                style={{
-                  padding: "24px",
-                  textAlign: "center",
-                  color: "var(--text-secondary)",
-                  fontSize: "13px",
-                  border: "1px dashed var(--border-color)",
-                }}
-              >
-                Busca a la derecha y haz clic en un material para agregarlo.
-              </div>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "8px" }}>
-                {cart.map((item) => (
-                  <div
-                    key={item.key}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "12px",
-                      padding: "10px 12px",
-                      border: "1px solid var(--border-color)",
-                      background: "var(--bg-surface)",
-                    }}
-                  >
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div
-                        style={{
-                          fontWeight: 600,
-                          fontSize: "13px",
-                          color: "var(--text-primary)",
-                          whiteSpace: "nowrap",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                        }}
-                      >
-                        {item.nombre}
-                      </div>
-                      <div style={{ fontSize: "11px", color: item.producto_id ? "var(--eco-azul)" : "#f59e0b" }}>
-                        {item.producto_id ? "Del inventario" : `Externo · ${item.justificacion}`}
-                      </div>
-                    </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                      <button
-                        type="button"
-                        onClick={() => updateCartQty(item.key, item.cantidad - 1)}
-                        style={{ background: "var(--bg-page)", border: "1px solid var(--border-color)", cursor: "pointer", padding: "4px" }}
-                      >
-                        <Minus size={14} />
-                      </button>
-                      <input
-                        type="number"
-                        min={1}
-                        value={item.cantidad}
-                        onChange={(e) => updateCartQty(item.key, Number(e.target.value))}
-                        style={{
-                          width: "48px",
-                          textAlign: "center",
-                          padding: "4px",
-                          border: "1px solid var(--border-color)",
-                          background: "var(--bg-page)",
-                          color: "var(--text-primary)",
-                        }}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => updateCartQty(item.key, item.cantidad + 1)}
-                        style={{ background: "var(--bg-page)", border: "1px solid var(--border-color)", cursor: "pointer", padding: "4px" }}
-                      >
-                        <Plus size={14} />
-                      </button>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => removeFromCart(item.key)}
-                      title="Quitar"
-                      style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", padding: "4px" }}
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          {workersOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
         </div>
 
-        <div className={styles.column}>
-          <div className={styles.fieldRow}>
-            <span className={styles.fieldLabel}>Agregar Materiales</span>
-
-            <div style={{ position: "relative", marginTop: "8px" }}>
-              <Search size={16} style={{ position: "absolute", left: "10px", top: "9px", color: "var(--text-secondary)" }} />
-              <input
-                type="text"
-                placeholder="Buscar en inventario..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                style={{
-                  width: "100%",
-                  padding: "8px 8px 8px 32px",
-                  border: "1px solid var(--border-color)",
-                  background: "var(--bg-surface)",
-                  color: "var(--text-primary)",
-                }}
-              />
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setShowExternalForm(!showExternalForm)}
-              style={{
-                marginTop: "10px",
-                width: "100%",
-                padding: "8px",
-                background: showExternalForm ? "var(--bg-surface)" : "rgba(2, 132, 199, 0.1)",
-                color: "var(--eco-azul)",
-                border: "1px dashed var(--eco-azul)",
-                cursor: "pointer",
-                fontWeight: 600,
-                fontSize: "13px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "6px",
-              }}
-            >
-              <Plus size={16} /> {showExternalForm ? "Cancelar ingreso externo" : "Ingresar producto externo"}
-            </button>
-
-            {showExternalForm ? (
-              <div
-                style={{
-                  marginTop: "12px",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "10px",
-                  background: "var(--bg-surface)",
-                  padding: "16px",
-                  border: "1px solid var(--border-color)",
-                }}
-              >
-                <input
-                  type="text"
-                  placeholder="Nombre del producto"
-                  value={extNombre}
-                  onChange={(e) => setExtNombre(e.target.value)}
-                  style={{ padding: "8px", border: "1px solid var(--border-color)", background: "var(--bg-page)", color: "var(--text-primary)" }}
-                />
-                <input
-                  type="number"
-                  min={1}
-                  placeholder="Cantidad"
-                  value={extCantidad}
-                  onChange={(e) => setExtCantidad(Number(e.target.value))}
-                  style={{ padding: "8px", border: "1px solid var(--border-color)", background: "var(--bg-page)", color: "var(--text-primary)" }}
-                />
-                <input
-                  type="text"
-                  placeholder="N° Factura / Justificación"
-                  value={extFactura}
-                  onChange={(e) => setExtFactura(e.target.value)}
-                  style={{ padding: "8px", border: "1px solid var(--border-color)", background: "var(--bg-page)", color: "var(--text-primary)" }}
-                />
-                <button
-                  type="button"
-                  onClick={addExternalToCart}
-                  style={{ padding: "8px", background: "var(--accent-strong)", color: "white", border: "none", fontWeight: 600, cursor: "pointer" }}
+        {workersOpen && (
+          <div className={styles.workersPanel}>
+            {empleados.map((emp) => {
+              const isSelected = selectedEmpleados.includes(emp.id);
+              return (
+                <div
+                  key={emp.id}
+                  onClick={() => toggleEmpleado(emp.id)}
+                  className={`${styles.workerChip} ${isSelected ? styles.workerChipSelected : ""}`}
+                  title={emp.puesto}
                 >
-                  Agregar al carrito
-                </button>
-              </div>
-            ) : loading ? (
-              <div style={{ color: "var(--text-secondary)", fontSize: "14px", marginTop: "16px" }}>Cargando materiales...</div>
-            ) : (
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: "10px", marginTop: "16px" }}>
-                {filteredProductos.map((p) => (
                   <div
-                    key={p.id}
-                    onClick={() => addProductoToCart(p)}
-                    style={{
-                      background: "var(--bg-surface)",
-                      border: "1px solid var(--border-color)",
-                      padding: "10px",
-                      display: "flex",
-                      flexDirection: "column",
-                      cursor: "pointer",
-                    }}
+                    className={styles.workerAvatar}
+                    style={{ backgroundImage: emp.foto_url ? `url(${emp.foto_url})` : "none" }}
                   >
-                    <div
-                      style={{
-                        width: "100%",
-                        height: "72px",
-                        background: "var(--bg-page)",
-                        marginBottom: "8px",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        backgroundImage: p.foto_url ? `url(${p.foto_url})` : "none",
-                        backgroundSize: "cover",
-                        backgroundPosition: "center",
-                        color: "var(--text-secondary)",
-                      }}
-                    >
-                      {!p.foto_url && <Package size={24} opacity={0.5} />}
-                    </div>
+                    {!emp.foto_url && emp.nombre.charAt(0).toUpperCase()}
+                  </div>
+                  <span className={styles.workerChipName}>{emp.nombre}</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      <div className={styles.posRow}>
+        <div className={styles.posMain}>
+          <MaterialPicker onAddProducto={addProductoToCart} onAddExterno={addExternalToCart} />
+        </div>
+
+        <div className={styles.ticket}>
+          <div className={styles.ticketColumns}>
+            <span style={{ flex: 1 }}>Material</span>
+            <span style={{ width: "56px", textAlign: "center" }}>Cant.</span>
+            <span style={{ width: "70px", textAlign: "right" }}>Subtotal</span>
+            <span style={{ width: "24px" }} />
+          </div>
+          <div className={styles.ticketBody}>
+            {cart.length === 0 ? (
+              <div className={styles.ticketEmpty}>
+                Busca a la izquierda y presiona Enter (o haz clic) para agregar un material.
+              </div>
+            ) : (
+              cart.map((item) => (
+                <div key={item.key} className={styles.ticketItem}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
                     <div
                       style={{
                         fontWeight: 600,
-                        fontSize: "12px",
+                        fontSize: "13px",
                         color: "var(--text-primary)",
                         whiteSpace: "nowrap",
                         overflow: "hidden",
                         textOverflow: "ellipsis",
                       }}
                     >
-                      {p.nombre}
+                      {item.nombre}
                     </div>
-                    <div style={{ fontSize: "11px", color: "var(--text-secondary)", marginTop: "2px" }}>
-                      Stock: <strong style={{ color: p.stock > 0 ? "var(--eco-azul)" : "#ef4444" }}>{p.stock}</strong>
+                    <div style={{ fontSize: "11px", color: item.producto_id ? "var(--eco-azul)" : "#f59e0b" }}>
+                      {item.producto_id ? "Del inventario" : `Externo · ${item.justificacion}`}
                     </div>
                   </div>
-                ))}
-                {filteredProductos.length === 0 && (
-                  <div style={{ gridColumn: "1 / -1", textAlign: "center", padding: "24px", color: "var(--text-secondary)", fontSize: "13px" }}>
-                    No se encontraron materiales.
+                  <QtyInput
+                    value={item.cantidad}
+                    onChange={(n) => updateCartQty(item.key, n)}
+                    style={{
+                      width: "56px",
+                      textAlign: "center",
+                      padding: "6px 4px",
+                      border: "1px solid var(--border-color)",
+                      background: "var(--bg-surface)",
+                      color: "var(--text-primary)",
+                      fontSize: "14px",
+                    }}
+                  />
+                  <div style={{ width: "70px", textAlign: "right", fontSize: "13px", fontWeight: 600, color: "var(--text-primary)" }}>
+                    {item.precio > 0 ? `S/ ${(item.cantidad * item.precio).toFixed(2)}` : "—"}
                   </div>
-                )}
-              </div>
+                  <button
+                    type="button"
+                    onClick={() => removeFromCart(item.key)}
+                    title="Quitar"
+                    style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", padding: "4px", flexShrink: 0 }}
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              ))
             )}
+          </div>
+
+          <div className={styles.ticketFooter}>
+            <div className={styles.ticketTotalsRow}>
+              <span>Materiales</span>
+              <strong>{totalMateriales}</strong>
+            </div>
+            <div className={styles.ticketTotalsRow}>
+              <span>Valor estimado</span>
+              <strong>S/ {totalValor.toFixed(2)}</strong>
+            </div>
+            <div className={styles.ticketActions}>
+              <button type="button" onClick={onCancel} className={styles.discardButton} disabled={isSaving}>
+                Descartar
+              </button>
+              <button type="submit" className={styles.saveButton} disabled={isSaving}>
+                {isSaving ? "Guardando..." : "Guardar Proyecto"}
+              </button>
+            </div>
           </div>
         </div>
       </div>
