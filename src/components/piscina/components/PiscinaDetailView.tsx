@@ -1,13 +1,23 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowLeft, ExternalLink, Plus, Trash2 } from "lucide-react";
 import type { EventoCalendario, EventoCalendarioInput } from "@/components/calendario/types";
-import type { Piscina, PiscinaInput } from "../types";
+import type { Piscina, PiscinaInput, PiscinaPago, PiscinaPagoInput } from "../types";
 import { ContactoPicker } from "./ContactoPicker";
+import { MaterialesPiscina } from "./MaterialesPiscina";
+import { PagosPiscina } from "./PagosPiscina";
 import { RegistroMantenimiento } from "./RegistroMantenimiento";
 import { SimpleSelect } from "./SimpleSelect";
 import styles from "./PiscinaDetailView.module.css";
+
+const TABS = [
+  { value: "mantenimiento", label: "Mantenimiento" },
+  { value: "pagos", label: "Pagos" },
+  { value: "materiales", label: "Materiales" },
+] as const;
+
+type TabValue = (typeof TABS)[number]["value"];
 
 const ESTADO_OPCIONES: { value: Piscina["estado"]; label: string }[] = [
   { value: "operativa", label: "Operativa" },
@@ -54,6 +64,43 @@ export function PiscinaDetailView({
   });
   const [nuevoTitulo, setNuevoTitulo] = useState("");
   const [nuevaFecha, setNuevaFecha] = useState("");
+  const [activeTab, setActiveTab] = useState<TabValue>("mantenimiento");
+  const [pagos, setPagos] = useState<PiscinaPago[]>([]);
+
+  const fetchPagos = async () => {
+    const res = await fetch("/api/piscina-pagos");
+    if (res.ok) {
+      const todos = (await res.json()) as PiscinaPago[];
+      setPagos(todos.filter((pago) => pago.piscina_id === piscina.id));
+    }
+  };
+
+  useEffect(() => {
+    if (!isNew) fetchPagos();
+  }, [isNew, piscina.id]);
+
+  async function handleAddPago(input: PiscinaPagoInput) {
+    const res = await fetch("/api/piscina-pagos", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    });
+    if (res.ok) await fetchPagos();
+  }
+
+  async function handleUpdatePago(id: number, input: PiscinaPagoInput) {
+    const res = await fetch(`/api/piscina-pagos/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    });
+    if (res.ok) await fetchPagos();
+  }
+
+  async function handleDeletePago(id: number) {
+    const res = await fetch(`/api/piscina-pagos/${id}`, { method: "DELETE" });
+    if (res.ok) await fetchPagos();
+  }
 
   function update<K extends keyof PiscinaInput>(key: K, value: PiscinaInput[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -75,13 +122,7 @@ export function PiscinaDetailView({
   }
 
   return (
-    <form
-      className={styles.wrapper}
-      onSubmit={(event) => {
-        event.preventDefault();
-        onSave(form);
-      }}
-    >
+    <div className={styles.wrapper}>
       <div className={styles.topBar}>
         <button type="button" onClick={onBack} className={styles.back}>
           <ArrowLeft size={15} />
@@ -117,7 +158,12 @@ export function PiscinaDetailView({
           >
             Descartar
           </button>
-          <button type="submit" className={styles.saveButton} disabled={isSaving}>
+          <button
+            type="button"
+            onClick={() => onSave(form)}
+            className={styles.saveButton}
+            disabled={isSaving}
+          >
             {isSaving ? "Guardando..." : "Guardar"}
           </button>
         </div>
@@ -264,12 +310,39 @@ export function PiscinaDetailView({
         </aside>
 
         {!isNew && (
-          <RegistroMantenimiento
-            piscinaId={piscina.id}
-            precioMantenimiento={form.precio_mantenimiento}
-          />
+          <div className={styles.tabsSection}>
+            <nav className={styles.tabNav}>
+              {TABS.map((tab) => (
+                <button
+                  key={tab.value}
+                  type="button"
+                  onClick={() => setActiveTab(tab.value)}
+                  className={`${styles.tabItem} ${activeTab === tab.value ? styles.tabActive : ""}`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </nav>
+
+            {activeTab === "mantenimiento" && (
+              <RegistroMantenimiento
+                piscinaId={piscina.id}
+                precioMantenimiento={form.precio_mantenimiento}
+              />
+            )}
+            {activeTab === "pagos" && (
+              <PagosPiscina
+                piscinaId={piscina.id}
+                pagos={pagos}
+                onAdd={handleAddPago}
+                onUpdate={handleUpdatePago}
+                onDelete={handleDeletePago}
+              />
+            )}
+            {activeTab === "materiales" && <MaterialesPiscina piscinaId={piscina.id} />}
+          </div>
         )}
       </div>
-    </form>
+    </div>
   );
 }
