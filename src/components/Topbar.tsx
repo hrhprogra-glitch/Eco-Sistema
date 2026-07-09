@@ -5,6 +5,7 @@ import type { LucideIcon } from "lucide-react";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { ZoomControl } from "@/components/zoom/ZoomControl";
 import { UserMenu } from "@/components/session/UserMenu";
+import { SyncStatus } from "@/components/sync/SyncStatus";
 import styles from "./Topbar.module.css";
 
 export function Topbar({
@@ -38,6 +39,8 @@ export function Topbar({
       </div>
 
       <div className={styles.right}>
+        <SyncStatus />
+        <div className={styles.separator} />
         <ZoomControl />
         <div className={styles.separator} />
         <ThemeToggle />

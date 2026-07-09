@@ -29,3 +29,17 @@ Cada vez que quieras sincronizar el backup con el estado actual de la base local
 
 Después hacé `git add db/eco_sistema_dump.sql`, commit y push para dejarlo actualizado
 en GitHub.
+
+## Subir el dump a Supabase (nube)
+
+El proyecto Supabase se usa como copia en la nube (ver `SUPABASE_DATABASE_URL` en
+`.env.local`, connection string tipo "Session pooler" porque la red local no tiene
+IPv6, que es lo que requiere la conexión directa). Para (re)poblarlo con el estado
+actual de la base local:
+
+```
+"C:\Program Files\PostgreSQL\16\bin\psql.exe" -v ON_ERROR_STOP=1 -f db/eco_sistema_dump.sql "$SUPABASE_DATABASE_URL"
+```
+
+Por ahora esto es una carga manual de una sola vía (local → Supabase). Todavía no
+existe un motor de sincronización automática ni bidireccional.

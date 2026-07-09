@@ -1,0 +1,31 @@
+.wrapper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 4px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.dotOnline {
+  background: var(--status-online);
+}
+
+.dotPending {
+  background: var(--status-pending);
+}
+
+.dotOffline {
+  background: var(--status-offline);
+}
+
+.dotError {
+  background: var(--status-error);
+}

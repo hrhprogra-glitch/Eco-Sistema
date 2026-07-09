@@ -30,6 +30,11 @@
   --badge-otro-bg: rgba(107, 114, 128, 0.16);
   --badge-otro-text: var(--text-secondary);
 
+  --status-online: #16a34a;
+  --status-pending: #d97706;
+  --status-offline: #9ca3af;
+  --status-error: #dc2626;
+
   --background: var(--bg-page);
   --foreground: var(--text-primary);
   color-scheme: light;
@@ -60,6 +65,11 @@
   --badge-proveedor-text: #fbbf24;
   --badge-otro-bg: rgba(148, 163, 184, 0.18);
   --badge-otro-text: #cbd5e1;
+
+  --status-online: #4ade80;
+  --status-pending: #fbbf24;
+  --status-offline: #6b7280;
+  --status-error: #f87171;
 
   --background: var(--bg-page);
   --foreground: var(--text-primary);
