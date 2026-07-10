@@ -2,8 +2,8 @@ export type EstadoPiscina = "operativa" | "mantenimiento" | "cerrada";
 export type FrecuenciaPiscina = "semanal" | "quincenal";
 
 export type Piscina = {
-  id: number;
-  contacto_id: number;
+  id: string;
+  contacto_id: string;
   contacto_nombre: string;
   nombre: string;
   ubicacion: string;
@@ -15,7 +15,7 @@ export type Piscina = {
 };
 
 export type PiscinaInput = {
-  contacto_id: number;
+  contacto_id: string;
   nombre: string;
   ubicacion: string;
   estado: EstadoPiscina;
@@ -25,8 +25,8 @@ export type PiscinaInput = {
 };
 
 export type PiscinaMaterial = {
-  id: number;
-  piscina_id: number;
+  id: string;
+  piscina_id: string;
   nombre_material: string;
   cantidad: number;
   monto: number;
@@ -44,8 +44,8 @@ export type PiscinaMaterialInput = {
 };
 
 export type PiscinaPago = {
-  id: number;
-  piscina_id: number;
+  id: string;
+  piscina_id: string;
   piscina_nombre: string;
   contacto_nombre: string;
   monto: number;
@@ -58,7 +58,7 @@ export type PiscinaPago = {
 };
 
 export type PiscinaPagoInput = {
-  piscina_id: number;
+  piscina_id: string;
   monto: number;
   periodo_inicio: string;
   periodo_fin: string;
@@ -75,7 +75,7 @@ export type PiscinaTables = {
   };
   piscina_materiales: {
     Row: PiscinaMaterial;
-    Insert: PiscinaMaterialInput & { piscina_id: number };
+    Insert: PiscinaMaterialInput & { piscina_id: string };
     Update: Partial<PiscinaMaterialInput>;
   };
   piscina_pagos: {
@@ -86,9 +86,9 @@ export type PiscinaTables = {
 };
 
 export type PiscinaConsumo = {
-  id: number;
-  piscina_id: number;
-  producto_id: number | null;
+  id: string;
+  piscina_id: string;
+  producto_id: string | null;
   nombre_externo: string | null;
   cantidad: number;
   notas: string | null;
@@ -97,7 +97,7 @@ export type PiscinaConsumo = {
 };
 
 export type PiscinaConsumoInput = {
-  producto_id: number | null;
+  producto_id: string | null;
   nombre_externo: string | null;
   cantidad: number;
   notas: string | null;

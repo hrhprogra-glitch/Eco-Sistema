@@ -23,7 +23,7 @@ export function AsientoDetail({
           Libro Diario
         </button>
         <span className={styles.crumbSeparator}>/</span>
-        <span className={styles.crumbCurrent}>ASI-{String(asiento.id).padStart(5, "0")}</span>
+        <span className={styles.crumbCurrent}>ASI-{String(asiento.numero).padStart(5, "0")}</span>
       </div>
 
       <div className={styles.header}>

@@ -14,7 +14,7 @@ export type Direccion = {
 };
 
 export type Contacto = {
-  id: number;
+  id: string;
   nombre: string;
   tipo: "cliente" | "proveedor" | "otro";
   esEmpresa: boolean;

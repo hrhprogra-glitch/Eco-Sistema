@@ -2,7 +2,7 @@ import type { Contacto } from "./types";
 
 export function createEmptyContacto(): Contacto {
   return {
-    id: 0,
+    id: "",
     nombre: "",
     tipo: "cliente",
     esEmpresa: true,

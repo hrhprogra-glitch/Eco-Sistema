@@ -17,7 +17,7 @@ function ultimoDiaMes(): string {
   return new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0).toISOString().slice(0, 10);
 }
 
-function vacio(piscinaId: number): PiscinaPagoInput {
+function vacio(piscinaId: string): PiscinaPagoInput {
   return {
     piscina_id: piscinaId,
     monto: 0,
@@ -43,14 +43,14 @@ export function PagosPiscina({
   onUpdate,
   onDelete,
 }: {
-  piscinaId: number;
+  piscinaId: string;
   pagos: PiscinaPago[];
   onAdd: (input: PiscinaPagoInput) => Promise<void>;
-  onUpdate: (id: number, input: PiscinaPagoInput) => Promise<void>;
-  onDelete: (id: number) => Promise<void>;
+  onUpdate: (id: string, input: PiscinaPagoInput) => Promise<void>;
+  onDelete: (id: string) => Promise<void>;
 }) {
   const [form, setForm] = useState<PiscinaPagoInput>(vacio(piscinaId));
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   function update<K extends keyof PiscinaPagoInput>(key: K, value: PiscinaPagoInput[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));

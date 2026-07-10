@@ -6,7 +6,7 @@ import type { Venta, VentaInput, VentaLinea } from "../types";
 import styles from "./VentaDetailView.module.css";
 import type { Producto } from "@/components/inventario/types";
 
-type ContactoOption = { id: number; nombre: string };
+type ContactoOption = { id: string; nombre: string };
 
 export function VentaDetailView({
   venta,
@@ -28,7 +28,7 @@ export function VentaDetailView({
   onDelete?: () => Promise<void>;
 }) {
   const [formData, setFormData] = useState<VentaInput>({
-    contacto_id: venta.contacto_id || 0,
+    contacto_id: venta.contacto_id || "",
     estado: venta.estado || "borrador",
     fecha: venta.fecha || new Date().toISOString().split("T")[0],
     notas: venta.notas || "",
@@ -54,16 +54,16 @@ export function VentaDetailView({
       ...prev,
       lineas: [
         ...(prev.lineas || []),
-        { producto_id: 0, cantidad: 1, precio_unitario: 0, subtotal: 0 },
+        { producto_id: "", cantidad: 1, precio_unitario: 0, subtotal: 0 },
       ],
     }));
   };
 
-  const handleUpdateLine = (index: number, field: keyof VentaLinea, value: number) => {
+  const handleUpdateLine = (index: number, field: keyof VentaLinea, value: string | number) => {
     setFormData((prev) => {
       const newLineas = [...(prev.lineas || [])];
-      const linea = { ...newLineas[index], [field]: value };
-      
+      const linea = { ...newLineas[index], [field]: value } as VentaLinea;
+
       if (field === "producto_id") {
         const prod = productos.find(p => p.id === value);
         if (prod) {
@@ -73,7 +73,7 @@ export function VentaDetailView({
       } else if (field === "cantidad" || field === "precio_unitario") {
         linea.subtotal = linea.cantidad * linea.precio_unitario;
       }
-      
+
       newLineas[index] = linea;
       return { ...prev, lineas: newLineas };
     });
@@ -95,7 +95,7 @@ export function VentaDetailView({
             <ArrowLeft size={20} />
           </button>
           <h2 className={styles.title}>
-            {isNew ? "Nueva Venta" : `Venta S00${(venta as Venta).id}`}
+            {isNew ? "Nueva Venta" : `Venta S00${(venta as Venta).numero}`}
           </h2>
           {!isNew && (
             <span className={styles.statusBadge}>{formData.estado}</span>
@@ -124,7 +124,7 @@ export function VentaDetailView({
             type="button"
             className={`${styles.btn} ${styles.btnSave}`}
             onClick={() => onSave(formData)}
-            disabled={isSaving || formData.contacto_id === 0}
+            disabled={isSaving || formData.contacto_id === ""}
           >
             <Save size={16} />
             {isSaving ? "Guardando..." : "Guardar"}
@@ -141,9 +141,9 @@ export function VentaDetailView({
               <select
                 className={styles.select}
                 value={formData.contacto_id}
-                onChange={(e) => handleChange("contacto_id", parseInt(e.target.value, 10))}
+                onChange={(e) => handleChange("contacto_id", e.target.value)}
               >
-                <option value={0}>-- Seleccionar Cliente --</option>
+                <option value="">-- Seleccionar Cliente --</option>
                 {contactos.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.nombre}
@@ -198,9 +198,9 @@ export function VentaDetailView({
                       <select
                         className={styles.lineInput}
                         value={linea.producto_id}
-                        onChange={(e) => handleUpdateLine(idx, "producto_id", parseInt(e.target.value, 10))}
+                        onChange={(e) => handleUpdateLine(idx, "producto_id", e.target.value)}
                       >
-                        <option value={0}>-- Producto --</option>
+                        <option value="">-- Producto --</option>
                         {productos.map((p) => (
                           <option key={p.id} value={p.id}>
                             [{p.sku}] {p.nombre}

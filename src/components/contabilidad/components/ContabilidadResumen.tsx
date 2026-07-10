@@ -90,7 +90,7 @@ export function ContabilidadResumen({
             <tbody>
               {borradores.slice(0, 8).map((a) => (
                 <tr key={a.id} onClick={() => onVerAsiento(a)}>
-                  <td>ASI-{String(a.id).padStart(5, "0")}</td>
+                  <td>ASI-{String(a.numero).padStart(5, "0")}</td>
                   <td>{new Date(a.fecha).toLocaleDateString("es-PE")}</td>
                   <td>{a.descripcion}</td>
                   <td>

@@ -10,8 +10,8 @@ import styles from "./index.module.css";
 
 const app = getApp("calendario")!;
 
-type ProyectoOption = { id: number; nombre: string };
-type PiscinaOption = { id: number; nombre: string; contacto_nombre: string };
+type ProyectoOption = { id: string; nombre: string };
+type PiscinaOption = { id: string; nombre: string; contacto_nombre: string };
 
 function todayISO() {
   const now = new Date();
@@ -24,7 +24,7 @@ export default function CalendarioModule() {
   const [eventos, setEventos] = useState<EventoCalendario[]>([]);
   const [proyectos, setProyectos] = useState<ProyectoOption[]>([]);
   const [piscinas, setPiscinas] = useState<PiscinaOption[]>([]);
-  const [empleados, setEmpleados] = useState<{ id: number; nombre: string }[]>([]);
+  const [empleados, setEmpleados] = useState<{ id: string; nombre: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState<string>(todayISO());
 

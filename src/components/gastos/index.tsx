@@ -14,7 +14,7 @@ type Vista = "resumen" | "gastos" | "form";
 
 function createEmptyGasto(): Gasto {
   return {
-    id: 0,
+    id: "",
     concepto: "",
     categoria: "",
     monto: 0,

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Package, Plus, Search } from "lucide-react";
 
 export type PickerProducto = {
-  id: number;
+  id: string;
   nombre: string;
   sku?: string | null;
   categoria?: string | null;

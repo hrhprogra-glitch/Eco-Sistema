@@ -9,7 +9,7 @@ import styles from "./AsientoForm.module.css";
 
 type LineaDraft = {
   key: string;
-  cuenta_id: number | "";
+  cuenta_id: string;
   debe: string;
   haber: string;
   descripcion: string;
@@ -28,7 +28,7 @@ export function AsientoForm({
   onSave: (data: {
     fecha: string;
     descripcion: string;
-    lineas: { cuenta_id: number; debe: number; haber: number; descripcion: string | null }[];
+    lineas: { cuenta_id: string; debe: number; haber: number; descripcion: string | null }[];
   }) => Promise<string | void>;
   onCancel: () => void;
 }) {
@@ -72,7 +72,7 @@ export function AsientoForm({
       fecha,
       descripcion: descripcion.trim(),
       lineas: lineas.map((l) => ({
-        cuenta_id: Number(l.cuenta_id),
+        cuenta_id: l.cuenta_id,
         debe: parseFloat(l.debe) || 0,
         haber: parseFloat(l.haber) || 0,
         descripcion: l.descripcion.trim() || null,
@@ -117,9 +117,9 @@ export function AsientoForm({
             <tr key={l.key}>
               <td>
                 <SimpleSelect
-                  value={l.cuenta_id === "" ? "" : String(l.cuenta_id)}
+                  value={l.cuenta_id}
                   options={cuentaOptions}
-                  onChange={(v) => updateLinea(l.key, { cuenta_id: Number(v) })}
+                  onChange={(v) => updateLinea(l.key, { cuenta_id: v })}
                   placeholder="Seleccionar cuenta"
                 />
               </td>

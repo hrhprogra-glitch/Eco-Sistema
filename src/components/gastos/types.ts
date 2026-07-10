@@ -1,5 +1,5 @@
 export type Gasto = {
-  id: number;
+  id: string;
   concepto: string;
   categoria: string;
   monto: number;

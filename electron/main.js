@@ -48,6 +48,7 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
+    autoHideMenuBar: true,
     icon: path.join(__dirname, "..", "src", "app", "imagenes", "logo.png"),
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
@@ -55,6 +56,9 @@ function createWindow() {
       nodeIntegration: false,
     },
   });
+
+  mainWindow.setMenu(null);
+
 
   mainWindow.loadURL(url);
   mainWindow.on("closed", () => {

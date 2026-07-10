@@ -22,7 +22,7 @@ const SELECT_ONE = `
   GROUP BY a.id
 `;
 
-function validarLineas(lineas: { cuenta_id: number; debe: number; haber: number }[]) {
+function validarLineas(lineas: { cuenta_id: string; debe: number; haber: number }[]) {
   if (!lineas || lineas.length < 2) {
     return "Un asiento necesita al menos dos líneas";
   }

@@ -19,7 +19,7 @@ export function LibroDiarioList({
   }));
 
   const columns: Column<Row>[] = [
-    { key: "id", header: "N°", render: (a) => `ASI-${String(a.id).padStart(5, "0")}` },
+    { key: "id", header: "N°", render: (a) => `ASI-${String(a.numero).padStart(5, "0")}` },
     { key: "fecha", header: "Fecha", render: (a) => new Date(a.fecha).toLocaleDateString("es-PE") },
     { key: "descripcion", header: "Descripción" },
     {

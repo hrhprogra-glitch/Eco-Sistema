@@ -45,7 +45,7 @@ export function PiscinaDetailView({
   piscina: Piscina;
   isNew?: boolean;
   isSaving?: boolean;
-  contactos: { id: number; nombre: string }[];
+  contactos: { id: string; nombre: string }[];
   eventos: EventoCalendario[];
   onBack: () => void;
   onSave: (piscina: PiscinaInput) => void;
@@ -54,7 +54,7 @@ export function PiscinaDetailView({
   onDeleteEvento: (evento: EventoCalendario) => void;
 }) {
   const [form, setForm] = useState<PiscinaInput>({
-    contacto_id: piscina.contacto_id || 0,
+    contacto_id: piscina.contacto_id || "",
     nombre: piscina.nombre,
     ubicacion: piscina.ubicacion,
     estado: piscina.estado,
@@ -88,7 +88,7 @@ export function PiscinaDetailView({
     if (res.ok) await fetchPagos();
   }
 
-  async function handleUpdatePago(id: number, input: PiscinaPagoInput) {
+  async function handleUpdatePago(id: string, input: PiscinaPagoInput) {
     const res = await fetch(`/api/piscina-pagos/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -97,7 +97,7 @@ export function PiscinaDetailView({
     if (res.ok) await fetchPagos();
   }
 
-  async function handleDeletePago(id: number) {
+  async function handleDeletePago(id: string) {
     const res = await fetch(`/api/piscina-pagos/${id}`, { method: "DELETE" });
     if (res.ok) await fetchPagos();
   }
@@ -114,6 +114,8 @@ export function PiscinaDetailView({
       fecha: nuevaFecha,
       descripcion: null,
       estado: "pendiente",
+      tipo: "mantenimiento",
+      trabajadores: null,
       proyecto_id: null,
       piscina_id: piscina.id,
     });

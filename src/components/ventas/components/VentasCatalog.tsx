@@ -30,7 +30,7 @@ export function VentasCatalog({
   }, [ventas, query]);
 
   const columns: Column<Venta>[] = [
-    { key: "id", header: "Número", render: (item) => `S00${item.id}` },
+    { key: "id", header: "Número", render: (item) => `S00${item.numero}` },
     { key: "contacto_nombre", header: "Cliente", render: (item) => item.contacto_nombre || "Sin cliente" },
     {
       key: "fecha",

@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { Search, User, X } from "lucide-react";
 import styles from "./ContactoPicker.module.css";
 
-type ContactoOption = { id: number; nombre: string };
+type ContactoOption = { id: string; nombre: string };
 
 export function ContactoPicker({
   contactos,
@@ -12,8 +12,8 @@ export function ContactoPicker({
   onSelect,
 }: {
   contactos: ContactoOption[];
-  selectedId: number | null;
-  onSelect: (id: number) => void;
+  selectedId: string | null;
+  onSelect: (id: string) => void;
 }) {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(selectedId === null);

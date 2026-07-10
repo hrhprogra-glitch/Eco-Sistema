@@ -9,14 +9,14 @@ export function ProyectoDetail({
   onBack,
   onDeleteProject,
 }: {
-  proyectoId: number;
+  proyectoId: string;
   onBack: () => void;
-  onDeleteProject: (id: number) => void;
+  onDeleteProject: (id: string) => void;
 }) {
   const [proyecto, setProyecto] = useState<Proyecto | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const [editingItemId, setEditingItemId] = useState<number | null>(null);
+  const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [editingCantidad, setEditingCantidad] = useState(1);
 
   const loadData = async () => {
@@ -30,7 +30,7 @@ export function ProyectoDetail({
     loadData();
   }, [proyectoId]);
 
-  const handleAddItem = async (productoId: number | null, nombreExterno: string | null, cantidad: number, justificacion: string | null) => {
+  const handleAddItem = async (productoId: string | null, nombreExterno: string | null, cantidad: number, justificacion: string | null) => {
     const res = await fetch(`/api/proyectos/${proyectoId}/consumos`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -56,7 +56,7 @@ export function ProyectoDetail({
     setEditingItemId(null);
   };
 
-  const saveEditItem = async (itemId: number) => {
+  const saveEditItem = async (itemId: string) => {
     if (editingCantidad <= 0) return;
     const res = await fetch(`/api/proyectos/${proyectoId}/consumos/${itemId}`, {
       method: "PATCH",
@@ -69,7 +69,7 @@ export function ProyectoDetail({
     }
   };
 
-  const deleteItem = async (itemId: number) => {
+  const deleteItem = async (itemId: string) => {
     if (!confirm("¿Quitar este material del proyecto? El stock se devolverá al inventario.")) return;
     const res = await fetch(`/api/proyectos/${proyectoId}/consumos/${itemId}`, {
       method: "DELETE",

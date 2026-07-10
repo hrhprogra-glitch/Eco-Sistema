@@ -1,5 +1,5 @@
 export interface Proyecto {
-  id: number;
+  id: string;
   nombre: string;
   estado: string;
   created_at: string;
@@ -8,9 +8,9 @@ export interface Proyecto {
 }
 
 export interface ProyectoItem {
-  id: number;
-  proyecto_id: number;
-  producto_id: number | null;
+  id: string;
+  proyecto_id: string;
+  producto_id: string | null;
   nombre_externo: string | null;
   cantidad: number;
   justificacion: string | null;
@@ -20,10 +20,10 @@ export interface ProyectoItem {
 }
 
 export interface CalendarioEvento {
-  id: number;
+  id: string;
   titulo: string;
   fecha: string;
   descripcion: string | null;
-  proyecto_id: number | null;
+  proyecto_id: string | null;
   created_at: string;
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Briefcase, Plus, Trash2, Waves, Calendar, Tool, Info, FileText, CheckCircle, Users } from "lucide-react";
+import { Briefcase, Plus, Trash2, Waves, Calendar, Info, FileText, CheckCircle, Users } from "lucide-react";
 import type { EstadoEvento, EventoCalendario, EventoCalendarioInput, TipoEvento } from "../types";
 import styles from "./DiaPanel.module.css";
 
@@ -33,9 +33,9 @@ export function DiaPanel({
 }: {
   fecha: string;
   eventos: EventoCalendario[];
-  proyectos: { id: number; nombre: string }[];
-  piscinas: { id: number; nombre: string; contacto_nombre: string }[];
-  empleados: { id: number; nombre: string }[];
+  proyectos: { id: string; nombre: string }[];
+  piscinas: { id: string; nombre: string; contacto_nombre: string }[];
+  empleados: { id: string; nombre: string }[];
   onCreate: (input: EventoCalendarioInput) => void;
   onUpdateEstado: (evento: EventoCalendario, estado: EstadoEvento) => void;
   onDelete: (evento: EventoCalendario) => void;
@@ -45,8 +45,8 @@ export function DiaPanel({
   const [tipo, setTipo] = useState<TipoEvento>("nota");
   const [trabajadores, setTrabajadores] = useState<string[]>([]);
   const [vinculo, setVinculo] = useState<Vinculo>("ninguno");
-  const [proyectoId, setProyectoId] = useState<number | null>(null);
-  const [piscinaId, setPiscinaId] = useState<number | null>(null);
+  const [proyectoId, setProyectoId] = useState<string | null>(null);
+  const [piscinaId, setPiscinaId] = useState<string | null>(null);
 
   function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -212,7 +212,7 @@ export function DiaPanel({
         {vinculo === "proyecto" && (
           <select
             value={proyectoId ?? ""}
-            onChange={(event) => setProyectoId(event.target.value ? Number(event.target.value) : null)}
+            onChange={(event) => setProyectoId(event.target.value || null)}
             className={styles.input}
             required
           >
@@ -228,7 +228,7 @@ export function DiaPanel({
         {vinculo === "piscina" && (
           <select
             value={piscinaId ?? ""}
-            onChange={(event) => setPiscinaId(event.target.value ? Number(event.target.value) : null)}
+            onChange={(event) => setPiscinaId(event.target.value || null)}
             className={styles.input}
             required
           >

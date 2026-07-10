@@ -13,7 +13,7 @@ type Vista = "lista" | "detalle";
 
 function createEmptyEmpleado(): Empleado {
   return {
-    id: 0,
+    id: "",
     nombre: "",
     puesto: "",
     area: "",

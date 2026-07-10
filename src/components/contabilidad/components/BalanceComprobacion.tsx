@@ -7,7 +7,7 @@ import styles from "./BalanceComprobacion.module.css";
 
 export function BalanceComprobacion({ cuentas, asientos }: { cuentas: CuentaContable[]; asientos: AsientoContable[] }) {
   const filas = useMemo(() => {
-    const totales = new Map<number, { debe: number; haber: number }>();
+    const totales = new Map<string, { debe: number; haber: number }>();
     for (const asiento of asientos) {
       if (asiento.estado !== "confirmado") continue;
       for (const linea of asiento.lineas) {

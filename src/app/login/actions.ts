@@ -11,7 +11,7 @@ export type LoginState = {
 };
 
 type UsuarioRow = {
-  id: number;
+  id: string;
   username: string;
   password_hash: string;
 };

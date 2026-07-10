@@ -16,7 +16,7 @@ export default function ProyectosModule() {
   const [proyectos, setProyectos] = useState<Proyecto[]>([]);
   const [loading, setLoading] = useState(true);
   const [vista, setVista] = useState<Vista>("lista");
-  const [selectedProyectoId, setSelectedProyectoId] = useState<number | null>(null);
+  const [selectedProyectoId, setSelectedProyectoId] = useState<string | null>(null);
 
   const fetchProyectos = async () => {
     setLoading(true);
@@ -33,8 +33,8 @@ export default function ProyectosModule() {
 
   const handleSave = async (data: {
     nombre: string;
-    empleados: number[];
-    items: { producto_id: number | null; nombre_externo: string | null; cantidad: number; justificacion: string | null }[];
+    empleados: string[];
+    items: { producto_id: string | null; nombre_externo: string | null; cantidad: number; justificacion: string | null }[];
   }) => {
     const res = await fetch("/api/proyectos", {
       method: "POST",
@@ -50,7 +50,7 @@ export default function ProyectosModule() {
     }
   };
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: string) => {
     const res = await fetch(`/api/proyectos/${id}`, { method: "DELETE" });
     if (res.ok) {
       await fetchProyectos();

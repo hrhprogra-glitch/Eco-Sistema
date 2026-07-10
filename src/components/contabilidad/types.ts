@@ -3,7 +3,7 @@ export type ContabilidadVista = "resumen" | "diario" | "mayor" | "balance" | "pl
 export type TipoCuenta = "activo" | "pasivo" | "patrimonio" | "ingreso" | "gasto";
 
 export type CuentaContable = {
-  id: number;
+  id: string;
   codigo: string;
   nombre: string;
   tipo: TipoCuenta;
@@ -13,9 +13,9 @@ export type CuentaContable = {
 export type EstadoAsiento = "borrador" | "confirmado";
 
 export type AsientoLinea = {
-  id: number;
-  asiento_id: number;
-  cuenta_id: number;
+  id: string;
+  asiento_id: string;
+  cuenta_id: string;
   debe: number;
   haber: number;
   descripcion: string | null;
@@ -25,7 +25,8 @@ export type AsientoLinea = {
 };
 
 export type AsientoContable = {
-  id: number;
+  id: string;
+  numero: number;
   fecha: string;
   descripcion: string;
   estado: EstadoAsiento;
@@ -41,7 +42,7 @@ export type ContabilidadTables = {
   };
   asientos_contables: {
     Row: Omit<AsientoContable, "lineas">;
-    Insert: { fecha: string; descripcion: string; lineas: { cuenta_id: number; debe: number; haber: number; descripcion?: string | null }[] };
+    Insert: { fecha: string; descripcion: string; lineas: { cuenta_id: string; debe: number; haber: number; descripcion?: string | null }[] };
     Update: Partial<Pick<AsientoContable, "estado">>;
   };
 };

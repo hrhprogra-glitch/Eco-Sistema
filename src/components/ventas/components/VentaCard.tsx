@@ -33,7 +33,7 @@ export function VentaCard({ venta, onClick }: { venta: Venta; onClick: () => voi
       <div className={styles.header}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <p className={styles.title}>{venta.contacto_nombre || "Sin cliente"}</p>
-          <span className={styles.date}>S00{venta.id}</span>
+          <span className={styles.date}>S00{venta.numero}</span>
         </div>
         <span className={`${styles.status} ${getStatusClass()}`}>
           {venta.estado}

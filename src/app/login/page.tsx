@@ -38,7 +38,7 @@ export default async function LoginPage({
       </section>
 
       <section className={styles.formPanel}>
-        <LoginForm next={next && next.startsWith("/") ? next : "/"} />
+        <LoginForm next={next && next.startsWith("/") ? next : "/empresa"} />
       </section>
     </div>
   );

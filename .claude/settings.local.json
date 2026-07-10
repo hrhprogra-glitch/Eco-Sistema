@@ -36,7 +36,14 @@
       "Bash(PGPASSWORD='pollo1245' \"/c/Program Files/PostgreSQL/16/bin/psql.exe\" -h 127.0.0.1 -p 5432 -U harry -d eco_sistema -c \"SELECT id, username FROM usuarios;\")",
       "Bash(DATABASE_URL='postgresql://harry:pollo1245@127.0.0.1:5432/eco_sistema' node scripts/seed-user.mjs preview_test test1234 \"Preview Test\")",
       "Bash(PGPASSWORD='pollo1245' \"/c/Program Files/PostgreSQL/16/bin/psql.exe\" -h 127.0.0.1 -p 5432 -U harry -d eco_sistema -c \"DELETE FROM usuarios WHERE username = 'preview_test';\")",
-      "Bash(node -e \"console.log\\(require\\('dotenv'\\)\\)\")"
+      "Bash(node -e \"console.log\\(require\\('dotenv'\\)\\)\")",
+      "Bash(powershell -Command \"Get-ChildItem -Path 'C:\\\\Carolina\\\\eco-sistema' -Recurse -Include *.ts,*.tsx,*.js -File | Select-String -Pattern 'supabase|sync' -List | Select-Object Path\")",
+      "Bash(powershell -Command \"Get-ChildItem -Path 'C:\\\\Carolina\\\\eco-sistema\\\\sql' -File | Sort-Object Name\")",
+      "Bash(\"C:\\\\Program Files\\\\PostgreSQL\\\\17\\\\bin\\\\psql.exe\" -h 127.0.0.1 -p 5432 -U harry -d eco_sistema -c \"\\\\dt\")",
+      "Bash(where.exe psql *)",
+      "Bash(powershell -NoProfile -Command \"Get-ChildItem -Path 'C:\\\\Carolina\\\\eco-sistema' -Filter '.env*' -Force | Select-Object Name, Length\")",
+      "PowerShell([Environment]::GetEnvironmentVariable\\('SUPABASE_DATABASE_URL','User'\\); [Environment]::GetEnvironmentVariable\\('SUPABASE_DATABASE_URL','Machine'\\); $env:SUPABASE_DATABASE_URL)",
+      "Bash(cp \"/c/Users/USERPC~1/AppData/Local/Temp/claude/C--Carolina-eco-sistema/6c5d0fb6-8b69-46b5-b82c-9fe003e5f33f/scratchpad/test_sync.js\" \"/c/Carolina/eco-sistema/_test_sync_manual.js\")"
     ]
   }
 }

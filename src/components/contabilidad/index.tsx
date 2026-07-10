@@ -29,7 +29,7 @@ export default function ContabilidadModule() {
   const [cuentaEditando, setCuentaEditando] = useState<CuentaContable | undefined>(undefined);
 
   const [subVistaDiario, setSubVistaDiario] = useState<SubVistaDiario>("lista");
-  const [asientoSeleccionadoId, setAsientoSeleccionadoId] = useState<number | null>(null);
+  const [asientoSeleccionadoId, setAsientoSeleccionadoId] = useState<string | null>(null);
 
   const fetchAll = async () => {
     setLoading(true);
@@ -73,7 +73,7 @@ export default function ContabilidadModule() {
     setCuentaEditando(undefined);
   };
 
-  const handleDeleteCuenta = async (id: number) => {
+  const handleDeleteCuenta = async (id: string) => {
     if (!confirm("¿Eliminar esta cuenta del plan contable?")) return;
     const res = await fetch(`/api/contabilidad/cuentas/${id}`, { method: "DELETE" });
     if (res.ok) {
@@ -88,7 +88,7 @@ export default function ContabilidadModule() {
   const handleSaveAsiento = async (data: {
     fecha: string;
     descripcion: string;
-    lineas: { cuenta_id: number; debe: number; haber: number; descripcion: string | null }[];
+    lineas: { cuenta_id: string; debe: number; haber: number; descripcion: string | null }[];
   }) => {
     const res = await fetch("/api/contabilidad/asientos", {
       method: "POST",

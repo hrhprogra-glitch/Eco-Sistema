@@ -11,9 +11,9 @@ export function ProyectosList({
   proyectos: Proyecto[];
   onCreate: () => void;
   onSelect: (p: Proyecto) => void;
-  onDelete: (id: number) => void;
+  onDelete: (id: string) => void;
 }) {
-  const [openMenuId, setOpenMenuId] = useState<number | null>(null);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
   return (
     <div style={{ height: "100%", display: "flex", flexDirection: "column", background: "var(--bg-body)" }}>

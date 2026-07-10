@@ -6,7 +6,7 @@ import styles from "./ProyectoForm.module.css";
 
 type CartItem = {
   key: string;
-  producto_id: number | null;
+  producto_id: string | null;
   nombre: string;
   cantidad: number;
   precio: number;
@@ -20,14 +20,14 @@ export function ProyectoForm({
 }: {
   onSave: (data: {
     nombre: string;
-    empleados: number[];
-    items: { producto_id: number | null; nombre_externo: string | null; cantidad: number; justificacion: string | null }[];
+    empleados: string[];
+    items: { producto_id: string | null; nombre_externo: string | null; cantidad: number; justificacion: string | null }[];
   }) => void;
   onCancel: () => void;
 }) {
   const [nombre, setNombre] = useState("");
   const [empleados, setEmpleados] = useState<any[]>([]);
-  const [selectedEmpleados, setSelectedEmpleados] = useState<number[]>([]);
+  const [selectedEmpleados, setSelectedEmpleados] = useState<string[]>([]);
   const [workersOpen, setWorkersOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -39,7 +39,7 @@ export function ProyectoForm({
       .then((data) => setEmpleados(Array.isArray(data) ? data : []));
   }, []);
 
-  const toggleEmpleado = (id: number) => {
+  const toggleEmpleado = (id: string) => {
     setSelectedEmpleados((prev) =>
       prev.includes(id) ? prev.filter((e) => e !== id) : [...prev, id]
     );

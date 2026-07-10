@@ -14,11 +14,11 @@ const VACIO: PiscinaMaterialInput = {
   notas: "",
 };
 
-export function MaterialesPiscina({ piscinaId }: { piscinaId: number }) {
+export function MaterialesPiscina({ piscinaId }: { piscinaId: string }) {
   const [materiales, setMateriales] = useState<PiscinaMaterial[]>([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState<PiscinaMaterialInput>(VACIO);
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const fetchMateriales = async () => {
     setLoading(true);

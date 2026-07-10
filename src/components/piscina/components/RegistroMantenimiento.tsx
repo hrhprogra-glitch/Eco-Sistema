@@ -19,7 +19,7 @@ export function RegistroMantenimiento({
   piscinaId,
   precioMantenimiento,
 }: {
-  piscinaId: number;
+  piscinaId: string;
   precioMantenimiento: number;
 }) {
   const [registros, setRegistros] = useState<PiscinaConsumo[]>([]);
@@ -57,7 +57,7 @@ export function RegistroMantenimiento({
     if (productoId === OTRO_VALUE && !nombreExterno.trim()) return;
 
     const input: PiscinaConsumoInput = {
-      producto_id: productoId && productoId !== OTRO_VALUE ? Number(productoId) : null,
+      producto_id: productoId && productoId !== OTRO_VALUE ? productoId : null,
       nombre_externo: productoId === OTRO_VALUE ? nombreExterno.trim() : null,
       cantidad,
       notas: notas.trim() || null,

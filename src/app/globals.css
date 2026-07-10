@@ -35,6 +35,10 @@
   --status-offline: #9ca3af;
   --status-error: #dc2626;
 
+  --empresa-rail-bg: var(--eco-azul);
+  --empresa-rail-text: var(--eco-blanco);
+  --empresa-rail-active-bg: rgba(255, 255, 255, 0.12);
+
   --background: var(--bg-page);
   --foreground: var(--text-primary);
   color-scheme: light;

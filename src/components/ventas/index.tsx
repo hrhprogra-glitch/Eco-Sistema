@@ -10,7 +10,7 @@ import type { Producto } from "@/components/inventario/types";
 
 const app = getApp("ventas")!;
 
-type ContactoOption = { id: number; nombre: string };
+type ContactoOption = { id: string; nombre: string };
 type Vista = "ventas" | "detalle";
 
 export default function VentasModule() {
@@ -43,8 +43,9 @@ export default function VentasModule() {
 
   function handleNuevo() {
     setActiveVenta({
-      id: 0,
-      contacto_id: 0,
+      id: "",
+      numero: 0,
+      contacto_id: "",
       total: 0,
       estado: "borrador",
       fecha: new Date().toISOString().split("T")[0],

@@ -13,7 +13,7 @@ import type { Piscina, PiscinaInput } from "./types";
 
 const app = getApp("piscina")!;
 
-type ContactoOption = { id: number; nombre: string };
+type ContactoOption = { id: string; nombre: string };
 type Vista = "piscinas" | "alertas" | "detalle";
 
 export default function PiscinaModule() {
@@ -46,8 +46,8 @@ export default function PiscinaModule() {
 
   function handleNuevo() {
     setActivePiscina({
-      id: 0,
-      contacto_id: 0,
+      id: "",
+      contacto_id: "",
       contacto_nombre: "",
       nombre: "",
       ubicacion: "",

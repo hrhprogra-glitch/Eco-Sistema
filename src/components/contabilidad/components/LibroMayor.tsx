@@ -7,14 +7,14 @@ import { movimientoNeto } from "../naturaleza";
 import styles from "./LibroMayor.module.css";
 
 export function LibroMayor({ cuentas, asientos }: { cuentas: CuentaContable[]; asientos: AsientoContable[] }) {
-  const [cuentaId, setCuentaId] = useState<string>(cuentas[0] ? String(cuentas[0].id) : "");
-  const cuenta = cuentas.find((c) => c.id === Number(cuentaId));
+  const [cuentaId, setCuentaId] = useState<string>(cuentas[0] ? cuentas[0].id : "");
+  const cuenta = cuentas.find((c) => c.id === cuentaId);
 
   const cuentaOptions = cuentas.map((c) => ({ value: String(c.id), label: `${c.codigo} · ${c.nombre}` }));
 
   const movimientos = useMemo(() => {
     if (!cuenta) return [];
-    const filas: { fecha: string; descripcion: string; debe: number; haber: number; asientoId: number }[] = [];
+    const filas: { fecha: string; descripcion: string; debe: number; haber: number; asientoNumero: number }[] = [];
     for (const asiento of asientos) {
       if (asiento.estado !== "confirmado") continue;
       for (const linea of asiento.lineas) {
@@ -24,11 +24,11 @@ export function LibroMayor({ cuentas, asientos }: { cuentas: CuentaContable[]; a
           descripcion: linea.descripcion || asiento.descripcion,
           debe: Number(linea.debe),
           haber: Number(linea.haber),
-          asientoId: asiento.id,
+          asientoNumero: asiento.numero,
         });
       }
     }
-    filas.sort((a, b) => a.fecha.localeCompare(b.fecha) || a.asientoId - b.asientoId);
+    filas.sort((a, b) => a.fecha.localeCompare(b.fecha) || a.asientoNumero - b.asientoNumero);
 
     let saldo = 0;
     return filas.map((f) => {
@@ -66,7 +66,7 @@ export function LibroMayor({ cuentas, asientos }: { cuentas: CuentaContable[]; a
             {movimientos.map((m, i) => (
               <tr key={i}>
                 <td>{new Date(m.fecha).toLocaleDateString("es-PE")}</td>
-                <td>ASI-{String(m.asientoId).padStart(5, "0")}</td>
+                <td>ASI-{String(m.asientoNumero).padStart(5, "0")}</td>
                 <td>{m.descripcion}</td>
                 <td className={styles.amount}>{m.debe > 0 ? `S/ ${m.debe.toFixed(2)}` : "—"}</td>
                 <td className={styles.amount}>{m.haber > 0 ? `S/ ${m.haber.toFixed(2)}` : "—"}</td>

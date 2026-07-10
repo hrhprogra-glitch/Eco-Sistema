@@ -20,7 +20,7 @@ export function PlanCuentasList({
   cuentas: CuentaContable[];
   onCreate: () => void;
   onSelect: (cuenta: CuentaContable) => void;
-  onDelete: (id: number) => void;
+  onDelete: (id: string) => void;
 }) {
   const columns: Column<CuentaContable>[] = [
     { key: "codigo", header: "Código" },
