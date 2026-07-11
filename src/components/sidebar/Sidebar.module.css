@@ -6,7 +6,6 @@
   flex-direction: column;
   overflow-y: auto;
   order: 0;
-  border-right: 1px solid var(--empresa-rail-active-bg);
   transition: width 0.2s ease;
 }
 
@@ -16,8 +15,6 @@
 
 .rail[data-position="right"] {
   order: 2;
-  border-right: none;
-  border-left: 1px solid var(--empresa-rail-active-bg);
 }
 
 .header {
@@ -27,7 +24,26 @@
   height: 48px;
   flex-shrink: 0;
   padding: 0 12px;
-  border-bottom: 2px solid var(--empresa-rail-active-bg);
+  border-bottom: none;
+  position: sticky;
+  top: 0;
+  background: var(--empresa-rail-bg);
+  z-index: 10;
+}
+
+.header::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 2px;
+  height: 2px;
+  background: var(--menu-fg);
+}
+
+.rail[data-position="right"] .header::after {
+  right: auto;
+  left: 0;
 }
 
 .rail[data-collapsed] .header {
@@ -74,21 +90,36 @@
 
 .navLabel {
   padding: 4px 10px 6px;
-  color: var(--empresa-rail-text);
-  opacity: 0.6;
+  color: var(--menu-fg);
+  opacity: 0.7;
   font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.6px;
 }
 
-.empresaLabel {
+.brandBlock {
+  display: flex;
+  flex-direction: column;
   flex: 1;
   min-width: 0;
-  color: var(--eco-celeste);
+  line-height: 1.25;
+}
+
+.brandName {
+  color: var(--menu-fg);
   font-size: 14.5px;
   font-weight: 800;
   letter-spacing: 0.2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.empresaLabel {
+  color: var(--menu-fg);
+  font-size: 11px;
+  font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -98,6 +129,13 @@
   display: flex;
   flex-direction: column;
   padding: 8px 8px;
+  flex: 1;
+  border-right: 2px solid var(--menu-fg);
+}
+
+.rail[data-position="right"] .nav {
+  border-right: none;
+  border-left: 2px solid var(--menu-fg);
 }
 
 .section {
@@ -117,12 +155,12 @@
   align-items: center;
   gap: 12px;
   padding: 11px 12px 11px 9px;
-  color: var(--empresa-rail-text);
+  color: var(--menu-fg);
   font-size: 15px;
   font-weight: 600;
-  opacity: 0.85;
+  opacity: 0.9;
   border-left: 3px solid transparent;
-  transition: background-color 0.15s ease, opacity 0.15s ease, border-color 0.15s ease;
+  transition: color 0.15s ease, background-color 0.15s ease, opacity 0.15s ease, border-color 0.15s ease;
 }
 
 .rail[data-collapsed] .item {
@@ -132,13 +170,15 @@
 
 .item:hover {
   opacity: 1;
-  background: var(--empresa-rail-active-bg);
+  color: var(--menu-fg);
+  background: rgba(0, 0, 0, 0.1);
 }
 
 .item[data-active] {
   opacity: 1;
-  background: var(--empresa-rail-active-bg);
-  border-left-color: var(--eco-celeste);
+  color: var(--menu-fg);
+  background: rgba(0, 0, 0, 0.1);
+  border-left-color: var(--menu-fg);
   animation: item-glow 2.4s ease-in-out infinite;
 }
 
@@ -172,23 +212,24 @@
   align-items: center;
   gap: 9px;
   padding: 8px 10px;
-  color: var(--empresa-rail-text);
+  color: var(--menu-fg);
   font-size: 13.5px;
   font-weight: 600;
-  opacity: 0.75;
+  opacity: 0.85;
   border-radius: var(--radius);
-  transition: background-color 0.15s ease, opacity 0.15s ease;
+  transition: color 0.15s ease, background-color 0.15s ease, opacity 0.15s ease;
 }
 
 .subItem:hover {
   opacity: 1;
-  background: var(--empresa-rail-active-bg);
+  color: var(--menu-fg);
+  background: rgba(0, 0, 0, 0.1);
 }
 
 .subItem[data-active] {
   opacity: 1;
-  color: var(--eco-celeste);
-  background: var(--empresa-rail-active-bg);
+  color: var(--menu-fg);
+  background: rgba(0, 0, 0, 0.1);
   animation: item-glow 2.4s ease-in-out infinite;
 }
 

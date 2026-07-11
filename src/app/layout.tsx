@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import { Geist, Geist_Mono } from "next/font/google";
-import Script from "next/script";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import { ZoomProvider } from "@/components/zoom/ZoomProvider";
 import { SessionProvider } from "@/components/session/SessionProvider";
@@ -22,32 +22,23 @@ export const metadata: Metadata = {
   description: "Panel de aplicaciones de gestión empresarial",
 };
 
-const themeInitScript = `
-try {
-  var storedTheme = localStorage.getItem("eco-theme");
-  if (storedTheme === "dark" || storedTheme === "light") {
-    document.documentElement.setAttribute("data-theme", storedTheme);
-  }
-} catch (e) {}
-`;
-
 export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   const session = await getSession();
+  const cookieStore = await cookies();
+  const theme = cookieStore.get("eco-theme")?.value === "dark" ? "dark" : "light";
 
   return (
     <html
       lang="es"
       className={`${geistSans.variable} ${geistMono.variable}`}
+      data-theme={theme}
       suppressHydrationWarning
     >
       <body>
-        <Script id="theme-init" strategy="beforeInteractive">
-          {themeInitScript}
-        </Script>
         <SessionProvider username={session?.username ?? null}>
           <ZoomProvider>
             <ThemeProvider>{children}</ThemeProvider>

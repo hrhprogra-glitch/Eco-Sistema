@@ -10,8 +10,8 @@
   height: 30px;
   border: none;
   background: transparent;
-  color: var(--eco-blanco);
-  opacity: 0.85;
+  color: var(--menu-fg);
+  opacity: 0.9;
   cursor: pointer;
   border-radius: var(--radius);
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
@@ -19,7 +19,8 @@
 
 .trigger:hover {
   opacity: 1;
-  background: rgba(255, 255, 255, 0.2);
+  color: var(--menu-fg);
+  background: rgba(0, 0, 0, 0.1);
   transform: rotate(15deg) scale(1.1);
 }
 

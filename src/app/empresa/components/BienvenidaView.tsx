@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Building2, Check, FlaskConical, UploadCloud, type LucideIcon } from "lucide-react";
 import { logout } from "@/app/login/actions";
 import { crearEmpresa, usarDatosDePrueba } from "../actions";
+import { EmpresaTitlebar } from "./EmpresaTitlebar";
 import styles from "./BienvenidaView.module.css";
 
 type Opcion = "crear" | "subir" | "prueba";
@@ -36,6 +37,8 @@ export function BienvenidaView() {
 
   return (
     <div className={styles.shell}>
+      <EmpresaTitlebar />
+
       <div className={styles.page}>
         <aside className={styles.rail}>
           <span className={styles.railItem} data-active="">

@@ -38,10 +38,15 @@ export function Sidebar() {
         >
           <Image src={logo} alt="Eco-Sistema" className={styles.logo} priority />
         </button>
-        {!collapsed && nombreEmpresa && (
-          <span className={styles.empresaLabel} title={nombreEmpresa}>
-            {nombreEmpresa}
-          </span>
+        {!collapsed && (
+          <div className={styles.brandBlock}>
+            <span className={styles.brandName}>Eco-Sistema</span>
+            {nombreEmpresa && (
+              <span className={styles.empresaLabel} title={nombreEmpresa}>
+                {nombreEmpresa}
+              </span>
+            )}
+          </div>
         )}
       </div>
 

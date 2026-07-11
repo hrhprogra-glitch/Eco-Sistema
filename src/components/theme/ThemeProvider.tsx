@@ -12,7 +12,13 @@ import {
 type Theme = "light" | "dark";
 
 const STORAGE_KEY = "eco-theme";
+const COOKIE_KEY = "eco-theme";
+const COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
 const CHANGE_EVENT = "eco-theme-change";
+
+function setThemeCookie(theme: Theme) {
+  document.cookie = `${COOKIE_KEY}=${theme}; path=/; max-age=${COOKIE_MAX_AGE}; samesite=lax`;
+}
 
 function subscribe(callback: () => void) {
   window.addEventListener("storage", callback);
@@ -38,11 +44,13 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
+    setThemeCookie(theme);
   }, [theme]);
 
   const toggleTheme = useCallback(() => {
     const next: Theme = getSnapshot() === "light" ? "dark" : "light";
     window.localStorage.setItem(STORAGE_KEY, next);
+    setThemeCookie(next);
     window.dispatchEvent(new Event(CHANGE_EVENT));
   }, []);
 
