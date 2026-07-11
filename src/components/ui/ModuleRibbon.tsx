@@ -1,9 +1,10 @@
 "use client";
 
+
 import { FilePlus2, Copy, Pencil, Trash2, Search, Filter, Columns3, Settings, type LucideIcon } from "lucide-react";
 import styles from "./ModuleRibbon.module.css";
 
-type RibbonButton = {
+export type RibbonButton = {
   key: string;
   label: string;
   icon: LucideIcon;
@@ -11,13 +12,13 @@ type RibbonButton = {
   onClick?: () => void;
 };
 
-type RibbonGroup = {
+export type RibbonGroup = {
   key: string;
   label: string;
   buttons: RibbonButton[];
 };
 
-const DEFAULT_GROUPS: RibbonGroup[] = [
+export const DEFAULT_GROUPS: RibbonGroup[] = [
   {
     key: "mantenimiento",
     label: "Mantenimiento",

@@ -8,7 +8,7 @@ export default function PiscinaModule() {
       <ModuleRibbon />
       <EmptyState
         icon={Waves}
-        title="Piscina"
+        title="Piscinas"
         description="Este módulo está en blanco, listo para empezar a construirlo."
       />
     </>

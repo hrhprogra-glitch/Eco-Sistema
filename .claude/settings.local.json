@@ -48,7 +48,17 @@
       "Bash(grep -v \"components/ProyectoPlaceholder.tsx$\")",
       "Bash(curl -s -o /tmp/home_check.html -w \"HTTP %{http_code}\\\\n\" http://localhost:3000/login)",
       "Bash(grep -o \"Internal Server Error\\\\|Application error\\\\|Unhandled Runtime Error\" /tmp/home_check.html || echo \"sin errores en /login\")",
-      "Bash(node -e ' *)"
+      "Bash(node -e ' *)",
+      "Bash(pkill -f \"http.server 8899\")",
+      "Bash(curl -s http://localhost:3000/finanzas -o /tmp_out.html -w \"%{http_code}\\\\n\")",
+      "Bash(grep -o \"Failed to compile\\\\|Error:\" /tmp_out.html)",
+      "Bash(\"C:\\\\Program Files\\\\PostgreSQL\\\\16\\\\bin\\\\psql.exe\" -h 127.0.0.1 -p 5432 -U harry -d eco_sistema -c \"\\\\dt\")",
+      "Bash(\"C:\\\\Program Files\\\\PostgreSQL\\\\16\\\\bin\\\\psql.exe\" -h 127.0.0.1 -p 5432 -U harry -d eco_sistema -c \"SELECT 'contactos' t, count\\(*\\) FROM contactos UNION ALL SELECT 'ventas', count\\(*\\) FROM ventas UNION ALL SELECT 'calendario_eventos', count\\(*\\) FROM calendario_eventos;\")",
+      "Bash(\"C:\\\\Program Files\\\\PostgreSQL\\\\16\\\\bin\\\\psql.exe\" -h 127.0.0.1 -p 5432 -U harry -d eco_sistema -c \"\\\\d contactos\")",
+      "Bash(\"C:\\\\Program Files\\\\PostgreSQL\\\\16\\\\bin\\\\psql.exe\" -h 127.0.0.1 -p 5432 -U harry -d eco_sistema -c \"\\\\d ventas\")",
+      "Bash(\"C:\\\\Program Files\\\\PostgreSQL\\\\16\\\\bin\\\\psql.exe\" -h 127.0.0.1 -p 5432 -U harry -d eco_sistema -c \"\\\\d calendario_eventos\")",
+      "Bash(\"C:\\\\Program Files\\\\PostgreSQL\\\\16\\\\bin\\\\psql.exe\" -h 127.0.0.1 -p 5432 -U harry -d eco_sistema -c \"SELECT id, nombre FROM contactos;\")",
+      "Bash(\"C:\\\\Program Files\\\\PostgreSQL\\\\16\\\\bin\\\\psql.exe\" -h 127.0.0.1 -p 5432 -U harry -d eco_sistema -c \"select count\\(*\\) from pg_proc where proname='sync_outbox_capture';\")"
     ]
   }
 }

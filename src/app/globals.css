@@ -39,6 +39,7 @@
   --empresa-rail-text: var(--eco-blanco);
   --empresa-rail-active-bg: rgba(255, 255, 255, 0.12);
   --menu-fg: #000000;
+  --menu-border-fg: var(--eco-azul);
 
   --ribbon-bg: #e0f2fe;
   --ribbon-border: var(--border-color);
@@ -84,6 +85,7 @@
   --ribbon-border: var(--border-color);
   --ribbon-hover-bg: rgba(56, 189, 248, 0.12);
   --menu-fg: #ffffff;
+  --menu-border-fg: var(--eco-azul);
 
   --background: var(--bg-page);
   --foreground: var(--text-primary);

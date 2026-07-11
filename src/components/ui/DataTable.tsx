@@ -10,20 +10,16 @@ export interface Column<T> {
 interface DataTableProps<T> {
   data: T[];
   columns: Column<T>[];
-  onCreate?: () => void;
   onRowClick?: (item: T) => void;
   isRowSelected?: (item: T) => boolean;
-  createLabel?: string;
   emptyMessage?: string;
 }
 
 export function DataTable<T>({
   data,
   columns,
-  onCreate,
   onRowClick,
   isRowSelected,
-  createLabel = "Nuevo",
   emptyMessage = "No hay registros disponibles."
 }: DataTableProps<T>) {
   const [sortKey, setSortKey] = useState<Extract<keyof T, string> | null>(null);
@@ -52,13 +48,6 @@ export function DataTable<T>({
 
   return (
     <div className={styles.container}>
-      <div className={styles.toolbar}>
-        {onCreate && (
-          <button className={styles.createBtn} onClick={onCreate}>
-            {createLabel}
-          </button>
-        )}
-      </div>
       <div className={styles.tableWrapper}>
         <table className={styles.table}>
           <thead>

@@ -10,7 +10,6 @@
   padding: 0 16px 0 0;
   background: var(--eco-azul);
   color: var(--eco-blanco);
-  border-bottom: 2px solid var(--menu-fg);
   transition: background-color 0.2s ease;
 }
 
@@ -32,19 +31,23 @@
 .sectionTab {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 16px 10px;
+  gap: 5px;
+  padding: 6px 8px 8px;
   color: var(--menu-fg);
-  font-size: 13.5px;
+  font-size: 11.5px;
   font-weight: 500;
   border-radius: 6px 6px 0 0;
-  border: 2px solid transparent;
-  border-bottom: none;
-  margin-bottom: -2px;
-  position: relative;
-  z-index: 1;
+  flex-shrink: 0;
   text-decoration: none;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: color 0.25s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.25s cubic-bezier(0.4, 0, 0.2, 1), transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sectionIcon {
+  flex-shrink: 0;
+}
+
+.sectionLabel {
+  white-space: nowrap;
 }
 
 .sectionTab:hover {
@@ -57,8 +60,6 @@
   color: var(--menu-fg);
   background: var(--ribbon-bg);
   font-weight: 700;
-  border-color: var(--menu-fg);
-  transform: none;
 }
 
 .center {

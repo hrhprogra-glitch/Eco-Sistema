@@ -8,8 +8,6 @@ import { SettingsMenu } from "@/components/topbar/SettingsMenu";
 import { UserMenu } from "@/components/session/UserMenu";
 import styles from "./Topbar.module.css";
 
-const MAX_SESIONES_VISIBLES = 4;
-
 export function Topbar() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -17,8 +15,8 @@ export function Topbar() {
   const activeSectionSlug = searchParams.get("s");
 
   const group = appGroups.find((g) => g.slug === activeGroupSlug);
-  const sections = group?.sections.filter((s) => s.implemented).slice(0, MAX_SESIONES_VISIBLES) || [];
-  const defaultSectionSlug = sections[0]?.slug ?? group?.sections[0]?.slug;
+  const sections = group?.sections || [];
+  const defaultSectionSlug = sections[0]?.slug;
 
   return (
     <header className={styles.topbar}>
@@ -35,8 +33,8 @@ export function Topbar() {
                   className={styles.sectionTab}
                   data-active={isSectionActive ? "" : undefined}
                 >
-                  <SecIcon size={16} />
-                  <span>{sec.name}</span>
+                  <SecIcon size={14} className={styles.sectionIcon} />
+                  <span className={styles.sectionLabel}>{sec.name}</span>
                 </Link>
               );
             })}

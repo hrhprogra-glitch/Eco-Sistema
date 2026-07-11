@@ -8,7 +8,7 @@ export default function InventarioModule() {
       <ModuleRibbon />
       <EmptyState
         icon={Package}
-        title="Inventario"
+        title="Productos"
         description="Este módulo está en blanco, listo para empezar a construirlo."
       />
     </>

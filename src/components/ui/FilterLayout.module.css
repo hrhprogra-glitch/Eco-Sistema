@@ -1,0 +1,102 @@
+.container {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+}
+
+.mainContent {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.alphabetIndex {
+  width: 32px;
+  background: var(--bg-surface);
+  border-left: 1px solid var(--border-color);
+  border-right: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 8px 0;
+  flex-shrink: 0;
+}
+
+.letter {
+  width: 100%;
+  text-align: center;
+  padding: 4px 0;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: all 0.2s;
+  user-select: none;
+}
+
+.letter:hover {
+  background: var(--ribbon-hover-bg);
+  color: var(--eco-azul);
+}
+
+.letter[data-active] {
+  background: var(--eco-azul);
+  color: white;
+}
+
+.sidebar {
+  width: 220px;
+  background: var(--bg-sidebar);
+  border-left: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  flex-shrink: 0;
+  transition: width 0.3s ease, padding 0.3s ease, margin 0.3s ease;
+}
+
+.sidebar[data-hidden] {
+  width: 0;
+  border-left: none;
+  overflow: hidden;
+}
+
+.filterSection {
+  padding: 0;
+}
+
+.sectionTitle {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  padding: 6px 12px;
+  background: rgba(0, 0, 0, 0.04);
+}
+
+:root[data-theme="dark"] .sectionTitle {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.sectionContent {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.radioLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.radioInput {
+  margin: 0;
+}

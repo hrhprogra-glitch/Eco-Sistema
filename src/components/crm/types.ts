@@ -1,16 +1,14 @@
+export type EtapaOportunidad = "nuevo" | "calificado" | "propuesta" | "ganado" | "perdido";
+
 export type Oportunidad = {
   id: string;
   titulo: string;
-  contacto: string;
-  etapa: "nuevo" | "calificado" | "propuesta" | "ganado" | "perdido";
+  contacto_id: string;
+  contacto_nombre?: string;
+  etapa: EtapaOportunidad;
   monto_estimado: number;
+  notas: string;
   created_at: string;
 };
 
-export type CrmTables = {
-  oportunidades: {
-    Row: Oportunidad;
-    Insert: Omit<Oportunidad, "id" | "created_at"> & Partial<Pick<Oportunidad, "id" | "created_at">>;
-    Update: Partial<Oportunidad>;
-  };
-};
+export type OportunidadInput = Omit<Oportunidad, "id" | "created_at" | "contacto_nombre">;

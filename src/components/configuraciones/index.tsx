@@ -8,7 +8,7 @@ export default function ConfiguracionesModule() {
       <ModuleRibbon />
       <EmptyState
         icon={Settings}
-        title="Configuraciones"
+        title="Configuración"
         description="Este módulo está en blanco, listo para empezar a construirlo."
       />
     </>

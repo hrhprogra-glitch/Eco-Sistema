@@ -22,6 +22,14 @@ export type Contacto = {
   telefono: string;
   sitioWeb: string;
   puestoTrabajo: string;
+  codigo?: string;
+  nombreFiscal?: string;
+  fax?: string;
+  movil?: string;
+  personaContacto?: string;
+  nif?: string;
+  agente?: string;
+  tipoCliente?: string;
   direccion: Direccion;
   identificaciones: Identificacion[];
   etiquetas: string[];

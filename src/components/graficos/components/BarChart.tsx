@@ -23,22 +23,17 @@ export function BarChart({ data, color }: { data: ChartDatum[]; color: string })
           const barHeight = (d.value / max) * (CHART_HEIGHT - AXIS_PADDING - 4);
           const x = i * COLUMN_WIDTH + (COLUMN_WIDTH - BAR_WIDTH) / 2;
           const y = CHART_HEIGHT - AXIS_PADDING - barHeight;
-          return (
-            <g key={d.label}>
-              <rect x={x} y={y} width={BAR_WIDTH} height={barHeight} rx={2} fill={color} />
-              <text
-                x={i * COLUMN_WIDTH + COLUMN_WIDTH / 2}
-                y={CHART_HEIGHT - 6}
-                textAnchor="middle"
-                className={styles.label}
-              >
-                {d.label}
-              </text>
-            </g>
-          );
+          return <rect key={d.label} x={x} y={y} width={BAR_WIDTH} height={barHeight} rx={2} fill={color} />;
         })}
         <line x1={0} y1={CHART_HEIGHT - AXIS_PADDING} x2={width} y2={CHART_HEIGHT - AXIS_PADDING} className={styles.axis} />
       </svg>
+      <div className={styles.xAxis}>
+        {data.map((d) => (
+          <span key={d.label} className={styles.label}>
+            {d.label}
+          </span>
+        ))}
+      </div>
     </div>
   );
 }

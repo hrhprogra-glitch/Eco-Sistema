@@ -5,7 +5,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import logo from "@/app/imagenes/logo.png";
 import { appGroups } from "@/components/lib/apps";
-import { useEmpresa } from "@/components/empresa/EmpresaProvider";
 import { useSidebar } from "./SidebarProvider";
 import styles from "./Sidebar.module.css";
 
@@ -21,7 +20,6 @@ const SIDEBAR_SECTIONS: { label: string; slugs: string[] }[] = [
 export function Sidebar() {
   const pathname = usePathname();
   const { collapsed, toggle, position } = useSidebar();
-  const { nombre: nombreEmpresa } = useEmpresa();
   const activeGroupSlug = pathname.split("/")[1] || null;
 
   return (
@@ -43,11 +41,6 @@ export function Sidebar() {
         {!collapsed && (
           <div className={styles.brandBlock}>
             <span className={styles.brandName}>Eco-Sistema</span>
-            {nombreEmpresa && (
-              <span className={styles.empresaLabel} title={nombreEmpresa}>
-                {nombreEmpresa}
-              </span>
-            )}
           </div>
         )}
       </div>
