@@ -17,6 +17,10 @@ import ContactoModule from "@/components/contacto";
 import PiscinaModule from "@/components/piscina";
 import ConfiguracionesModule from "@/components/configuraciones";
 import CalendarioModule from "@/components/calendario";
+import ComercialCharts from "@/components/graficos/components/ComercialCharts";
+import FinanzasCharts from "@/components/graficos/components/FinanzasCharts";
+import InventarioCharts from "@/components/graficos/components/InventarioCharts";
+import AnaliticaCharts from "@/components/graficos/components/AnaliticaCharts";
 
 const sectionComponents: Record<string, React.ComponentType> = {
   ventas: VentasModule,
@@ -32,6 +36,10 @@ const sectionComponents: Record<string, React.ComponentType> = {
   piscina: PiscinaModule,
   configuraciones: ConfiguracionesModule,
   calendario: CalendarioModule,
+  "graficos-comercial": ComercialCharts,
+  "graficos-finanzas": FinanzasCharts,
+  "graficos-inventario": InventarioCharts,
+  "graficos-analitica": AnaliticaCharts,
 };
 
 export function GroupPage({ groupSlug }: { groupSlug: string }) {

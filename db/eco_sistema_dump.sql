@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict dPIO9fD1RzGaSVlbct2vXTJgY91eEDKcQHmqKOjPrJrb4sbUo0ZW2SFjgLmCBJV
+\restrict C4IwAf9LxrGpq4Ekiz1qbjrS2opPiMwsAofjwcZJMoNIDDuY9DgkitMhfZLVds1
 
 -- Dumped from database version 17.10
 -- Dumped by pg_dump version 17.10
@@ -859,6 +859,8 @@ COPY public.sync_outbox (id, table_name, operation, payload, created_at, synced_
 25	usuarios	DELETE	{"id": "3e56f1ac-1b49-42c4-a9ed-489a1701c74b", "username": "claude_qa_test", "created_at": "2026-07-10T22:36:51.39414-05:00", "updated_at": "2026-07-10T22:36:51.39414-05:00", "password_hash": "$2b$10$2290Ljfz5vPBbSgBKzkB/ulIrFTt/C1S6sj.a8yZnIS7bGSJbVs1a", "nombre_completo": "QA Test"}	2026-07-10 22:37:43.70056-05	\N	0	\N
 26	usuarios	INSERT	{"id": "ba2c391d-06b9-483b-9baf-114861fefb58", "username": "claude_qa_test", "created_at": "2026-07-10T22:43:15.743525-05:00", "updated_at": "2026-07-10T22:43:15.743525-05:00", "password_hash": "$2b$10$75G/Q2Xk5W/pURvPdB9qou1uHIYzKzmbzkODNGivA2YiyDTKI/YgG", "nombre_completo": "QA Test"}	2026-07-10 22:43:15.743525-05	\N	0	\N
 27	usuarios	DELETE	{"id": "ba2c391d-06b9-483b-9baf-114861fefb58", "username": "claude_qa_test", "created_at": "2026-07-10T22:43:15.743525-05:00", "updated_at": "2026-07-10T22:43:15.743525-05:00", "password_hash": "$2b$10$75G/Q2Xk5W/pURvPdB9qou1uHIYzKzmbzkODNGivA2YiyDTKI/YgG", "nombre_completo": "QA Test"}	2026-07-10 22:43:57.523571-05	\N	0	\N
+28	usuarios	INSERT	{"id": "62cff45d-1c6e-4091-92a8-c5bd7d0ad4b8", "username": "claude_qa_test", "created_at": "2026-07-11T00:37:11.985391-05:00", "updated_at": "2026-07-11T00:37:11.985391-05:00", "password_hash": "$2b$10$Ll3nj/PWkMbtM7KvHzcCPufjrZ6EC32ku5culXWpFNNyBSbd8jdIi", "nombre_completo": "QA Test"}	2026-07-11 00:37:11.985391-05	\N	0	\N
+29	usuarios	DELETE	{"id": "62cff45d-1c6e-4091-92a8-c5bd7d0ad4b8", "username": "claude_qa_test", "created_at": "2026-07-11T00:37:11.985391-05:00", "updated_at": "2026-07-11T00:37:11.985391-05:00", "password_hash": "$2b$10$Ll3nj/PWkMbtM7KvHzcCPufjrZ6EC32ku5culXWpFNNyBSbd8jdIi", "nombre_completo": "QA Test"}	2026-07-11 00:38:17.573539-05	\N	0	\N
 \.
 
 
@@ -907,7 +909,7 @@ SELECT pg_catalog.setval('public.asientos_contables_numero_seq', 1, true);
 -- Name: sync_outbox_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.sync_outbox_id_seq', 27, true);
+SELECT pg_catalog.setval('public.sync_outbox_id_seq', 29, true);
 
 
 --
@@ -1476,5 +1478,5 @@ ALTER TABLE ONLY public.venta_lineas
 -- PostgreSQL database dump complete
 --
 
-\unrestrict dPIO9fD1RzGaSVlbct2vXTJgY91eEDKcQHmqKOjPrJrb4sbUo0ZW2SFjgLmCBJV
+\unrestrict C4IwAf9LxrGpq4Ekiz1qbjrS2opPiMwsAofjwcZJMoNIDDuY9DgkitMhfZLVds1
 

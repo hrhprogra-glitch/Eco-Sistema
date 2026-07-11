@@ -7,6 +7,12 @@
   overflow-y: auto;
   order: 0;
   transition: width 0.2s ease;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.rail::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
 }
 
 .rail[data-collapsed] {

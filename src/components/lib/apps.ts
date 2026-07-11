@@ -41,6 +41,7 @@ import {
   Target,
   FileBarChart,
   BarChart3,
+  LineChart,
   UserCog,
   ShieldCheck,
   Building2,
@@ -143,7 +144,6 @@ export const appGroups: ModuleGroup[] = [
     sections: [
       { slug: "proyectos", name: "Proyectos", icon: FolderKanban, implemented: true },
       { slug: "calendario", name: "Calendario", icon: CalendarDays, implemented: true },
-      { slug: "piscina", name: "Piscina", icon: Waves, implemented: true },
       { slug: "tareas", name: "Tareas", icon: CheckSquare, implemented: false },
       { slug: "ordenes-trabajo", name: "Órdenes de trabajo", icon: Wrench, implemented: false },
       { slug: "seguimiento-operaciones", name: "Seguimiento", icon: Activity, implemented: false },
@@ -177,6 +177,19 @@ export const appGroups: ModuleGroup[] = [
     ],
   },
   {
+    slug: "resumen",
+    name: "Gráficos",
+    description: "Panel visual con gráficos y métricas clave del negocio.",
+    color: "#5E35B1",
+    icon: LineChart,
+    sections: [
+      { slug: "graficos-comercial", name: "Comercial", icon: TrendingUp, implemented: true },
+      { slug: "graficos-finanzas", name: "Finanzas", icon: Calculator, implemented: true },
+      { slug: "graficos-inventario", name: "Inventario", icon: Package, implemented: true },
+      { slug: "graficos-analitica", name: "Analítica", icon: BarChart3, implemented: true },
+    ],
+  },
+  {
     slug: "administracion",
     name: "Administración",
     description: "Usuarios, roles, permisos, configuraciones, empresas, sucursales, integraciones y auditoría.",
@@ -190,6 +203,16 @@ export const appGroups: ModuleGroup[] = [
       { slug: "sucursales", name: "Sucursales", icon: MapPin, implemented: false },
       { slug: "integraciones", name: "Integraciones", icon: Plug, implemented: false },
       { slug: "auditoria", name: "Auditoría", icon: History, implemented: false },
+    ],
+  },
+  {
+    slug: "piscina",
+    name: "Piscina",
+    description: "Gestión de piscinas, pagos y materiales.",
+    color: "#0288D1",
+    icon: Waves,
+    sections: [
+      { slug: "piscina", name: "Piscina", icon: Waves, implemented: true },
     ],
   },
 ];

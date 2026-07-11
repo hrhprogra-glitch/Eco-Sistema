@@ -8,7 +8,7 @@ import { SettingsMenu } from "@/components/topbar/SettingsMenu";
 import { UserMenu } from "@/components/session/UserMenu";
 import styles from "./Topbar.module.css";
 
-const MAX_SESIONES_VISIBLES = 3;
+const MAX_SESIONES_VISIBLES = 4;
 
 export function Topbar() {
   const pathname = usePathname();

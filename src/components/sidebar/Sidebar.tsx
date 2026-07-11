@@ -10,10 +10,12 @@ import { useSidebar } from "./SidebarProvider";
 import styles from "./Sidebar.module.css";
 
 const SIDEBAR_SECTIONS: { label: string; slugs: string[] }[] = [
+  { label: "Resumen", slugs: ["resumen"] },
   { label: "Ingresos", slugs: ["comercial", "finanzas"] },
   { label: "Recursos", slugs: ["inventario", "activos"] },
   { label: "Operación", slugs: ["recursos-humanos", "operaciones"] },
   { label: "Gestión", slugs: ["analitica", "administracion"] },
+  { label: "Piscina", slugs: ["piscina"] },
 ];
 
 export function Sidebar() {
