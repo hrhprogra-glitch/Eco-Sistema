@@ -39,6 +39,10 @@
   --empresa-rail-text: var(--eco-blanco);
   --empresa-rail-active-bg: rgba(255, 255, 255, 0.12);
 
+  --ribbon-bg: #e0f2fe;
+  --ribbon-border: var(--border-color);
+  --ribbon-hover-bg: rgba(2, 132, 199, 0.08);
+
   --background: var(--bg-page);
   --foreground: var(--text-primary);
   color-scheme: light;
@@ -74,6 +78,10 @@
   --status-pending: #fbbf24;
   --status-offline: #6b7280;
   --status-error: #f87171;
+
+  --ribbon-bg: #16233a;
+  --ribbon-border: var(--border-color);
+  --ribbon-hover-bg: rgba(56, 189, 248, 0.12);
 
   --background: var(--bg-page);
   --foreground: var(--text-primary);

@@ -1,49 +1,55 @@
-import Image from "next/image";
+"use client";
+
+import { usePathname, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import logo from "@/app/imagenes/logo.png";
-import type { LucideIcon } from "lucide-react";
-import { ThemeToggle } from "@/components/theme/ThemeToggle";
-import { ZoomControl } from "@/components/zoom/ZoomControl";
+import { appGroups } from "@/components/lib/apps";
+import { AlertsMenu } from "@/components/topbar/AlertsMenu";
+import { SettingsMenu } from "@/components/topbar/SettingsMenu";
 import { UserMenu } from "@/components/session/UserMenu";
-import { SyncStatus } from "@/components/sync/SyncStatus";
 import styles from "./Topbar.module.css";
 
-export function Topbar({
-  title,
-  icon: Icon,
-  showBack = false,
-  children,
-}: {
-  title?: string;
-  icon?: LucideIcon;
-  showBack?: boolean;
-  children?: React.ReactNode;
-}) {
+const MAX_SESIONES_VISIBLES = 3;
+
+export function Topbar() {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const activeGroupSlug = pathname.split("/")[1] || null;
+  const activeSectionSlug = searchParams.get("s");
+
+  const group = appGroups.find((g) => g.slug === activeGroupSlug);
+  const sections = group?.sections.filter((s) => s.implemented).slice(0, MAX_SESIONES_VISIBLES) || [];
+  const defaultSectionSlug = sections[0]?.slug ?? group?.sections[0]?.slug;
+
   return (
     <header className={styles.topbar}>
       <div className={styles.left}>
-        {showBack && (
-          <Link href="/" className={styles.back}>
-            ← Inicio
-          </Link>
+        {group && sections.length > 1 && (
+          <nav className={styles.sectionsNav}>
+            {sections.map((sec) => {
+              const SecIcon = sec.icon;
+              const isSectionActive = (activeSectionSlug ?? defaultSectionSlug) === sec.slug;
+              return (
+                <Link
+                  key={sec.slug}
+                  href={`/${group.slug}?s=${sec.slug}`}
+                  className={styles.sectionTab}
+                  data-active={isSectionActive ? "" : undefined}
+                >
+                  <SecIcon size={16} />
+                  <span>{sec.name}</span>
+                </Link>
+              );
+            })}
+          </nav>
         )}
-        <Image src={logo} alt="Eco-Sistema" className={styles.logo} priority />
-        {title && (
-          <>
-            <span className={styles.divider}>/</span>
-            {Icon && <Icon size={18} className={styles.icon} />}
-            <span className={styles.title}>{title}</span>
-          </>
-        )}
-        {children && <div className={styles.navLinks}>{children}</div>}
+      </div>
+
+      <div className={styles.center}>
       </div>
 
       <div className={styles.right}>
-        <SyncStatus />
-        <div className={styles.separator} />
-        <ZoomControl />
-        <div className={styles.separator} />
-        <ThemeToggle />
+        <AlertsMenu />
+        <SettingsMenu />
         <div className={styles.separator} />
         <UserMenu />
       </div>

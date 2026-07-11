@@ -23,7 +23,6 @@ import { logout } from "@/app/login/actions";
 import { EmptyState } from "@/components/EmptyState";
 import { entrarAEmpresa } from "../actions";
 import type { EmpresaActual } from "../types";
-import { EmpresaTitlebar } from "./EmpresaTitlebar";
 import styles from "./AbrirView.module.css";
 
 type Seccion = "informacion" | "nuevo" | "abrir" | "cerrar" | "seguridad" | "registro" | "opciones";
@@ -65,8 +64,6 @@ export function AbrirView({
 
   return (
     <div className={styles.shell}>
-      <EmpresaTitlebar />
-
       <div className={styles.page}>
         <aside className={styles.rail}>
           <form action={logout}>

@@ -43,7 +43,12 @@
       "Bash(where.exe psql *)",
       "Bash(powershell -NoProfile -Command \"Get-ChildItem -Path 'C:\\\\Carolina\\\\eco-sistema' -Filter '.env*' -Force | Select-Object Name, Length\")",
       "PowerShell([Environment]::GetEnvironmentVariable\\('SUPABASE_DATABASE_URL','User'\\); [Environment]::GetEnvironmentVariable\\('SUPABASE_DATABASE_URL','Machine'\\); $env:SUPABASE_DATABASE_URL)",
-      "Bash(cp \"/c/Users/USERPC~1/AppData/Local/Temp/claude/C--Carolina-eco-sistema/6c5d0fb6-8b69-46b5-b82c-9fe003e5f33f/scratchpad/test_sync.js\" \"/c/Carolina/eco-sistema/_test_sync_manual.js\")"
+      "Bash(cp \"/c/Users/USERPC~1/AppData/Local/Temp/claude/C--Carolina-eco-sistema/6c5d0fb6-8b69-46b5-b82c-9fe003e5f33f/scratchpad/test_sync.js\" \"/c/Carolina/eco-sistema/_test_sync_manual.js\")",
+      "Bash(mkdir -p \"/e/Programacion/eco-sistema/src/app/\\(panel\\)/[slug]\")",
+      "Bash(grep -v \"components/ProyectoPlaceholder.tsx$\")",
+      "Bash(curl -s -o /tmp/home_check.html -w \"HTTP %{http_code}\\\\n\" http://localhost:3000/login)",
+      "Bash(grep -o \"Internal Server Error\\\\|Application error\\\\|Unhandled Runtime Error\" /tmp/home_check.html || echo \"sin errores en /login\")",
+      "Bash(node -e ' *)"
     ]
   }
 }

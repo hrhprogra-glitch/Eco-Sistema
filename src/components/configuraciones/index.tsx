@@ -1,13 +1,16 @@
-import { ModuleLayout } from "@/components/ModuleLayout";
-import { getApp } from "@/components/lib/apps";
-import { ConfiguracionPlaceholder } from "./components/ConfiguracionPlaceholder";
-
-const app = getApp("configuraciones")!;
+import { Settings } from "lucide-react";
+import { EmptyState } from "@/components/EmptyState";
+import { ModuleRibbon } from "@/components/ui/ModuleRibbon";
 
 export default function ConfiguracionesModule() {
   return (
-    <ModuleLayout app={app}>
-      <ConfiguracionPlaceholder />
-    </ModuleLayout>
+    <>
+      <ModuleRibbon />
+      <EmptyState
+        icon={Settings}
+        title="Configuraciones"
+        description="Este módulo está en blanco, listo para empezar a construirlo."
+      />
+    </>
   );
 }

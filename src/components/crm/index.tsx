@@ -1,13 +1,16 @@
-import { ModuleLayout } from "@/components/ModuleLayout";
-import { getApp } from "@/components/lib/apps";
-import { OportunidadPlaceholder } from "./components/OportunidadPlaceholder";
-
-const app = getApp("crm")!;
+import { Handshake } from "lucide-react";
+import { EmptyState } from "@/components/EmptyState";
+import { ModuleRibbon } from "@/components/ui/ModuleRibbon";
 
 export default function CrmModule() {
   return (
-    <ModuleLayout app={app}>
-      <OportunidadPlaceholder />
-    </ModuleLayout>
+    <>
+      <ModuleRibbon />
+      <EmptyState
+        icon={Handshake}
+        title="CRM"
+        description="Este módulo está en blanco, listo para empezar a construirlo."
+      />
+    </>
   );
 }

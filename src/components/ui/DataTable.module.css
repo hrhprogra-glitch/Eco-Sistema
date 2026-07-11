@@ -91,6 +91,11 @@
   background: rgba(0, 0, 0, 0.02);
 }
 
+.tr[data-selected] {
+  background: var(--badge-cliente-bg);
+  box-shadow: inset 3px 0 0 var(--eco-celeste);
+}
+
 .emptyState {
   padding: 32px;
   text-align: center;

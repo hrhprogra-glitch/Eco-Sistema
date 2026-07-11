@@ -1,13 +1,16 @@
-import { ModuleLayout } from "@/components/ModuleLayout";
-import { getApp } from "@/components/lib/apps";
-import { FacturaPlaceholder } from "./components/FacturaPlaceholder";
-
-const app = getApp("facturacion")!;
+import { Receipt } from "lucide-react";
+import { EmptyState } from "@/components/EmptyState";
+import { ModuleRibbon } from "@/components/ui/ModuleRibbon";
 
 export default function FacturacionModule() {
   return (
-    <ModuleLayout app={app}>
-      <FacturaPlaceholder />
-    </ModuleLayout>
+    <>
+      <ModuleRibbon />
+      <EmptyState
+        icon={Receipt}
+        title="Facturación"
+        description="Este módulo está en blanco, listo para empezar a construirlo."
+      />
+    </>
   );
 }

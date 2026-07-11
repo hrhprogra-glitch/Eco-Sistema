@@ -1,0 +1,54 @@
+.window {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 32px);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.28);
+  overflow: hidden;
+}
+
+.titleBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background: var(--accent-strong);
+  color: var(--eco-blanco);
+  cursor: move;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.titleText {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.closeButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  color: var(--eco-blanco);
+  cursor: pointer;
+}
+
+.closeButton:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.content {
+  padding: 20px;
+  overflow-y: auto;
+}

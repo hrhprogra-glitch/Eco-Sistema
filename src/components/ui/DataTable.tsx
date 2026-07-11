@@ -12,6 +12,7 @@ interface DataTableProps<T> {
   columns: Column<T>[];
   onCreate?: () => void;
   onRowClick?: (item: T) => void;
+  isRowSelected?: (item: T) => boolean;
   createLabel?: string;
   emptyMessage?: string;
 }
@@ -21,6 +22,7 @@ export function DataTable<T>({
   columns,
   onCreate,
   onRowClick,
+  isRowSelected,
   createLabel = "Nuevo",
   emptyMessage = "No hay registros disponibles."
 }: DataTableProps<T>) {
@@ -82,9 +84,10 @@ export function DataTable<T>({
           <tbody>
             {sortedData.length > 0 ? (
               sortedData.map((item, index) => (
-                <tr 
-                  key={index} 
-                  className={styles.tr} 
+                <tr
+                  key={index}
+                  className={styles.tr}
+                  data-selected={isRowSelected?.(item) ? "" : undefined}
                   onClick={() => onRowClick?.(item)}
                 >
                   {columns.map((col) => (
