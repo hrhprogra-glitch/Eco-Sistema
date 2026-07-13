@@ -3,48 +3,49 @@
 import { useState } from "react";
 import { FormLayout } from "@/components/ui/FormLayout";
 import fieldStyles from "@/components/ui/formFields.module.css";
-import type { Contacto, Direccion } from "../types";
+import type { Contacto } from "../types";
 
-type ContactoFormData = Omit<Contacto, "id" | "created_at">;
-
-const DIRECCION_VACIA: Direccion = {
-  calle: "",
-  calle2: "",
-  distrito: "",
-  ciudad: "",
-  estado: "",
-  zip: "",
-  pais: "",
-};
+type ContactoFormData = Pick<
+  Contacto,
+  "nombre" | "tipo" | "telefono" | "email" | "movil" | "personaContacto" | "ubicacionUrl"
+> & { direccion: string };
 
 const DATOS_VACIOS: ContactoFormData = {
   nombre: "",
   tipo: "cliente",
-  esEmpresa: false,
-  email: "",
   telefono: "",
-  sitioWeb: "",
-  puestoTrabajo: "",
-  direccion: DIRECCION_VACIA,
-  identificaciones: [],
-  etiquetas: [],
-  contactosRelacionados: [],
-  notas: "",
+  email: "",
+  movil: "",
+  personaContacto: "",
+  direccion: "",
+  ubicacionUrl: "",
 };
 
 export function ContactoForm({
   contacto,
-  onSaved,
   onCancel,
+  onSaved,
   onDeleted,
 }: {
   contacto?: Contacto;
-  onSaved: () => void;
   onCancel: () => void;
+  onSaved: () => void;
   onDeleted: () => void;
 }) {
-  const [data, setData] = useState<ContactoFormData>(contacto ? { ...contacto } : DATOS_VACIOS);
-  const [etiquetasTexto, setEtiquetasTexto] = useState(contacto?.etiquetas.join(", ") ?? "");
+  const [data, setData] = useState<ContactoFormData>(
+    contacto
+      ? {
+          nombre: contacto.nombre,
+          tipo: contacto.tipo,
+          telefono: contacto.telefono,
+          email: contacto.email,
+          movil: contacto.movil ?? "",
+          personaContacto: contacto.personaContacto ?? "",
+          direccion: contacto.direccion?.calle ?? "",
+          ubicacionUrl: contacto.ubicacionUrl ?? "",
+        }
+      : DATOS_VACIOS
+  );
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -52,14 +53,10 @@ export function ContactoForm({
     setData((prev) => ({ ...prev, [key]: value }));
   }
 
-  function setDireccion(key: keyof Direccion, value: string) {
-    setData((prev) => ({ ...prev, direccion: { ...prev.direccion, [key]: value } }));
-  }
-
-  async function handleSave() {
+  async function guardar(): Promise<boolean> {
     if (!data.nombre.trim()) {
       setError("El nombre es obligatorio.");
-      return;
+      return false;
     }
 
     setIsSaving(true);
@@ -67,10 +64,7 @@ export function ContactoForm({
     try {
       const payload = {
         ...data,
-        etiquetas: etiquetasTexto
-          .split(",")
-          .map((t) => t.trim())
-          .filter(Boolean),
+        direccion: { calle: data.direccion, calle2: "", distrito: "", ciudad: "", estado: "", zip: "", pais: "" },
       };
       const res = await fetch(contacto ? `/api/contactos/${contacto.id}` : "/api/contactos", {
         method: contacto ? "PATCH" : "POST",
@@ -78,12 +72,22 @@ export function ContactoForm({
         body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error("No se pudo guardar el contacto.");
-      onSaved();
+      return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error desconocido.");
+      return false;
     } finally {
       setIsSaving(false);
     }
+  }
+
+  async function handleSave() {
+    if (await guardar()) onSaved();
+  }
+
+  async function handleSaveAndNew() {
+    if (!(await guardar())) return;
+    setData(DATOS_VACIOS);
   }
 
   async function handleDelete() {
@@ -103,7 +107,14 @@ export function ContactoForm({
   }
 
   return (
-    <FormLayout onSave={handleSave} onCancel={onCancel} isSaving={isSaving}>
+    <FormLayout
+      title={contacto ? contacto.nombre : "Nuevo cliente"}
+      onSave={handleSave}
+      onCancel={onCancel}
+      onSaveAndNew={contacto ? undefined : handleSaveAndNew}
+      onDelete={contacto ? handleDelete : undefined}
+      isSaving={isSaving}
+    >
       {error && <p className={fieldStyles.errorBanner}>{error}</p>}
 
       <div className={fieldStyles.row}>
@@ -116,7 +127,43 @@ export function ContactoForm({
           />
         </label>
         <label className={fieldStyles.field}>
-          <span className={fieldStyles.label}>Tipo</span>
+          <span className={fieldStyles.label}>Teléfono</span>
+          <input
+            className={fieldStyles.input}
+            value={data.telefono}
+            onChange={(e) => setField("telefono", e.target.value)}
+          />
+        </label>
+        <label className={fieldStyles.field}>
+          <span className={fieldStyles.label}>E-mail</span>
+          <input
+            type="email"
+            className={fieldStyles.input}
+            value={data.email}
+            onChange={(e) => setField("email", e.target.value)}
+          />
+        </label>
+      </div>
+
+      <div className={fieldStyles.row}>
+        <label className={fieldStyles.field}>
+          <span className={fieldStyles.label}>Móvil</span>
+          <input
+            className={fieldStyles.input}
+            value={data.movil}
+            onChange={(e) => setField("movil", e.target.value)}
+          />
+        </label>
+        <label className={fieldStyles.field}>
+          <span className={fieldStyles.label}>Persona de contacto</span>
+          <input
+            className={fieldStyles.input}
+            value={data.personaContacto}
+            onChange={(e) => setField("personaContacto", e.target.value)}
+          />
+        </label>
+        <label className={fieldStyles.field}>
+          <span className={fieldStyles.label}>Tipo de cliente</span>
           <select
             className={fieldStyles.select}
             value={data.tipo}
@@ -127,135 +174,28 @@ export function ContactoForm({
             <option value="otro">Otro</option>
           </select>
         </label>
-        <label className={fieldStyles.checkboxRow}>
-          <input
-            type="checkbox"
-            checked={data.esEmpresa}
-            onChange={(e) => setField("esEmpresa", e.target.checked)}
-          />
-          Es empresa
-        </label>
       </div>
 
       <div className={fieldStyles.row}>
         <label className={fieldStyles.field}>
-          <span className={fieldStyles.label}>Email</span>
+          <span className={fieldStyles.label}>Dirección</span>
           <input
-            type="email"
             className={fieldStyles.input}
-            value={data.email}
-            onChange={(e) => setField("email", e.target.value)}
+            value={data.direccion}
+            onChange={(e) => setField("direccion", e.target.value)}
           />
         </label>
         <label className={fieldStyles.field}>
-          <span className={fieldStyles.label}>Teléfono</span>
+          <span className={fieldStyles.label}>Ubicación (URL)</span>
           <input
+            type="url"
             className={fieldStyles.input}
-            value={data.telefono}
-            onChange={(e) => setField("telefono", e.target.value)}
-          />
-        </label>
-        <label className={fieldStyles.field}>
-          <span className={fieldStyles.label}>Sitio web</span>
-          <input
-            className={fieldStyles.input}
-            value={data.sitioWeb}
-            onChange={(e) => setField("sitioWeb", e.target.value)}
-          />
-        </label>
-        <label className={fieldStyles.field}>
-          <span className={fieldStyles.label}>Puesto de trabajo</span>
-          <input
-            className={fieldStyles.input}
-            value={data.puestoTrabajo}
-            onChange={(e) => setField("puestoTrabajo", e.target.value)}
+            placeholder="https://maps.google.com/…"
+            value={data.ubicacionUrl}
+            onChange={(e) => setField("ubicacionUrl", e.target.value)}
           />
         </label>
       </div>
-
-      <p className={fieldStyles.sectionTitle}>Dirección</p>
-      <div className={fieldStyles.row}>
-        <label className={fieldStyles.field}>
-          <span className={fieldStyles.label}>Calle</span>
-          <input
-            className={fieldStyles.input}
-            value={data.direccion.calle}
-            onChange={(e) => setDireccion("calle", e.target.value)}
-          />
-        </label>
-        <label className={fieldStyles.field}>
-          <span className={fieldStyles.label}>Calle 2</span>
-          <input
-            className={fieldStyles.input}
-            value={data.direccion.calle2}
-            onChange={(e) => setDireccion("calle2", e.target.value)}
-          />
-        </label>
-        <label className={fieldStyles.field}>
-          <span className={fieldStyles.label}>Distrito</span>
-          <input
-            className={fieldStyles.input}
-            value={data.direccion.distrito}
-            onChange={(e) => setDireccion("distrito", e.target.value)}
-          />
-        </label>
-        <label className={fieldStyles.field}>
-          <span className={fieldStyles.label}>Ciudad</span>
-          <input
-            className={fieldStyles.input}
-            value={data.direccion.ciudad}
-            onChange={(e) => setDireccion("ciudad", e.target.value)}
-          />
-        </label>
-        <label className={fieldStyles.field}>
-          <span className={fieldStyles.label}>Estado / Provincia</span>
-          <input
-            className={fieldStyles.input}
-            value={data.direccion.estado}
-            onChange={(e) => setDireccion("estado", e.target.value)}
-          />
-        </label>
-        <label className={fieldStyles.field}>
-          <span className={fieldStyles.label}>Código postal</span>
-          <input
-            className={fieldStyles.input}
-            value={data.direccion.zip}
-            onChange={(e) => setDireccion("zip", e.target.value)}
-          />
-        </label>
-        <label className={fieldStyles.field}>
-          <span className={fieldStyles.label}>País</span>
-          <input
-            className={fieldStyles.input}
-            value={data.direccion.pais}
-            onChange={(e) => setDireccion("pais", e.target.value)}
-          />
-        </label>
-      </div>
-
-      <label className={fieldStyles.field}>
-        <span className={fieldStyles.label}>Etiquetas (separadas por coma)</span>
-        <input
-          className={fieldStyles.input}
-          value={etiquetasTexto}
-          onChange={(e) => setEtiquetasTexto(e.target.value)}
-        />
-      </label>
-
-      <label className={fieldStyles.field}>
-        <span className={fieldStyles.label}>Notas</span>
-        <textarea
-          className={fieldStyles.textarea}
-          value={data.notas}
-          onChange={(e) => setField("notas", e.target.value)}
-        />
-      </label>
-
-      {contacto && (
-        <button type="button" className={fieldStyles.deleteButton} onClick={handleDelete} disabled={isSaving}>
-          Eliminar contacto
-        </button>
-      )}
     </FormLayout>
   );
 }

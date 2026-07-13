@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { ModuleRibbon } from "@/components/ui/ModuleRibbon";
+import { ModuleRibbon, DEFAULT_GROUPS } from "@/components/ui/ModuleRibbon";
 import { DataTable, type Column } from "@/components/ui/DataTable";
 import fieldStyles from "@/components/ui/formFields.module.css";
 import { EventoForm } from "./components/EventoForm";
@@ -47,10 +47,36 @@ export default function CalendarioModule() {
     loadEventos();
   }, [loadEventos]);
 
-  if (view.mode === "form") {
-    return (
-      <>
-        <ModuleRibbon />
+  const columns: Column<EventoCalendario>[] = [
+    { key: "titulo", header: "Título" },
+    { key: "fecha", header: "Fecha", render: (e) => e.fecha?.slice(0, 10) },
+    { key: "tipo", header: "Tipo", render: (e) => TIPO_LABEL[e.tipo] },
+    { key: "estado", header: "Estado", render: (e) => ESTADO_LABEL[e.estado] },
+    { key: "proyecto_nombre", header: "Proyecto" },
+    { key: "piscina_nombre", header: "Piscina" },
+  ];
+
+  const customRibbon = [
+    {
+      ...DEFAULT_GROUPS[0],
+      buttons: DEFAULT_GROUPS[0].buttons
+        .filter((btn) => btn.key === "nuevo")
+        .map((btn) => ({ ...btn, onClick: () => setView({ mode: "form" }) })),
+    },
+  ];
+
+  return (
+    <>
+      <ModuleRibbon groups={customRibbon} />
+      {error && <p className={fieldStyles.errorBanner}>{error}</p>}
+      <DataTable
+        data={eventos}
+        columns={columns}
+        onRowClick={(evento) => setView({ mode: "form", evento })}
+        emptyMessage={loading ? "Cargando…" : "No hay eventos cargados todavía."}
+      />
+
+      {view.mode === "form" && (
         <EventoForm
           evento={view.evento}
           onCancel={() => setView({ mode: "list" })}
@@ -63,31 +89,7 @@ export default function CalendarioModule() {
             loadEventos();
           }}
         />
-      </>
-    );
-  }
-
-  const columns: Column<EventoCalendario>[] = [
-    { key: "titulo", header: "Título" },
-    { key: "fecha", header: "Fecha", render: (e) => e.fecha?.slice(0, 10) },
-    { key: "tipo", header: "Tipo", render: (e) => TIPO_LABEL[e.tipo] },
-    { key: "estado", header: "Estado", render: (e) => ESTADO_LABEL[e.estado] },
-    { key: "proyecto_nombre", header: "Proyecto" },
-    { key: "piscina_nombre", header: "Piscina" },
-  ];
-
-  return (
-    <>
-      <ModuleRibbon />
-      {error && <p className={fieldStyles.errorBanner}>{error}</p>}
-      <DataTable
-        data={eventos}
-        columns={columns}
-        onCreate={() => setView({ mode: "form" })}
-        onRowClick={(evento) => setView({ mode: "form", evento })}
-        createLabel="Nuevo evento"
-        emptyMessage={loading ? "Cargando…" : "No hay eventos cargados todavía."}
-      />
+      )}
     </>
   );
 }

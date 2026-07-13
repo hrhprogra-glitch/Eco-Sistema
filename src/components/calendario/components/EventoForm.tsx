@@ -108,7 +108,13 @@ export function EventoForm({
   }
 
   return (
-    <FormLayout onSave={handleSave} onCancel={onCancel} isSaving={isSaving}>
+    <FormLayout
+      title={evento ? evento.titulo : "Nuevo evento"}
+      onSave={handleSave}
+      onCancel={onCancel}
+      onDelete={evento ? handleDelete : undefined}
+      isSaving={isSaving}
+    >
       {error && <p className={fieldStyles.errorBanner}>{error}</p>}
 
       <div className={fieldStyles.row}>
@@ -193,11 +199,6 @@ export function EventoForm({
         />
       </label>
 
-      {evento && (
-        <button type="button" className={fieldStyles.deleteButton} onClick={handleDelete} disabled={isSaving}>
-          Eliminar evento
-        </button>
-      )}
     </FormLayout>
   );
 }

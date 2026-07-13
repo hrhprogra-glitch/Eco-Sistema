@@ -53,6 +53,15 @@
   border-color: var(--ribbon-border);
 }
 
+.button[data-active] {
+  color: var(--eco-celeste);
+  filter: drop-shadow(0 0 6px var(--eco-celeste));
+}
+
+.button[data-active]:hover {
+  background: var(--ribbon-hover-bg);
+}
+
 .groupLabel {
   margin-top: 6px;
   font-size: 10.5px;

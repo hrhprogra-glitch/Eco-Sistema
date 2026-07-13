@@ -1,0 +1,25 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: var(--radius);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+}
+
+.badge[data-variant="cliente"] {
+  background: var(--badge-cliente-bg);
+  color: var(--badge-cliente-text);
+}
+
+.badge[data-variant="proveedor"] {
+  background: var(--badge-proveedor-bg);
+  color: var(--badge-proveedor-text);
+}
+
+.badge[data-variant="otro"] {
+  background: var(--badge-otro-bg);
+  color: var(--badge-otro-text);
+}

@@ -91,7 +91,13 @@ export function CotizacionForm({
   }
 
   return (
-    <FormLayout onSave={handleSave} onCancel={onCancel} isSaving={isSaving}>
+    <FormLayout
+      title={cotizacion ? `Cotización #${cotizacion.numero}` : "Nueva cotización"}
+      onSave={handleSave}
+      onCancel={onCancel}
+      onDelete={cotizacion ? handleDelete : undefined}
+      isSaving={isSaving}
+    >
       {error && <p className={fieldStyles.errorBanner}>{error}</p>}
 
       <div className={fieldStyles.row}>
@@ -147,11 +153,6 @@ export function CotizacionForm({
         />
       </label>
 
-      {cotizacion && (
-        <button type="button" className={fieldStyles.deleteButton} onClick={handleDelete} disabled={isSaving}>
-          Eliminar cotización
-        </button>
-      )}
     </FormLayout>
   );
 }

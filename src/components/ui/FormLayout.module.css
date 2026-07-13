@@ -1,68 +1,10 @@
-.container {
-  display: flex;
-  flex-direction: column;
-  background: var(--bg-surface);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-card);
-  border: 1px solid var(--border-color);
-  animation: fadeIn 0.3s ease;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(5px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.toolbar {
-  padding: 16px;
-  display: flex;
-  gap: 12px;
-  align-items: center;
+.ribbonWrap {
+  padding-bottom: 10px;
+  margin-bottom: 14px;
   border-bottom: 1px solid var(--border-color);
-  background: var(--bg-surface-glass);
-}
-
-.btnSave {
-  background: var(--accent);
-  color: var(--accent-contrast);
-  border: none;
-  padding: 8px 16px;
-  border-radius: var(--radius);
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.btnSave:hover {
-  background: var(--accent-strong);
-  color: white;
-  transform: translateY(-1px);
-}
-
-.btnSave:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  transform: none;
-}
-
-.btnCancel {
-  background: transparent;
-  color: var(--text-secondary);
-  border: 1px solid var(--border-color);
-  padding: 8px 16px;
-  border-radius: var(--radius);
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.btnCancel:hover {
-  background: rgba(0, 0, 0, 0.05);
-  color: var(--text-primary);
 }
 
 .content {
-  padding: 24px;
   display: flex;
   flex-direction: column;
   gap: 20px;

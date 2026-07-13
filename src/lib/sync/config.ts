@@ -1,6 +1,6 @@
 const singleId = ["id"];
 
-module.exports.PRIMARY_KEYS = {
+export const PRIMARY_KEYS: Record<string, string[]> = {
   usuarios: singleId,
   empleados: singleId,
   productos: singleId,
@@ -24,7 +24,7 @@ module.exports.PRIMARY_KEYS = {
 // Orden padre -> hijo, para que el pull inserte primero las filas que otras
 // tablas referencian por FK (si no, una fila hija puede llegar antes de que
 // exista su padre en este Postgres local y la foreign key la rechaza).
-module.exports.PULL_TABLE_ORDER = [
+export const PULL_TABLE_ORDER = [
   "usuarios",
   "empleados",
   "productos",
@@ -45,7 +45,7 @@ module.exports.PULL_TABLE_ORDER = [
   "asiento_lineas",
 ];
 
-module.exports.SYNC_INTERVAL_MS = 20000;
-module.exports.MAX_ATTEMPTS = 5;
-module.exports.BATCH_SIZE = 500;
-module.exports.PULL_BATCH_SIZE = 500;
+export const SYNC_INTERVAL_MS = 20000;
+export const MAX_ATTEMPTS = 5;
+export const BATCH_SIZE = 500;
+export const PULL_BATCH_SIZE = 500;

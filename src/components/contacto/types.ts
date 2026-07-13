@@ -30,6 +30,7 @@ export type Contacto = {
   nif?: string;
   agente?: string;
   tipoCliente?: string;
+  ubicacionUrl?: string;
   direccion: Direccion;
   identificaciones: Identificacion[];
   etiquetas: string[];

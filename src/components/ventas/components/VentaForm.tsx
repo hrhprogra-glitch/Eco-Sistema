@@ -91,7 +91,13 @@ export function VentaForm({
   }
 
   return (
-    <FormLayout onSave={handleSave} onCancel={onCancel} isSaving={isSaving}>
+    <FormLayout
+      title={venta ? `Venta #${venta.numero}` : "Nueva venta"}
+      onSave={handleSave}
+      onCancel={onCancel}
+      onDelete={venta ? handleDelete : undefined}
+      isSaving={isSaving}
+    >
       {error && <p className={fieldStyles.errorBanner}>{error}</p>}
 
       <div className={fieldStyles.row}>
@@ -147,11 +153,6 @@ export function VentaForm({
         />
       </label>
 
-      {venta && (
-        <button type="button" className={fieldStyles.deleteButton} onClick={handleDelete} disabled={isSaving}>
-          Eliminar venta
-        </button>
-      )}
     </FormLayout>
   );
 }

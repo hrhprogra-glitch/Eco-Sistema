@@ -1,19 +1,19 @@
-const { Pool } = require("pg");
-const {
+import { Pool } from "pg";
+import {
   PRIMARY_KEYS,
   PULL_TABLE_ORDER,
   SYNC_INTERVAL_MS,
   MAX_ATTEMPTS,
   BATCH_SIZE,
   PULL_BATCH_SIZE,
-} = require("./config");
+} from "./config";
 
-let localPool;
-let cloudPool;
-let timer;
+let localPool: Pool | undefined;
+let cloudPool: Pool | undefined;
+let timer: NodeJS.Timeout | undefined;
 let running = false;
 
-function buildUpsert(table, payload, pkCols) {
+function buildUpsert(table: string, payload: Record<string, unknown>, pkCols: string[]) {
   const columns = Object.keys(payload);
   const values = columns.map((c) => payload[c]);
   const placeholders = columns.map((_, i) => `$${i + 1}`);
@@ -35,7 +35,7 @@ function buildUpsert(table, payload, pkCols) {
   return { sql, values };
 }
 
-function buildDelete(table, payload, pkCols) {
+function buildDelete(table: string, payload: Record<string, unknown>, pkCols: string[]) {
   const sql = `DELETE FROM "${table}" WHERE ${pkCols.map((c, i) => `"${c}" = $${i + 1}`).join(" AND ")}`;
   const values = pkCols.map((c) => payload[c]);
   return { sql, values };
@@ -43,14 +43,14 @@ function buildDelete(table, payload, pkCols) {
 
 async function checkConnectivity() {
   try {
-    await cloudPool.query("SELECT 1");
+    await cloudPool!.query("SELECT 1");
     return true;
   } catch {
     return false;
   }
 }
 
-async function pushRow(row) {
+async function pushRow(row: { table_name: string; operation: string; payload: Record<string, unknown> }) {
   const pkCols = PRIMARY_KEYS[row.table_name];
   if (!pkCols) {
     throw new Error(`Tabla desconocida en outbox: ${row.table_name}`);
@@ -58,10 +58,10 @@ async function pushRow(row) {
 
   if (row.operation === "DELETE") {
     const { sql, values } = buildDelete(row.table_name, row.payload, pkCols);
-    await cloudPool.query(sql, values);
-    const rowKey = {};
+    await cloudPool!.query(sql, values);
+    const rowKey: Record<string, unknown> = {};
     for (const c of pkCols) rowKey[c] = row.payload[c];
-    await cloudPool.query(
+    await cloudPool!.query(
       `INSERT INTO sync_tombstones (table_name, row_key) VALUES ($1, $2)`,
       [row.table_name, JSON.stringify(rowKey)]
     );
@@ -69,11 +69,11 @@ async function pushRow(row) {
   }
 
   const { sql, values } = buildUpsert(row.table_name, row.payload, pkCols);
-  await cloudPool.query(sql, values);
+  await cloudPool!.query(sql, values);
 }
 
 async function pushPending() {
-  const { rows } = await localPool.query(
+  const { rows } = await localPool!.query(
     `SELECT * FROM sync_outbox WHERE synced_at IS NULL AND attempts < $1 ORDER BY id ASC LIMIT $2`,
     [MAX_ATTEMPTS, BATCH_SIZE]
   );
@@ -83,12 +83,12 @@ async function pushPending() {
   for (const row of rows) {
     try {
       await pushRow(row);
-      await localPool.query(`UPDATE sync_outbox SET synced_at = now() WHERE id = $1`, [row.id]);
+      await localPool!.query(`UPDATE sync_outbox SET synced_at = now() WHERE id = $1`, [row.id]);
       anySuccess = true;
     } catch (err) {
-      await localPool.query(
+      await localPool!.query(
         `UPDATE sync_outbox SET attempts = attempts + 1, last_error = $1 WHERE id = $2`,
-        [String(err.message || err), row.id]
+        [String((err as Error).message || err), row.id]
       );
       break;
     }
@@ -97,8 +97,8 @@ async function pushPending() {
   return anySuccess;
 }
 
-async function applyLocally(sql, values) {
-  const client = await localPool.connect();
+async function applyLocally(sql: string, values: unknown[]) {
+  const client = await localPool!.connect();
   try {
     await client.query("BEGIN");
     await client.query("SET LOCAL app.sync_apply = 'on'");
@@ -113,15 +113,15 @@ async function applyLocally(sql, values) {
 }
 
 async function pullChanges() {
-  const { rows: nowRows } = await cloudPool.query("SELECT now() AS now");
+  const { rows: nowRows } = await cloudPool!.query("SELECT now() AS now");
   const tickStart = nowRows[0].now;
 
-  const { rows: stateRows } = await localPool.query(`SELECT last_pull_at FROM sync_state WHERE id = true`);
+  const { rows: stateRows } = await localPool!.query(`SELECT last_pull_at FROM sync_state WHERE id = true`);
   const lastPullAt = stateRows[0].last_pull_at;
 
   for (const table of PULL_TABLE_ORDER) {
     const pkCols = PRIMARY_KEYS[table];
-    const { rows } = await cloudPool.query(
+    const { rows } = await cloudPool!.query(
       `SELECT * FROM "${table}" WHERE updated_at > $1 AND updated_at <= $2 ORDER BY updated_at ASC LIMIT $3`,
       [lastPullAt, tickStart, PULL_BATCH_SIZE]
     );
@@ -132,7 +132,7 @@ async function pullChanges() {
     }
   }
 
-  const { rows: tombstones } = await cloudPool.query(
+  const { rows: tombstones } = await cloudPool!.query(
     `SELECT table_name, row_key FROM sync_tombstones WHERE deleted_at > $1 AND deleted_at <= $2 ORDER BY deleted_at ASC LIMIT $3`,
     [lastPullAt, tickStart, PULL_BATCH_SIZE]
   );
@@ -144,7 +144,7 @@ async function pullChanges() {
     await applyLocally(sql, values);
   }
 
-  await localPool.query(`UPDATE sync_state SET last_pull_at = $1 WHERE id = true`, [tickStart]);
+  await localPool!.query(`UPDATE sync_state SET last_pull_at = $1 WHERE id = true`, [tickStart]);
 }
 
 async function syncTick() {
@@ -153,7 +153,7 @@ async function syncTick() {
 
   try {
     const isOnline = await checkConnectivity();
-    await localPool.query(
+    await localPool!.query(
       `UPDATE sync_state SET is_online = $1, last_check_at = now() WHERE id = true`,
       [isOnline]
     );
@@ -162,15 +162,21 @@ async function syncTick() {
 
     await pushPending();
     await pullChanges();
-    await localPool.query(`UPDATE sync_state SET last_success_at = now() WHERE id = true`);
+    await localPool!.query(`UPDATE sync_state SET last_success_at = now() WHERE id = true`);
   } catch (err) {
-    console.error("[sync] error en syncTick:", err.message || err);
+    console.error("[sync] error en syncTick:", (err as Error).message || err);
   } finally {
     running = false;
   }
 }
 
-function start({ localConnectionString, cloudConnectionString }) {
+export function start({
+  localConnectionString,
+  cloudConnectionString,
+}: {
+  localConnectionString: string;
+  cloudConnectionString: string;
+}) {
   localPool = new Pool({ connectionString: localConnectionString });
   cloudPool = new Pool({ connectionString: cloudConnectionString, connectionTimeoutMillis: 8000 });
 
@@ -178,10 +184,8 @@ function start({ localConnectionString, cloudConnectionString }) {
   timer = setInterval(syncTick, SYNC_INTERVAL_MS);
 }
 
-async function stop() {
+export async function stop() {
   if (timer) clearInterval(timer);
   if (localPool) await localPool.end();
   if (cloudPool) await cloudPool.end();
 }
-
-module.exports = { start, stop };

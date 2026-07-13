@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ModuleRibbon } from "@/components/ui/ModuleRibbon";
+import { ModuleRibbon, DEFAULT_GROUPS } from "@/components/ui/ModuleRibbon";
 import { DataTable, type Column } from "@/components/ui/DataTable";
 import fieldStyles from "@/components/ui/formFields.module.css";
 import { OportunidadForm, ETAPA_LABEL } from "./components/OportunidadForm";
@@ -42,26 +42,6 @@ export default function CrmModule() {
     [oportunidades, etapaFiltro]
   );
 
-  if (view.mode === "form") {
-    return (
-      <>
-        <ModuleRibbon />
-        <OportunidadForm
-          oportunidad={view.oportunidad}
-          onCancel={() => setView({ mode: "list" })}
-          onSaved={() => {
-            setView({ mode: "list" });
-            loadOportunidades();
-          }}
-          onDeleted={() => {
-            setView({ mode: "list" });
-            loadOportunidades();
-          }}
-        />
-      </>
-    );
-  }
-
   const columns: Column<Oportunidad>[] = [
     { key: "titulo", header: "Título" },
     { key: "contacto_nombre", header: "Cliente" },
@@ -69,9 +49,18 @@ export default function CrmModule() {
     { key: "monto_estimado", header: "Monto estimado", render: (o) => Number(o.monto_estimado).toFixed(2) },
   ];
 
+  const customRibbon = [
+    {
+      ...DEFAULT_GROUPS[0],
+      buttons: DEFAULT_GROUPS[0].buttons
+        .filter((btn) => btn.key === "nuevo")
+        .map((btn) => ({ ...btn, onClick: () => setView({ mode: "form" }) })),
+    },
+  ];
+
   return (
     <>
-      <ModuleRibbon />
+      <ModuleRibbon groups={customRibbon} />
       {error && <p className={fieldStyles.errorBanner}>{error}</p>}
       <div className={styles.etapaFilter}>
         <button
@@ -97,11 +86,24 @@ export default function CrmModule() {
       <DataTable
         data={oportunidadesFiltradas}
         columns={columns}
-        onCreate={() => setView({ mode: "form" })}
         onRowClick={(oportunidad) => setView({ mode: "form", oportunidad })}
-        createLabel="Nueva oportunidad"
         emptyMessage={loading ? "Cargando…" : "No hay oportunidades cargadas todavía."}
       />
+
+      {view.mode === "form" && (
+        <OportunidadForm
+          oportunidad={view.oportunidad}
+          onCancel={() => setView({ mode: "list" })}
+          onSaved={() => {
+            setView({ mode: "list" });
+            loadOportunidades();
+          }}
+          onDeleted={() => {
+            setView({ mode: "list" });
+            loadOportunidades();
+          }}
+        />
+      )}
     </>
   );
 }

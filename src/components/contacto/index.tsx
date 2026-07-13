@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { ModuleRibbon, DEFAULT_GROUPS } from "@/components/ui/ModuleRibbon";
 import { FilterLayout, FilterSection } from "@/components/ui/FilterLayout";
 import { DataTable, type Column } from "@/components/ui/DataTable";
+import { Badge } from "@/components/ui/Badge";
 import fieldStyles from "@/components/ui/formFields.module.css";
 import styles from "@/components/ui/FilterLayout.module.css";
 import { ContactoForm } from "./components/ContactoForm";
@@ -17,11 +18,23 @@ const TIPO_LABEL: Record<Contacto["tipo"], string> = {
   otro: "Otro",
 };
 
+const ESTADOS_TIPO: Record<string, Contacto["tipo"]> = {
+  Cliente: "cliente",
+  Proveedor: "proveedor",
+  Otro: "otro",
+};
+
+const DIAS_MS = 24 * 60 * 60 * 1000;
+
 export default function ContactoModule() {
   const [view, setView] = useState<View>({ mode: "list" });
   const [contactos, setContactos] = useState<Contacto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [tipoFilter, setTipoFilter] = useState("Sin seleccionar");
+  const [recienteFilter, setRecienteFilter] = useState("todos");
+  const [selectedLetter, setSelectedLetter] = useState("0-9");
+  const [searchTerm, setSearchTerm] = useState("");
 
   const loadContactos = useCallback(async () => {
     setLoading(true);
@@ -41,65 +54,71 @@ export default function ContactoModule() {
     loadContactos();
   }, [loadContactos]);
 
-  if (view.mode === "form") {
-    return (
-      <>
-        <ModuleRibbon />
-        <ContactoForm
-          contacto={view.contacto}
-          onCancel={() => setView({ mode: "list" })}
-          onSaved={() => {
-            setView({ mode: "list" });
-            loadContactos();
-          }}
-          onDeleted={() => {
-            setView({ mode: "list" });
-            loadContactos();
-          }}
-        />
-      </>
-    );
-  }
-
   const columns: Column<Contacto>[] = [
-    { key: "codigo", header: "Código" },
-    { key: "nombreFiscal", header: "Nombre Fiscal" },
+    {
+      key: "nombre",
+      header: "Nombre",
+      render: (c) => <span style={{ color: "var(--accent-text)", fontWeight: 600 }}>{c.nombre}</span>,
+    },
     { key: "telefono", header: "Teléfono" },
-    { key: "fax", header: "Fax" },
     { key: "email", header: "E-mail" },
     { key: "movil", header: "Móvil" },
-    { key: "personaContacto", header: "Persona de Contacto" },
-    { key: "nif", header: "N.I.F." },
-    { key: "agente", header: "Agente" },
-    { key: "tipoCliente", header: "Tipo de Cliente", render: (c) => c.tipoCliente || TIPO_LABEL[c.tipo] },
+    { key: "personaContacto", header: "Persona de contacto" },
+    {
+      key: "tipoCliente",
+      header: "Tipo de cliente",
+      render: (c) => <Badge variant={c.tipo}>{c.tipoCliente || TIPO_LABEL[c.tipo]}</Badge>,
+    },
   ];
 
   const handleCreate = () => setView({ mode: "form" });
 
+  const contactosFiltrados = contactos.filter((contacto) => {
+    if (searchTerm.trim()) {
+      const termino = searchTerm.trim().toLowerCase();
+      const coincide = [contacto.nombre, contacto.telefono, contacto.email, contacto.movil, contacto.personaContacto]
+        .some((campo) => campo?.toLowerCase().includes(termino));
+      if (!coincide) return false;
+    }
+
+    if (selectedLetter !== "0-9") {
+      const inicial = contacto.nombre.trim().charAt(0).toLowerCase();
+      if (inicial !== selectedLetter) return false;
+    }
+
+    if (tipoFilter !== "Sin seleccionar" && contacto.tipo !== ESTADOS_TIPO[tipoFilter]) {
+      return false;
+    }
+
+    if (recienteFilter !== "todos") {
+      const antiguedadMs = Date.now() - new Date(contacto.created_at).getTime();
+      if (recienteFilter === "hoy" && antiguedadMs > DIAS_MS) return false;
+      if (recienteFilter === "semana" && antiguedadMs > DIAS_MS * 7) return false;
+      if (recienteFilter === "mes" && antiguedadMs > DIAS_MS * 30) return false;
+    }
+
+    return true;
+  });
+
   const customRibbon = [
     {
       ...DEFAULT_GROUPS[0],
-      buttons: DEFAULT_GROUPS[0].buttons.map(btn => 
-        btn.key === "nuevo" ? { ...btn, onClick: handleCreate } : btn
-      )
+      buttons: DEFAULT_GROUPS[0].buttons
+        .filter((btn) => btn.key === "nuevo")
+        .map((btn) => ({ ...btn, onClick: handleCreate })),
     },
-    ...DEFAULT_GROUPS.slice(1)
   ];
-
-  const [estadoFilter, setEstadoFilter] = useState("todos");
-  const [recienteFilter, setRecienteFilter] = useState("todos");
-  const [selectedLetter, setSelectedLetter] = useState("0-9");
 
   const sidebarContent = (
     <>
       <FilterSection title="Estados">
-        {["Sin seleccionar", "Habitual", "Esporádico", "Baja", "Captación"].map((estado) => (
+        {["Sin seleccionar", "Cliente", "Proveedor", "Otro"].map((estado) => (
           <label key={estado} className={styles.radioLabel}>
-            <input 
-              type="checkbox" 
+            <input
+              type="checkbox"
               className={styles.radioInput}
-              checked={estadoFilter === estado}
-              onChange={() => setEstadoFilter(estado)}
+              checked={tipoFilter === estado}
+              onChange={() => setTipoFilter(estado)}
             />
             {estado}
           </label>
@@ -133,18 +152,36 @@ export default function ContactoModule() {
       <ModuleRibbon groups={customRibbon} />
       {error && <p className={fieldStyles.errorBanner}>{error}</p>}
       
-      <FilterLayout 
+      <FilterLayout
         sidebarContent={sidebarContent}
         selectedLetter={selectedLetter}
         onLetterSelect={setSelectedLetter}
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="Buscar cliente…"
       >
         <DataTable
-          data={contactos}
+          data={contactosFiltrados}
           columns={columns}
           onRowClick={(contacto) => setView({ mode: "form", contacto })}
-          emptyMessage={loading ? "Cargando…" : "No hay clientes cargados todavía."}
+          emptyMessage={loading ? "Cargando…" : "No hay clientes que coincidan con el filtro."}
         />
       </FilterLayout>
+
+      {view.mode === "form" && (
+        <ContactoForm
+          contacto={view.contacto}
+          onCancel={() => setView({ mode: "list" })}
+          onSaved={() => {
+            setView({ mode: "list" });
+            loadContactos();
+          }}
+          onDeleted={() => {
+            setView({ mode: "list" });
+            loadContactos();
+          }}
+        />
+      )}
     </div>
   );
 }

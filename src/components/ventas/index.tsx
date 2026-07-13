@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { ModuleRibbon } from "@/components/ui/ModuleRibbon";
+import { ModuleRibbon, DEFAULT_GROUPS } from "@/components/ui/ModuleRibbon";
 import { DataTable, type Column } from "@/components/ui/DataTable";
 import fieldStyles from "@/components/ui/formFields.module.css";
 import { VentaForm } from "./components/VentaForm";
@@ -50,10 +50,35 @@ export default function VentasModule() {
     }
   }
 
-  if (view.mode === "form") {
-    return (
-      <>
-        <ModuleRibbon />
+  const columns: Column<Venta>[] = [
+    { key: "numero", header: "N°" },
+    { key: "contacto_nombre", header: "Cliente" },
+    { key: "estado", header: "Estado", render: (v) => ESTADO_LABEL[v.estado] },
+    { key: "total", header: "Total", render: (v) => Number(v.total).toFixed(2) },
+    { key: "fecha", header: "Fecha", render: (v) => v.fecha?.slice(0, 10) },
+  ];
+
+  const customRibbon = [
+    {
+      ...DEFAULT_GROUPS[0],
+      buttons: DEFAULT_GROUPS[0].buttons
+        .filter((btn) => btn.key === "nuevo")
+        .map((btn) => ({ ...btn, onClick: () => setView({ mode: "form" }) })),
+    },
+  ];
+
+  return (
+    <>
+      <ModuleRibbon groups={customRibbon} />
+      {error && <p className={fieldStyles.errorBanner}>{error}</p>}
+      <DataTable
+        data={ventas}
+        columns={columns}
+        onRowClick={openVenta}
+        emptyMessage={loading ? "Cargando…" : "No hay ventas registradas todavía."}
+      />
+
+      {view.mode === "form" && (
         <VentaForm
           venta={view.venta}
           onCancel={() => setView({ mode: "list" })}
@@ -66,30 +91,7 @@ export default function VentasModule() {
             loadVentas();
           }}
         />
-      </>
-    );
-  }
-
-  const columns: Column<Venta>[] = [
-    { key: "numero", header: "N°" },
-    { key: "contacto_nombre", header: "Cliente" },
-    { key: "estado", header: "Estado", render: (v) => ESTADO_LABEL[v.estado] },
-    { key: "total", header: "Total", render: (v) => Number(v.total).toFixed(2) },
-    { key: "fecha", header: "Fecha", render: (v) => v.fecha?.slice(0, 10) },
-  ];
-
-  return (
-    <>
-      <ModuleRibbon />
-      {error && <p className={fieldStyles.errorBanner}>{error}</p>}
-      <DataTable
-        data={ventas}
-        columns={columns}
-        onCreate={() => setView({ mode: "form" })}
-        onRowClick={openVenta}
-        createLabel="Nueva venta"
-        emptyMessage={loading ? "Cargando…" : "No hay ventas registradas todavía."}
-      />
+      )}
     </>
   );
 }

@@ -46,9 +46,13 @@ export const DEFAULT_GROUPS: RibbonGroup[] = [
 ];
 
 export function ModuleRibbon({ groups = DEFAULT_GROUPS }: { groups?: RibbonGroup[] }) {
+  const groupsConAccion = groups
+    .map((group) => ({ ...group, buttons: group.buttons.filter((btn) => btn.onClick) }))
+    .filter((group) => group.buttons.length > 0);
+
   return (
     <div className={styles.ribbon}>
-      {groups.map((group) => (
+      {groupsConAccion.map((group) => (
         <div key={group.key} className={styles.group}>
           <div className={styles.buttons}>
             {group.buttons.map((btn) => (
@@ -56,7 +60,8 @@ export function ModuleRibbon({ groups = DEFAULT_GROUPS }: { groups?: RibbonGroup
                 key={btn.key}
                 type="button"
                 className={styles.button}
-                onClick={btn.onClick ?? (() => {})}
+                data-active=""
+                onClick={btn.onClick}
               >
                 <btn.icon size={24} strokeWidth={1.6} style={{ color: "inherit" }} />
                 <span>{btn.label}</span>

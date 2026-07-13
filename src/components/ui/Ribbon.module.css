@@ -57,6 +57,10 @@
   color: var(--accent-text);
 }
 
+.button[data-tone="danger"] {
+  color: var(--status-error);
+}
+
 .buttonLabel {
   font-size: 10.5px;
   font-weight: 600;

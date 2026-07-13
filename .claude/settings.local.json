@@ -58,7 +58,11 @@
       "Bash(\"C:\\\\Program Files\\\\PostgreSQL\\\\16\\\\bin\\\\psql.exe\" -h 127.0.0.1 -p 5432 -U harry -d eco_sistema -c \"\\\\d ventas\")",
       "Bash(\"C:\\\\Program Files\\\\PostgreSQL\\\\16\\\\bin\\\\psql.exe\" -h 127.0.0.1 -p 5432 -U harry -d eco_sistema -c \"\\\\d calendario_eventos\")",
       "Bash(\"C:\\\\Program Files\\\\PostgreSQL\\\\16\\\\bin\\\\psql.exe\" -h 127.0.0.1 -p 5432 -U harry -d eco_sistema -c \"SELECT id, nombre FROM contactos;\")",
-      "Bash(\"C:\\\\Program Files\\\\PostgreSQL\\\\16\\\\bin\\\\psql.exe\" -h 127.0.0.1 -p 5432 -U harry -d eco_sistema -c \"select count\\(*\\) from pg_proc where proname='sync_outbox_capture';\")"
+      "Bash(\"C:\\\\Program Files\\\\PostgreSQL\\\\16\\\\bin\\\\psql.exe\" -h 127.0.0.1 -p 5432 -U harry -d eco_sistema -c \"select count\\(*\\) from pg_proc where proname='sync_outbox_capture';\")",
+      "Bash(PORT=3901 pnpm dev)",
+      "Bash(echo \"started with PID $!\")",
+      "Bash(curl -s http://localhost:3901/ -o /dev/null -w \"HTTP %{http_code}\\\\n\")",
+      "Bash(cat /tmp/eco-dev-verify.log 2>&1)"
     ]
   }
 }

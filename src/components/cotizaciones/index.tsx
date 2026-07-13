@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { ModuleRibbon } from "@/components/ui/ModuleRibbon";
+import { ModuleRibbon, DEFAULT_GROUPS } from "@/components/ui/ModuleRibbon";
 import { DataTable, type Column } from "@/components/ui/DataTable";
 import fieldStyles from "@/components/ui/formFields.module.css";
 import { CotizacionForm } from "./components/CotizacionForm";
@@ -50,10 +50,35 @@ export default function CotizacionesModule() {
     }
   }
 
-  if (view.mode === "form") {
-    return (
-      <>
-        <ModuleRibbon />
+  const columns: Column<Cotizacion>[] = [
+    { key: "numero", header: "N°" },
+    { key: "contacto_nombre", header: "Cliente" },
+    { key: "estado", header: "Estado", render: (c) => ESTADO_LABEL[c.estado] },
+    { key: "total", header: "Total", render: (c) => Number(c.total).toFixed(2) },
+    { key: "fecha", header: "Fecha", render: (c) => c.fecha?.slice(0, 10) },
+  ];
+
+  const customRibbon = [
+    {
+      ...DEFAULT_GROUPS[0],
+      buttons: DEFAULT_GROUPS[0].buttons
+        .filter((btn) => btn.key === "nuevo")
+        .map((btn) => ({ ...btn, onClick: () => setView({ mode: "form" }) })),
+    },
+  ];
+
+  return (
+    <>
+      <ModuleRibbon groups={customRibbon} />
+      {error && <p className={fieldStyles.errorBanner}>{error}</p>}
+      <DataTable
+        data={cotizaciones}
+        columns={columns}
+        onRowClick={openCotizacion}
+        emptyMessage={loading ? "Cargando…" : "No hay cotizaciones registradas todavía."}
+      />
+
+      {view.mode === "form" && (
         <CotizacionForm
           cotizacion={view.cotizacion}
           onCancel={() => setView({ mode: "list" })}
@@ -66,30 +91,7 @@ export default function CotizacionesModule() {
             loadCotizaciones();
           }}
         />
-      </>
-    );
-  }
-
-  const columns: Column<Cotizacion>[] = [
-    { key: "numero", header: "N°" },
-    { key: "contacto_nombre", header: "Cliente" },
-    { key: "estado", header: "Estado", render: (c) => ESTADO_LABEL[c.estado] },
-    { key: "total", header: "Total", render: (c) => Number(c.total).toFixed(2) },
-    { key: "fecha", header: "Fecha", render: (c) => c.fecha?.slice(0, 10) },
-  ];
-
-  return (
-    <>
-      <ModuleRibbon />
-      {error && <p className={fieldStyles.errorBanner}>{error}</p>}
-      <DataTable
-        data={cotizaciones}
-        columns={columns}
-        onCreate={() => setView({ mode: "form" })}
-        onRowClick={openCotizacion}
-        createLabel="Nueva cotización"
-        emptyMessage={loading ? "Cargando…" : "No hay cotizaciones registradas todavía."}
-      />
+      )}
     </>
   );
 }

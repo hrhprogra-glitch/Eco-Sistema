@@ -1,9 +1,7 @@
 const { app, BrowserWindow } = require("electron");
 const path = require("path");
-const fs = require("fs");
 const http = require("http");
 const { spawn } = require("child_process");
-const syncWorker = require("./sync/worker");
 
 const isDev = !app.isPackaged;
 const port = process.env.PORT || 3000;
@@ -11,21 +9,6 @@ const url = `http://localhost:${port}`;
 
 let serverProcess;
 let mainWindow;
-
-function loadEnvFile() {
-  const envPath = path.join(__dirname, "..", ".env.local");
-  const env = {};
-  if (!fs.existsSync(envPath)) return env;
-
-  for (const line of fs.readFileSync(envPath, "utf8").split("\n")) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) continue;
-    const idx = trimmed.indexOf("=");
-    if (idx === -1) continue;
-    env[trimmed.slice(0, idx).trim()] = trimmed.slice(idx + 1).trim();
-  }
-  return env;
-}
 
 function waitForServer(targetUrl, callback) {
   const attempt = () => {
@@ -73,16 +56,6 @@ app.whenReady().then(() => {
 
   waitForServer(url, createWindow);
 
-  const env = loadEnvFile();
-  if (env.DATABASE_URL && env.SUPABASE_DATABASE_URL) {
-    syncWorker.start({
-      localConnectionString: env.DATABASE_URL,
-      cloudConnectionString: env.SUPABASE_DATABASE_URL,
-    });
-  } else {
-    console.warn("[sync] faltan DATABASE_URL/SUPABASE_DATABASE_URL en .env.local, el worker no arranca");
-  }
-
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
@@ -95,5 +68,4 @@ app.on("window-all-closed", () => {
 
 app.on("before-quit", () => {
   if (serverProcess) serverProcess.kill();
-  syncWorker.stop();
 });

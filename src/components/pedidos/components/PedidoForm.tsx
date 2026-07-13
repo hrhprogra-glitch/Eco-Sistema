@@ -92,7 +92,13 @@ export function PedidoForm({
   }
 
   return (
-    <FormLayout onSave={handleSave} onCancel={onCancel} isSaving={isSaving}>
+    <FormLayout
+      title={pedido ? `Pedido #${pedido.numero}` : "Nuevo pedido"}
+      onSave={handleSave}
+      onCancel={onCancel}
+      onDelete={pedido ? handleDelete : undefined}
+      isSaving={isSaving}
+    >
       {error && <p className={fieldStyles.errorBanner}>{error}</p>}
 
       <div className={fieldStyles.row}>
@@ -148,11 +154,6 @@ export function PedidoForm({
         />
       </label>
 
-      {pedido && (
-        <button type="button" className={fieldStyles.deleteButton} onClick={handleDelete} disabled={isSaving}>
-          Eliminar pedido
-        </button>
-      )}
     </FormLayout>
   );
 }

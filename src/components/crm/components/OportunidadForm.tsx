@@ -87,7 +87,13 @@ export function OportunidadForm({
   }
 
   return (
-    <FormLayout onSave={handleSave} onCancel={onCancel} isSaving={isSaving}>
+    <FormLayout
+      title={oportunidad ? oportunidad.titulo : "Nueva oportunidad"}
+      onSave={handleSave}
+      onCancel={onCancel}
+      onDelete={oportunidad ? handleDelete : undefined}
+      isSaving={isSaving}
+    >
       {error && <p className={fieldStyles.errorBanner}>{error}</p>}
 
       <div className={fieldStyles.row}>
@@ -142,11 +148,6 @@ export function OportunidadForm({
         <textarea className={fieldStyles.textarea} value={notas} onChange={(e) => setNotas(e.target.value)} />
       </label>
 
-      {oportunidad && (
-        <button type="button" className={fieldStyles.deleteButton} onClick={handleDelete} disabled={isSaving}>
-          Eliminar oportunidad
-        </button>
-      )}
     </FormLayout>
   );
 }

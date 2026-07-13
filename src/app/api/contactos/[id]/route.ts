@@ -5,8 +5,11 @@ import type { Contacto } from "@/components/contacto/types";
 
 const SELECT_COLUMNS = `
   id, nombre, tipo, es_empresa AS "esEmpresa", email, telefono,
-  sitio_web AS "sitioWeb", puesto_trabajo AS "puestoTrabajo", direccion,
-  identificaciones, etiquetas, contactos_relacionados AS "contactosRelacionados",
+  sitio_web AS "sitioWeb", puesto_trabajo AS "puestoTrabajo",
+  codigo, nombre_fiscal AS "nombreFiscal", fax, movil,
+  persona_contacto AS "personaContacto", nif, agente,
+  tipo_cliente AS "tipoCliente", ubicacion_url AS "ubicacionUrl",
+  direccion, identificaciones, etiquetas, contactos_relacionados AS "contactosRelacionados",
   notas, created_at
 `;
 
@@ -29,6 +32,15 @@ export async function PATCH(
     telefono,
     sitioWeb,
     puestoTrabajo,
+    codigo,
+    nombreFiscal,
+    fax,
+    movil,
+    personaContacto,
+    nif,
+    agente,
+    tipoCliente,
+    ubicacionUrl,
     direccion,
     identificaciones,
     etiquetas,
@@ -39,23 +51,34 @@ export async function PATCH(
   const result = await query<Contacto>(
     `UPDATE contactos SET
        nombre = $1, tipo = $2, es_empresa = $3, email = $4, telefono = $5,
-       sitio_web = $6, puesto_trabajo = $7, direccion = $8, identificaciones = $9,
-       etiquetas = $10, contactos_relacionados = $11, notas = $12
-     WHERE id = $13
+       sitio_web = $6, puesto_trabajo = $7, codigo = $8, nombre_fiscal = $9,
+       fax = $10, movil = $11, persona_contacto = $12, nif = $13, agente = $14,
+       tipo_cliente = $15, ubicacion_url = $16, direccion = $17, identificaciones = $18,
+       etiquetas = $19, contactos_relacionados = $20, notas = $21
+     WHERE id = $22
      RETURNING ${SELECT_COLUMNS}`,
     [
       nombre,
       tipo,
-      esEmpresa,
-      email,
-      telefono,
-      sitioWeb,
-      puestoTrabajo,
-      JSON.stringify(direccion),
-      JSON.stringify(identificaciones),
-      JSON.stringify(etiquetas),
-      JSON.stringify(contactosRelacionados),
-      notas,
+      esEmpresa ?? false,
+      email || "",
+      telefono || "",
+      sitioWeb || "",
+      puestoTrabajo || "",
+      codigo || null,
+      nombreFiscal || null,
+      fax || null,
+      movil || null,
+      personaContacto || null,
+      nif || null,
+      agente || null,
+      tipoCliente || null,
+      ubicacionUrl || null,
+      JSON.stringify(direccion ?? {}),
+      JSON.stringify(identificaciones ?? []),
+      JSON.stringify(etiquetas ?? []),
+      JSON.stringify(contactosRelacionados ?? []),
+      notas || "",
       id,
     ]
   );

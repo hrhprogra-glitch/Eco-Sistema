@@ -8,6 +8,7 @@ export type RibbonButton = {
   onClick: () => void;
   disabled?: boolean;
   active?: boolean;
+  tone?: "danger";
 };
 
 export type RibbonGroup = {
@@ -28,6 +29,7 @@ export function Ribbon({ groups }: { groups: RibbonGroup[] }) {
                 onClick={button.onClick}
                 disabled={button.disabled}
                 data-active={button.active ? "" : undefined}
+                data-tone={button.tone}
                 className={styles.button}
                 title={button.label}
               >

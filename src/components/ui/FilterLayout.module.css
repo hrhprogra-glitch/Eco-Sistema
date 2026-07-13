@@ -65,6 +65,35 @@
   overflow: hidden;
 }
 
+.searchBox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.searchIcon {
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.searchInput {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-size: 12.5px;
+  padding: 6px 8px;
+}
+
+.searchInput:focus {
+  outline: none;
+  border-color: var(--eco-celeste);
+}
+
 .filterSection {
   padding: 0;
 }

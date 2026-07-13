@@ -2,13 +2,16 @@
 
 import React, { useState } from "react";
 import styles from "./FilterLayout.module.css";
-import { Filter, ChevronRight } from "lucide-react";
+import { Filter, ChevronRight, Search } from "lucide-react";
 
 type FilterLayoutProps = {
   children: React.ReactNode;
   sidebarContent: React.ReactNode;
   onLetterSelect?: (letter: string) => void;
   selectedLetter?: string;
+  searchValue?: string;
+  onSearchChange?: (value: string) => void;
+  searchPlaceholder?: string;
 };
 
 const ALPHABET = [
@@ -20,7 +23,10 @@ export function FilterLayout({
   children,
   sidebarContent,
   onLetterSelect,
-  selectedLetter = "0-9"
+  selectedLetter = "0-9",
+  searchValue,
+  onSearchChange,
+  searchPlaceholder = "Buscar…"
 }: FilterLayoutProps) {
   const [isSidebarVisible, setIsSidebarVisible] = useState(true);
 
@@ -78,6 +84,18 @@ export function FilterLayout({
 
       {/* 3. Filter Sidebar (Right side) */}
       <div className={styles.sidebar} data-hidden={isSidebarVisible ? undefined : ""}>
+        {onSearchChange && (
+          <div className={styles.searchBox}>
+            <Search size={14} className={styles.searchIcon} />
+            <input
+              type="text"
+              className={styles.searchInput}
+              placeholder={searchPlaceholder}
+              value={searchValue ?? ""}
+              onChange={(e) => onSearchChange(e.target.value)}
+            />
+          </div>
+        )}
         {sidebarContent}
       </div>
     </div>
