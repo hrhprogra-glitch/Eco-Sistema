@@ -18,7 +18,7 @@ interface DataTableProps<T> {
   pageSize?: number;
 }
 
-const DEFAULT_PAGE_SIZE = 30;
+const DEFAULT_PAGE_SIZE = 50;
 
 export function DataTable<T>({
   data,

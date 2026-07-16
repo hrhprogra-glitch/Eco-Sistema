@@ -1,6 +1,11 @@
+/* position: fixed (no solo height: 100vh) saca a .shell del flujo normal del
+   documento: así, pase lo que pase adentro, nunca puede hacer crecer a
+   body/html ni un píxel y aparecer un scroll exterior además del interno de
+   cada módulo (ver comentario de .page en CotizacionForm.module.css). */
 .shell {
+  position: fixed;
+  inset: 0;
   display: flex;
-  height: 100vh;
   overflow: hidden;
 }
 
@@ -15,5 +20,6 @@
 .content {
   flex: 1;
   min-width: 0;
+  min-height: 0;
   overflow-y: auto;
 }

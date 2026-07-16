@@ -1,0 +1,410 @@
+.page {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 20px;
+}
+
+.layout {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.editor {
+  flex: 1;
+  min-width: 340px;
+}
+
+.preview {
+  flex: 1;
+  min-width: 360px;
+  position: sticky;
+  top: 0;
+}
+
+.previewLabel {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--text-secondary);
+  margin: 0 0 8px;
+}
+
+.sheet {
+  background: #ffffff;
+  color: #1a1a1a;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  padding: 32px;
+  min-height: 480px;
+}
+
+.sheetHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  padding-bottom: 16px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid #dddddd;
+}
+
+.sheetEmpresa {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.sheetLogo {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.sheetEmpresaNombre {
+  font-size: 15px;
+  font-weight: 800;
+  margin: 0 0 4px;
+  color: #0b3a52;
+}
+
+.sheetEmpresaDato {
+  font-size: 10.5px;
+  color: #333333;
+  margin: 1px 0;
+}
+
+.sheetDocBox {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: stretch;
+}
+
+.sheetRucBox {
+  border: 1px solid #999999;
+  border-radius: 4px;
+  padding: 6px 10px;
+  text-align: center;
+  font-size: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sheetRucBox strong {
+  font-size: 12px;
+}
+
+.sheetTituloBox {
+  background: #111827;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-align: center;
+  padding: 6px 10px;
+  border-radius: 4px;
+}
+
+.sheetInfoTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  margin-bottom: 16px;
+  border: 1px solid #dddddd;
+}
+
+.sheetInfoTable td {
+  padding: 6px 10px;
+  border-bottom: 1px solid #eeeeee;
+}
+
+.sheetInfoLabel {
+  font-weight: 700;
+  width: 110px;
+  background: #f5f5f5;
+}
+
+.sheetTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  margin-bottom: 14px;
+}
+
+.sheetTable th {
+  background: #111827;
+  color: #ffffff;
+  text-align: left;
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  padding: 7px 8px;
+}
+
+.sheetTable th:last-child,
+.sheetTable td:last-child {
+  text-align: right;
+}
+
+.sheetTable td {
+  padding: 7px 8px;
+  border-bottom: 1px solid #eeeeee;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+.sheetItemEncabezado {
+  font-weight: 800;
+}
+
+.sheetTextoNegrita {
+  font-weight: 800;
+}
+
+/* Celda de una tarjeta "producto" que abarca las 3 columnas de la tabla principal
+   (colSpan=3) para meter adentro una tabla anidada (.sheetSubTabla): sin esto, hereda el
+   text-align:right de td:last-child de abajo, que ya no aplica acá. */
+.sheetTable td.sheetCeldaCartaProducto {
+  text-align: left;
+  padding: 0;
+}
+
+/* Tabla anidada de una tarjeta "producto": una <tr> real por producto (más la fila de
+   encabezado/precio general si corresponde), para que cantidad/descripción/precio queden
+   siempre alineados entre sí aunque la descripción ocupe varias líneas. Sin bordes
+   propios: el borde visible de la tarjeta es el de la fila de la tabla principal. */
+.sheetSubTabla {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.sheetSubTabla td {
+  padding: 3px 8px;
+  border: none;
+  vertical-align: top;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+.sheetSubTabla td:last-child {
+  text-align: right;
+}
+
+.sheetTotal {
+  display: flex;
+  justify-content: flex-end;
+  gap: 16px;
+  align-items: center;
+  background: #111827;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 800;
+  padding: 8px 14px;
+  border-radius: 4px;
+  margin-bottom: 20px;
+}
+
+.sheetPagos {
+  display: flex;
+  justify-content: flex-end;
+  gap: 16px;
+  font-size: 11.5px;
+  color: #333333;
+  margin: -12px 0 20px;
+}
+
+.sheetPagos strong {
+  color: #111827;
+}
+
+.sheetNotas {
+  font-size: 11.5px;
+  color: #555555;
+  white-space: pre-wrap;
+  margin-bottom: 16px;
+}
+
+.sheetEmpty {
+  color: #999999;
+  font-style: italic;
+  font-size: 12px;
+  margin-bottom: 16px;
+}
+
+.sheetCuenta {
+  border: 1px solid #c0392b;
+  border-radius: 4px;
+  padding: 8px 12px;
+  color: #c0392b;
+  font-size: 10.5px;
+  font-weight: 700;
+  display: inline-block;
+  margin-bottom: 20px;
+}
+
+.sheetCuenta p {
+  margin: 1px 0;
+}
+
+.sheetFooter {
+  text-align: center;
+  font-size: 10px;
+  color: #777777;
+}
+
+.sheetFooterStrong {
+  font-weight: 800;
+  color: #333333;
+}
+
+.clienteBox {
+  position: relative;
+}
+
+.clienteDropdown {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 200px;
+  overflow-y: auto;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+}
+
+.clienteOption {
+  padding: 8px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  color: var(--text-primary);
+}
+
+.clienteOption:hover {
+  background: var(--ribbon-hover-bg);
+}
+
+.clienteEmpty {
+  padding: 8px 12px;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+}
+
+.origenNota {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin: -4px 0 12px;
+}
+
+.estadoPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.estadoPill::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.pagosSection {
+  margin-top: 20px;
+  border-top: 1px solid var(--border-color);
+  padding-top: 16px;
+}
+
+.pagosHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.pagosSaldo {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.pagosSaldo strong {
+  color: var(--text-primary);
+}
+
+.pagosList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.pagoRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12.5px;
+  padding: 6px 10px;
+  background: var(--bg-page);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+}
+
+.pagoRowMonto {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.pagosEmpty {
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  margin-bottom: 12px;
+}
+
+.pagoForm {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.pagoFormField {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.pagoFormSubmit {
+  padding: 9px 16px;
+  border-radius: var(--radius);
+  border: 1px solid var(--accent-strong);
+  background: var(--accent);
+  color: var(--accent-contrast);
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.pagoFormSubmit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

@@ -4,6 +4,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { appGroups } from "@/components/lib/apps";
 import { AlertsMenu } from "@/components/topbar/AlertsMenu";
+import { UndoRedoControls } from "@/components/topbar/UndoRedoControls";
 import { SettingsMenu } from "@/components/topbar/SettingsMenu";
 import { UserMenu } from "@/components/session/UserMenu";
 import styles from "./Topbar.module.css";
@@ -46,6 +47,7 @@ export function Topbar() {
       </div>
 
       <div className={styles.right}>
+        <UndoRedoControls />
         <AlertsMenu />
         <SettingsMenu />
         <div className={styles.separator} />

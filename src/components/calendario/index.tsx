@@ -1,30 +1,17 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { ModuleRibbon, DEFAULT_GROUPS } from "@/components/ui/ModuleRibbon";
-import { DataTable, type Column } from "@/components/ui/DataTable";
+import { ActionsDrawer } from "@/components/ui/ActionsDrawer";
+import { buildComercialActions } from "@/components/comercial/comercialActions";
 import fieldStyles from "@/components/ui/formFields.module.css";
 import { EventoForm } from "./components/EventoForm";
-import type { EstadoEvento, EventoCalendario, TipoEvento } from "./types";
+import { CalendarioGrid } from "./components/CalendarioGrid";
+import type { EventoCalendario } from "./types";
 
-type View = { mode: "list" } | { mode: "form"; evento?: EventoCalendario };
-
-const TIPO_LABEL: Record<TipoEvento, string> = {
-  nota: "Nota",
-  recordatorio: "Recordatorio",
-  mantenimiento: "Mantenimiento",
-  visita: "Visita",
-  obra: "Obra",
-};
-
-const ESTADO_LABEL: Record<EstadoEvento, string> = {
-  pendiente: "Pendiente",
-  completado: "Completado",
-  cancelado: "Cancelado",
-};
+type View = { mode: "grid" } | { mode: "form"; evento?: EventoCalendario; fechaInicial?: string };
 
 export default function CalendarioModule() {
-  const [view, setView] = useState<View>({ mode: "list" });
+  const [view, setView] = useState<View>({ mode: "grid" });
   const [eventos, setEventos] = useState<EventoCalendario[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -47,49 +34,38 @@ export default function CalendarioModule() {
     loadEventos();
   }, [loadEventos]);
 
-  const columns: Column<EventoCalendario>[] = [
-    { key: "titulo", header: "Título" },
-    { key: "fecha", header: "Fecha", render: (e) => e.fecha?.slice(0, 10) },
-    { key: "tipo", header: "Tipo", render: (e) => TIPO_LABEL[e.tipo] },
-    { key: "estado", header: "Estado", render: (e) => ESTADO_LABEL[e.estado] },
-    { key: "proyecto_nombre", header: "Proyecto" },
-    { key: "piscina_nombre", header: "Piscina" },
-  ];
-
-  const customRibbon = [
-    {
-      ...DEFAULT_GROUPS[0],
-      buttons: DEFAULT_GROUPS[0].buttons
-        .filter((btn) => btn.key === "nuevo")
-        .map((btn) => ({ ...btn, onClick: () => setView({ mode: "form" }) })),
-    },
-  ];
+  const actions = buildComercialActions("calendario", () => setView({ mode: "form" }));
 
   return (
-    <>
-      <ModuleRibbon groups={customRibbon} />
+    <div style={{ position: "relative", display: "flex", flexDirection: "column", height: "100%", flex: 1, minHeight: 0 }}>
+      <ActionsDrawer actions={actions} />
       {error && <p className={fieldStyles.errorBanner}>{error}</p>}
-      <DataTable
-        data={eventos}
-        columns={columns}
-        onRowClick={(evento) => setView({ mode: "form", evento })}
-        emptyMessage={loading ? "Cargando…" : "No hay eventos cargados todavía."}
-      />
+
+      {loading ? (
+        <p style={{ padding: "8px 0", fontSize: 12, color: "var(--text-secondary)" }}>Cargando…</p>
+      ) : (
+        <CalendarioGrid
+          eventos={eventos}
+          onDayClick={(fecha) => setView({ mode: "form", fechaInicial: fecha })}
+          onEventoClick={(evento) => setView({ mode: "form", evento })}
+        />
+      )}
 
       {view.mode === "form" && (
         <EventoForm
           evento={view.evento}
-          onCancel={() => setView({ mode: "list" })}
+          fechaInicial={view.fechaInicial}
+          onCancel={() => setView({ mode: "grid" })}
           onSaved={() => {
-            setView({ mode: "list" });
+            setView({ mode: "grid" });
             loadEventos();
           }}
           onDeleted={() => {
-            setView({ mode: "list" });
+            setView({ mode: "grid" });
             loadEventos();
           }}
         />
       )}
-    </>
+    </div>
   );
 }

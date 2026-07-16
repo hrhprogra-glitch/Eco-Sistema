@@ -1,0 +1,55 @@
+.wrap {
+  position: absolute;
+  top: 10px;
+  right: 20px;
+  z-index: 50;
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--bg-surface);
+  color: var(--accent-text);
+  cursor: pointer;
+  box-shadow: var(--shadow-card);
+  transition: background-color 0.15s ease;
+}
+
+.toggle:hover {
+  background: var(--ribbon-hover-bg);
+}
+
+.panel {
+  position: absolute;
+  top: 42px;
+  right: 0;
+  width: 220px;
+  max-height: 70vh;
+  overflow-y: auto;
+  background: var(--ribbon-bg);
+  border: 2px solid var(--accent);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card-hover);
+}
+
+/* Mismo look que FilterSection (panel de filtros): título + contenido. */
+.panelTitle {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  padding: 6px 12px;
+  background: rgba(0, 0, 0, 0.04);
+}
+
+:root[data-theme="dark"] .panelTitle {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.panelContent {
+  padding: 12px;
+}

@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { ModuleRibbon, DEFAULT_GROUPS } from "@/components/ui/ModuleRibbon";
+import { ModuleActions } from "@/components/ui/ModuleActions";
+import { buildComercialActions } from "@/components/comercial/comercialActions";
 import { FilterLayout, FilterSection } from "@/components/ui/FilterLayout";
 import { DataTable, type Column } from "@/components/ui/DataTable";
 import { Badge } from "@/components/ui/Badge";
@@ -63,6 +64,7 @@ export default function ContactoModule() {
     { key: "telefono", header: "Teléfono" },
     { key: "email", header: "E-mail" },
     { key: "movil", header: "Móvil" },
+    { key: "direccion", header: "Dirección", render: (c) => c.direccion?.calle || "—" },
     { key: "personaContacto", header: "Persona de contacto" },
     {
       key: "tipoCliente",
@@ -100,17 +102,14 @@ export default function ContactoModule() {
     return true;
   });
 
-  const customRibbon = [
-    {
-      ...DEFAULT_GROUPS[0],
-      buttons: DEFAULT_GROUPS[0].buttons
-        .filter((btn) => btn.key === "nuevo")
-        .map((btn) => ({ ...btn, onClick: handleCreate })),
-    },
-  ];
+  const actions = buildComercialActions("contacto", handleCreate);
 
   const sidebarContent = (
     <>
+      <FilterSection title="Acciones">
+        <ModuleActions actions={actions} variant="sidebar" />
+      </FilterSection>
+
       <FilterSection title="Estados">
         {["Sin seleccionar", "Cliente", "Proveedor", "Otro"].map((estado) => (
           <label key={estado} className={styles.radioLabel}>
@@ -149,7 +148,6 @@ export default function ContactoModule() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', flex: 1, minHeight: 0 }}>
-      <ModuleRibbon groups={customRibbon} />
       {error && <p className={fieldStyles.errorBanner}>{error}</p>}
       
       <FilterLayout

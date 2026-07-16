@@ -17,13 +17,17 @@ export type Producto = {
   referencia: string | null;
   codigo_barras: string | null;
   notas_internas: string | null;
+  vende: boolean;
+  compra: boolean;
+  es_gasto: boolean;
   created_at: string;
+  updated_at: string;
 };
 
 export type InventarioTables = {
   productos: {
     Row: Producto;
-    Insert: Omit<Producto, "id" | "created_at"> & Partial<Pick<Producto, "id" | "created_at">>;
+    Insert: Omit<Producto, "id" | "created_at" | "updated_at"> & Partial<Pick<Producto, "id" | "created_at" | "updated_at">>;
     Update: Partial<Producto>;
   };
 };

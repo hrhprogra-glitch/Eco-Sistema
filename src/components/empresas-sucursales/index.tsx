@@ -1,11 +1,9 @@
 import { Building2 } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
-import { ModuleRibbon } from "@/components/ui/ModuleRibbon";
 
 export default function EmpresasSucursalesModule() {
   return (
     <>
-      <ModuleRibbon />
       <EmptyState
         icon={Building2}
         title="Empresas y Sucursales"

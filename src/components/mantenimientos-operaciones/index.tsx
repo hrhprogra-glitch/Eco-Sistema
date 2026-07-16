@@ -1,11 +1,9 @@
 import { Wrench } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
-import { ModuleRibbon } from "@/components/ui/ModuleRibbon";
 
 export default function MantenimientosOperacionesModule() {
   return (
     <>
-      <ModuleRibbon />
       <EmptyState
         icon={Wrench}
         title="Mantenimientos"

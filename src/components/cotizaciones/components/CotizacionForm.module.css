@@ -1,0 +1,470 @@
+/* El scroll vive ACÁ (todo el módulo), no en un panel interno aparte: si la hoja no
+   entra, se scrollea la pantalla completa, como el resto de la app -no un cuadrito
+   propio adentro de la previsualización. */
+.page {
+  flex: 1;
+  min-height: 0;
+  padding: 8px 16px;
+  overflow-y: auto;
+}
+
+.layout {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+  max-width: 1400px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.editor {
+  flex: 0 0 520px;
+  min-width: 340px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.preview {
+  flex: 1;
+  min-width: 0;
+}
+
+.previewLabel {
+  margin: 0 0 8px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--text-secondary);
+}
+
+.previewPage {
+  padding: 8px;
+  display: flex;
+  justify-content: center;
+}
+
+/* Pila de hojas A4 visibles, escalada (vía transform, ver escala en CotizacionForm.tsx)
+   para que la hoja entre completa en el ancho disponible, como "ajustar al ancho". */
+.pageStack {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Una hoja A4 real (210 x 297mm) tal como se ve en pantalla: tamaño fijo y recortado
+   (overflow hidden). Adentro va un recorte de .sheet corrido hacia arriba según la
+   página (ver .pageContent), así el contenido largo se reparte en varias hojas. */
+.pageFrame {
+  position: relative;
+  width: 210mm;
+  height: 297mm;
+  overflow: hidden;
+  background: #ffffff;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.22);
+  flex-shrink: 0;
+}
+
+.pageContent {
+  position: absolute;
+  left: 0;
+  right: 0;
+}
+
+/* Contenido real del documento: el mismo bloque se usa una vez oculto fuera de pantalla
+   (para medir su altura total y para capturar el PDF) y una vez por cada .pageContent
+   visible, sin límite de alto propio -crece lo que haga falta-. */
+.sheet {
+  width: 210mm;
+  min-height: 297mm;
+  background: #ffffff;
+  color: #0f172a;
+  padding: 15mm;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Cuenta bancaria + pie de página: si el resto del contenido no llena la hoja, este
+   bloque se empuja al borde inferior real de la hoja (como un pie de página fijo) en
+   vez de quedar flotando justo debajo del total. En una hoja con mucho contenido que ya
+   ocupa más de una página, el margen automático no tiene espacio para empujar y el
+   bloque simplemente sigue después del contenido, como el resto del texto. */
+.sheetBottom {
+  margin-top: auto;
+}
+
+.sheetHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  padding-bottom: 16px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid #cbd5e1;
+}
+
+.sheetEmpresa {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  flex: 1;
+  min-width: 0;
+}
+
+.sheetLogo {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+  margin-bottom: 8px;
+}
+
+.sheetEmpresaNombre {
+  font-size: 19px;
+  font-weight: 900;
+  margin: 0 0 6px;
+  color: #0f172a;
+  text-transform: uppercase;
+  letter-spacing: -0.02em;
+}
+
+.sheetEmpresaDato {
+  font-size: 11px;
+  font-weight: 700;
+  color: #334155;
+  text-transform: uppercase;
+  margin: 1px 0;
+}
+
+.sheetEmpresaEmail {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--eco-azul);
+  margin: 3px 0 0;
+}
+
+.sheetDocBox {
+  flex-shrink: 0;
+  width: 220px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  text-align: center;
+}
+
+.sheetRucBox {
+  border: 2px solid #0f172a;
+  border-bottom: none;
+  background: #f8fafc;
+  padding: 8px;
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+}
+
+.sheetTituloBox {
+  border: 2px solid #0f172a;
+  background: #0f172a;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  padding: 8px;
+}
+
+.sheetInfoTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  margin-bottom: 16px;
+  border: 1px solid #cbd5e1;
+}
+
+.sheetInfoTable td {
+  padding: 8px 10px;
+  border: 1px solid #cbd5e1;
+}
+
+.sheetInfoLabel {
+  font-weight: 700;
+  text-transform: uppercase;
+  width: 110px;
+  background: #f1f5f9;
+}
+
+.sheetTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  margin-bottom: 14px;
+  border: 1px solid #cbd5e1;
+}
+
+.sheetTable th {
+  background: #0f172a;
+  color: #ffffff;
+  text-align: left;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 8px;
+  border: 1px solid #334155;
+}
+
+.sheetTable th:first-child,
+.sheetTable td:first-child {
+  width: 50px;
+  text-align: center;
+}
+
+.sheetTable th:last-child,
+.sheetTable td:last-child {
+  width: 100px;
+  text-align: right;
+}
+
+.sheetTable td {
+  padding: 8px;
+  border: 1px solid #cbd5e1;
+  text-transform: uppercase;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+.sheetItemEncabezado {
+  font-weight: 800;
+}
+
+/* Celda de una tarjeta "producto" que abarca las 3 columnas de la tabla principal
+   (colSpan=3) para meter adentro una tabla anidada (.sheetSubTabla): sin esto, hereda el
+   ancho/alineación de td:first-child y td:last-child de abajo, que ya no aplican acá. */
+.sheetTable td.sheetCeldaCartaProducto {
+  width: auto;
+  text-align: left;
+  padding: 0;
+}
+
+/* Tabla anidada de una tarjeta "producto": una <tr> real por producto (más la fila de
+   encabezado/precio general si corresponde), para que cantidad/descripción/precio queden
+   siempre alineados entre sí aunque la descripción ocupe varias líneas -el navegador
+   agranda la fila entera, no solo una de las columnas-. Sin bordes propios: el borde
+   visible de la tarjeta es el de la fila de la tabla principal que la contiene. */
+.sheetSubTabla {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.sheetSubTabla td {
+  padding: 3px 8px;
+  border: none;
+  vertical-align: top;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+.sheetSubTabla td:first-child {
+  width: 50px;
+  text-align: center;
+}
+
+.sheetSubTabla td:last-child {
+  width: 100px;
+  text-align: right;
+}
+
+.sheetTextoNegrita {
+  font-weight: 800;
+}
+
+.sheetTotalWrap {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 20px;
+}
+
+.sheetTotalTable {
+  width: 220px;
+  border-collapse: collapse;
+  border: 1px solid #cbd5e1;
+}
+
+.sheetTotalTable td {
+  padding: 8px 12px;
+  background: #0f172a;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.sheetTotalTable td:last-child {
+  text-align: right;
+}
+
+.sheetNotas {
+  font-size: 11.5px;
+  color: #555555;
+  white-space: pre-wrap;
+  margin-bottom: 16px;
+}
+
+.sheetEmpty {
+  color: #999999;
+  font-style: italic;
+  font-size: 12px;
+  margin-bottom: 16px;
+}
+
+/* Modo "libre" (importado de Word): estas celdas se editan con clic directo sobre la
+   hoja -contentEditable-, así que llevan una pista visual de que son interactivas (algo
+   que el resto de la hoja, pensada para imprimirse tal cual, no necesita). */
+.sheetCeldaEditable {
+  outline: none;
+  min-height: 1.2em;
+  cursor: text;
+  border-radius: 2px;
+}
+
+.sheetCeldaEditable:hover {
+  background: rgba(56, 189, 248, 0.1);
+}
+
+.sheetCeldaEditable:focus {
+  background: rgba(56, 189, 248, 0.16);
+  box-shadow: inset 0 0 0 1px #38bdf8;
+}
+
+.sheetFilaLibreWrap {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.sheetFilaLibreWrap .sheetCeldaEditable {
+  flex: 1;
+  min-width: 0;
+}
+
+.filaLibreQuitar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  border: none;
+  border-radius: 2px;
+  background: transparent;
+  color: #cc3333;
+  cursor: pointer;
+}
+
+.filaLibreQuitar:hover {
+  background: rgba(204, 51, 51, 0.12);
+}
+
+.agregarFilaLibre {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: -8px 0 12px;
+  padding: 4px 0;
+  background: transparent;
+  border: none;
+  color: #0f6fb8;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.agregarFilaLibre:hover {
+  color: #38bdf8;
+}
+
+/* Marcador puro (sin estilo propio) para que handleEnviarPdf sepa qué elementos excluir
+   de la captura vía ignoreElements -son botones de edición, no parte del documento-. */
+.pdfOcultar {
+  pointer-events: auto;
+}
+
+.avisoLibre {
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  font-style: italic;
+  padding: 10px 12px;
+  border: 1px dashed var(--border-color);
+  border-radius: var(--radius);
+  background: var(--bg-page);
+}
+
+.sheetCuenta {
+  border: 1px solid #dc2626;
+  padding: 8px 12px;
+  color: #dc2626;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  display: inline-block;
+  margin-bottom: 20px;
+}
+
+.sheetCuenta p {
+  margin: 1px 0;
+}
+
+.sheetFooter {
+  text-align: center;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #777777;
+}
+
+.sheetFooterStrong {
+  font-weight: 900;
+  color: #0f172a;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.clienteBox {
+  position: relative;
+}
+
+.clienteDropdown {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 200px;
+  overflow-y: auto;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+}
+
+.clienteOption {
+  padding: 8px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  color: var(--text-primary);
+}
+
+.clienteOption:hover {
+  background: var(--ribbon-hover-bg);
+}
+
+.clienteEmpty {
+  padding: 8px 12px;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+}

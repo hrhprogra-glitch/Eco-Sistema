@@ -1,16 +1,110 @@
-import { Truck } from "lucide-react";
-import { EmptyState } from "@/components/EmptyState";
-import { ModuleRibbon } from "@/components/ui/ModuleRibbon";
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+import { UserPlus } from "lucide-react";
+import { ModuleActions, type ModuleAction } from "@/components/ui/ModuleActions";
+import { DataTable, type Column } from "@/components/ui/DataTable";
+import { FilterLayout, FilterSection } from "@/components/ui/FilterLayout";
+import fieldStyles from "@/components/ui/formFields.module.css";
+import { ProveedorForm } from "./components/ProveedorForm";
+import type { Proveedor } from "./types";
+
+type View = { mode: "list" } | { mode: "form"; proveedor?: Proveedor };
 
 export default function ProveedoresModule() {
+  const [view, setView] = useState<View>({ mode: "list" });
+  const [proveedores, setProveedores] = useState<Proveedor[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedLetter, setSelectedLetter] = useState("0-9");
+
+  const loadProveedores = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/proveedores");
+      if (!res.ok) throw new Error("No se pudieron cargar los proveedores.");
+      setProveedores(await res.json());
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error desconocido.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadProveedores();
+  }, [loadProveedores]);
+
+  const columns: Column<Proveedor>[] = [
+    { key: "nombre", header: "Nombre", render: (p) => <span style={{ color: "var(--accent-text)", fontWeight: 600 }}>{p.nombre}</span> },
+    { key: "ruc", header: "RUC", render: (p) => p.ruc || "—" },
+    { key: "contacto", header: "Contacto", render: (p) => p.contacto || "—" },
+    { key: "telefono", header: "Teléfono", render: (p) => p.telefono || "—" },
+    { key: "email", header: "E-mail", render: (p) => p.email || "—" },
+  ];
+
+  const actions: ModuleAction[] = [
+    { key: "nuevo", label: "Nuevo proveedor", icon: UserPlus, tone: "primary", onClick: () => setView({ mode: "form" }) },
+  ];
+
+  const proveedoresFiltrados = proveedores.filter((proveedor) => {
+    if (searchTerm.trim()) {
+      const termino = searchTerm.trim().toLowerCase();
+      const coincide = [proveedor.nombre, proveedor.ruc, proveedor.contacto, proveedor.email]
+        .some((campo) => campo?.toLowerCase().includes(termino));
+      if (!coincide) return false;
+    }
+
+    if (selectedLetter !== "0-9") {
+      const inicial = proveedor.nombre.trim().charAt(0).toLowerCase();
+      if (inicial !== selectedLetter) return false;
+    }
+
+    return true;
+  });
+
+  const sidebarContent = (
+    <FilterSection title="Acciones">
+      <ModuleActions actions={actions} variant="sidebar" />
+    </FilterSection>
+  );
+
   return (
-    <>
-      <ModuleRibbon />
-      <EmptyState
-        icon={Truck}
-        title="Proveedores"
-        description="Este módulo está en blanco, listo para empezar a construirlo."
-      />
-    </>
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", flex: 1, minHeight: 0 }}>
+      {error && <p className={fieldStyles.errorBanner}>{error}</p>}
+
+      <FilterLayout
+        sidebarContent={sidebarContent}
+        selectedLetter={selectedLetter}
+        onLetterSelect={setSelectedLetter}
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="Buscar proveedor…"
+      >
+        <DataTable
+          data={proveedoresFiltrados}
+          columns={columns}
+          onRowClick={(proveedor) => setView({ mode: "form", proveedor })}
+          emptyMessage={loading ? "Cargando…" : "No hay proveedores que coincidan con el filtro."}
+        />
+      </FilterLayout>
+
+      {view.mode === "form" && (
+        <ProveedorForm
+          proveedor={view.proveedor}
+          onCancel={() => setView({ mode: "list" })}
+          onSaved={() => {
+            setView({ mode: "list" });
+            loadProveedores();
+          }}
+          onDeleted={() => {
+            setView({ mode: "list" });
+            loadProveedores();
+          }}
+        />
+      )}
+    </div>
   );
 }

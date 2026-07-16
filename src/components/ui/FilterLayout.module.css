@@ -6,11 +6,31 @@
 }
 
 .mainContent {
+  position: relative;
   flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+
+/* Panel de filtros/acciones: flota ENCIMA de la tabla (dentro de .mainContent,
+   que tiene position:relative) en vez de compartir espacio en el layout. */
+.sidebarOverlay {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 50;
+  width: 220px;
+  box-shadow: var(--shadow-card-hover);
+}
+
+.sidebarOverlay[data-side="right"] {
+  right: 0;
+}
+
+.sidebarOverlay[data-side="left"] {
+  left: 0;
 }
 
 .alphabetIndex {
@@ -38,6 +58,11 @@
   user-select: none;
 }
 
+.letter[data-wide] {
+  font-size: 9px;
+  font-weight: 700;
+}
+
 .letter:hover {
   background: var(--ribbon-hover-bg);
   color: var(--eco-azul);
@@ -48,21 +73,59 @@
   color: white;
 }
 
-.sidebar {
-  width: 220px;
-  background: var(--bg-sidebar);
+/* Misma columna que .alphabetIndex: mismo ancho, fondo y borde, para que se
+   vea como continuación de la tira de letras, no como un elemento aparte. */
+.toggleWrap {
+  width: 32px;
+  background: var(--bg-surface);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 0;
+  flex-shrink: 0;
+}
+
+.toggleWrap[data-side="right"] {
+  border-right: 1px solid var(--border-color);
+}
+
+.toggleWrap[data-side="left"] {
   border-left: 1px solid var(--border-color);
+}
+
+.toggleButton {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 0;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.toggleButton:hover {
+  background: var(--ribbon-hover-bg);
+  color: var(--eco-azul);
+}
+
+.sidebar {
+  width: 100%;
+  height: 100%;
+  background: var(--ribbon-bg);
   display: flex;
   flex-direction: column;
   overflow-y: auto;
-  flex-shrink: 0;
-  transition: width 0.3s ease, padding 0.3s ease, margin 0.3s ease;
 }
 
-.sidebar[data-hidden] {
-  width: 0;
-  border-left: none;
-  overflow: hidden;
+.sidebarOverlay[data-side="right"] .sidebar {
+  border-left: 2px solid var(--accent);
+}
+
+.sidebarOverlay[data-side="left"] .sidebar {
+  border-right: 2px solid var(--accent);
 }
 
 .searchBox {

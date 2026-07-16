@@ -2,7 +2,8 @@
 
 import React, { useState } from "react";
 import styles from "./FilterLayout.module.css";
-import { Filter, ChevronRight, Search } from "lucide-react";
+import { Filter, ChevronRight, ChevronLeft, Search } from "lucide-react";
+import { useSidebar } from "@/components/sidebar/SidebarProvider";
 
 type FilterLayoutProps = {
   children: React.ReactNode;
@@ -15,9 +16,14 @@ type FilterLayoutProps = {
 };
 
 const ALPHABET = [
-  "0-9", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", 
+  "0-9", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m",
   "n", "ñ", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"
 ];
+
+// El primer botón del índice ya no es un atajo por inicial numérica: es un indicador
+// de que la tabla pagina de a 50 registros (ver DataTable.DEFAULT_PAGE_SIZE). El valor
+// interno sigue siendo "0-9" para no tocar los filtros por letra de cada módulo.
+const ALPHABET_LABELS: Record<string, string> = { "0-9": "0-50" };
 
 export function FilterLayout({
   children,
@@ -28,76 +34,97 @@ export function FilterLayout({
   onSearchChange,
   searchPlaceholder = "Buscar…"
 }: FilterLayoutProps) {
-  const [isSidebarVisible, setIsSidebarVisible] = useState(true);
+  // El panel arranca siempre cerrado al entrar a la sesión; el usuario lo abre a mano si lo necesita.
+  const [isSidebarVisible, setIsSidebarVisible] = useState(false);
+
+  function toggleSidebarVisible() {
+    setIsSidebarVisible((prev) => !prev);
+  }
+
+  const { position: navPosition } = useSidebar();
+  // El panel de filtros va siempre del lado opuesto al menú principal.
+  const filterSide: "left" | "right" = navPosition === "right" ? "left" : "right";
+
+  // El botón que abre el panel queda fijo en su columna, pegado al costado del
+  // índice alfabético (0-50/a-z) — igual que al principio. Lo único que cambia
+  // es el panel en sí: flota ENCIMA de la tabla (position absoluta dentro de
+  // .mainContent) en vez de compartir espacio en el layout, así abrirlo/cerrarlo
+  // nunca mueve ni achica la tabla.
+  const sidebarEl = (
+    <div className={styles.sidebar}>
+      {onSearchChange && (
+        <div className={styles.searchBox}>
+          <Search size={14} className={styles.searchIcon} />
+          <input
+            type="text"
+            className={styles.searchInput}
+            placeholder={searchPlaceholder}
+            value={searchValue ?? ""}
+            onChange={(e) => onSearchChange(e.target.value)}
+          />
+        </div>
+      )}
+      {sidebarContent}
+    </div>
+  );
+
+  const mainContentEl = (
+    <div className={styles.mainContent}>
+      {children}
+      {isSidebarVisible && (
+        <div className={styles.sidebarOverlay} data-side={filterSide}>
+          {sidebarEl}
+        </div>
+      )}
+    </div>
+  );
+
+  const alphabetEl = (
+    <div className={styles.alphabetIndex}>
+      {ALPHABET.map((letter) => (
+        <div
+          key={letter}
+          className={styles.letter}
+          data-active={selectedLetter === letter ? "" : undefined}
+          data-wide={ALPHABET_LABELS[letter] ? "" : undefined}
+          onClick={() => onLetterSelect?.(letter)}
+        >
+          {ALPHABET_LABELS[letter] ?? letter}
+        </div>
+      ))}
+    </div>
+  );
+
+  const CollapseIcon = filterSide === "right" ? ChevronRight : ChevronLeft;
+
+  const toggleEl = (
+    <div className={styles.toggleWrap} data-side={filterSide}>
+      <button
+        type="button"
+        onClick={toggleSidebarVisible}
+        className={styles.toggleButton}
+        title={isSidebarVisible ? "Ocultar filtros y acciones" : "Mostrar filtros y acciones"}
+      >
+        {isSidebarVisible ? <CollapseIcon size={13} /> : <Filter size={13} />}
+      </button>
+    </div>
+  );
 
   return (
     <div className={styles.container}>
-      {/* 1. Main Table Content (Flex 1) */}
-      <div className={styles.mainContent}>
-        {children}
-      </div>
-
-      {/* 2. Alphabet Index (Narrow, between table and sidebar) */}
-      <div className={styles.alphabetIndex}>
-        {ALPHABET.map((letter) => (
-          <div
-            key={letter}
-            className={styles.letter}
-            data-active={selectedLetter === letter ? "" : undefined}
-            onClick={() => onLetterSelect?.(letter)}
-          >
-            {letter}
-          </div>
-        ))}
-      </div>
-
-      {/* Toggle Button Column */}
-      <div 
-        style={{ 
-          width: '24px', 
-          display: 'flex', 
-          flexDirection: 'column', 
-          borderLeft: '1px solid var(--border-color)',
-          background: 'var(--bg-surface)'
-        }}
-      >
-        <button
-          onClick={() => setIsSidebarVisible(!isSidebarVisible)}
-          style={{
-            border: 'none',
-            background: 'transparent',
-            padding: '8px 4px',
-            cursor: 'pointer',
-            color: 'var(--text-secondary)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            transition: 'color 0.2s',
-          }}
-          onMouseEnter={(e) => e.currentTarget.style.color = 'var(--eco-azul)'}
-          onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}
-          title={isSidebarVisible ? "Ocultar filtros" : "Mostrar filtros"}
-        >
-          {isSidebarVisible ? <ChevronRight size={16} /> : <Filter size={16} />}
-        </button>
-      </div>
-
-      {/* 3. Filter Sidebar (Right side) */}
-      <div className={styles.sidebar} data-hidden={isSidebarVisible ? undefined : ""}>
-        {onSearchChange && (
-          <div className={styles.searchBox}>
-            <Search size={14} className={styles.searchIcon} />
-            <input
-              type="text"
-              className={styles.searchInput}
-              placeholder={searchPlaceholder}
-              value={searchValue ?? ""}
-              onChange={(e) => onSearchChange(e.target.value)}
-            />
-          </div>
-        )}
-        {sidebarContent}
-      </div>
+      {filterSide === "right" ? (
+        <>
+          {mainContentEl}
+          {alphabetEl}
+          {toggleEl}
+        </>
+      ) : (
+        <>
+          {toggleEl}
+          {alphabetEl}
+          {mainContentEl}
+        </>
+      )}
     </div>
   );
 }

@@ -1,13 +1,20 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
-import { query } from "@/lib/db";
+import { pool, query } from "@/lib/db";
 import type { EventoCalendario, EventoCalendarioInput } from "@/components/calendario/types";
 
 const SELECT_QUERY = `
-  SELECT c.id, c.titulo, c.fecha, c.descripcion, c.estado, c.tipo, c.trabajadores,
+  SELECT c.id, c.titulo, c.fecha, c.descripcion, c.estado, c.tipo,
          c.proyecto_id, pr.nombre AS "proyecto_nombre",
          c.piscina_id, pi.nombre AS "piscina_nombre", co.nombre AS "contacto_nombre",
-         c.created_at
+         c.created_at,
+         COALESCE(
+           (SELECT json_agg(json_build_object('id', e.id, 'nombre', e.nombre) ORDER BY e.nombre)
+            FROM calendario_evento_empleados ce
+            JOIN empleados e ON e.id = ce.empleado_id
+            WHERE ce.evento_id = c.id),
+           '[]'
+         ) AS empleados
   FROM calendario_eventos c
   LEFT JOIN proyectos pr ON pr.id = c.proyecto_id
   LEFT JOIN piscinas pi ON pi.id = c.piscina_id
@@ -31,28 +38,37 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json();
-  const { titulo, fecha, descripcion, estado, proyecto_id, piscina_id, tipo, trabajadores } =
+  const { titulo, fecha, descripcion, estado, proyecto_id, piscina_id, tipo, empleado_ids } =
     body as EventoCalendarioInput;
 
-  const inserted = await query<{ id: number }>(
-    `INSERT INTO calendario_eventos (titulo, fecha, descripcion, estado, proyecto_id, piscina_id, tipo, trabajadores)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-     RETURNING id`,
-    [
-      titulo, 
-      fecha, 
-      descripcion, 
-      estado ?? "pendiente", 
-      proyecto_id, 
-      piscina_id,
-      tipo || 'nota',
-      trabajadores || null
-    ]
-  );
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
 
-  const result = await query<EventoCalendario>(`${SELECT_QUERY} WHERE c.id = $1`, [
-    inserted.rows[0].id,
-  ]);
+    const inserted = await client.query<{ id: string }>(
+      `INSERT INTO calendario_eventos (titulo, fecha, descripcion, estado, proyecto_id, piscina_id, tipo)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       RETURNING id`,
+      [titulo, fecha, descripcion, estado ?? "pendiente", proyecto_id, piscina_id, tipo || "nota"]
+    );
+    const eventoId = inserted.rows[0].id;
 
-  return NextResponse.json(result.rows[0], { status: 201 });
+    for (const empleadoId of empleado_ids ?? []) {
+      await client.query(
+        `INSERT INTO calendario_evento_empleados (evento_id, empleado_id) VALUES ($1, $2)`,
+        [eventoId, empleadoId]
+      );
+    }
+
+    await client.query("COMMIT");
+
+    const result = await query<EventoCalendario>(`${SELECT_QUERY} WHERE c.id = $1`, [eventoId]);
+    return NextResponse.json(result.rows[0], { status: 201 });
+  } catch (error) {
+    await client.query("ROLLBACK");
+    console.error("Error creating evento:", error);
+    return NextResponse.json({ error: "Error al crear el evento" }, { status: 500 });
+  } finally {
+    client.release();
+  }
 }

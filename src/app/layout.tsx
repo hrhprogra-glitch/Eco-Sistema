@@ -4,6 +4,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import { ZoomProvider } from "@/components/zoom/ZoomProvider";
 import { SessionProvider } from "@/components/session/SessionProvider";
+import { UndoRedoProvider } from "@/components/undoRedo/UndoRedoProvider";
 import { getSession } from "@/lib/auth";
 import "./globals.css";
 
@@ -41,7 +42,9 @@ export default async function RootLayout({
       <body>
         <SessionProvider username={session?.username ?? null}>
           <ZoomProvider>
-            <ThemeProvider>{children}</ThemeProvider>
+            <ThemeProvider>
+              <UndoRedoProvider>{children}</UndoRedoProvider>
+            </ThemeProvider>
           </ZoomProvider>
         </SessionProvider>
       </body>

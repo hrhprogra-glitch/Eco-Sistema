@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
-import { pool, query } from "@/lib/db";
+import { query } from "@/lib/db";
 
 export async function GET() {
   const session = await getSession();
@@ -25,36 +25,27 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json();
-  const { contacto_id, estado, total, fecha, notas, lineas } = body;
+  const { contacto_id, estado, total, fecha, notas, lineas_detalle, moneda, lineas_modo, lineas_libres } = body;
 
-  const client = await pool.connect();
   try {
-    await client.query("BEGIN");
-
-    const cotizacionRes = await client.query(
-      `INSERT INTO cotizaciones (contacto_id, estado, total, fecha, notas)
-       VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-      [contacto_id, estado || "borrador", total, fecha || new Date().toISOString().split("T")[0], notas]
+    const result = await query(
+      `INSERT INTO cotizaciones (contacto_id, estado, total, fecha, notas, moneda, lineas_detalle, lineas_modo, lineas_libres)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
+      [
+        contacto_id,
+        estado || "borrador",
+        total,
+        fecha || new Date().toISOString().split("T")[0],
+        notas,
+        moneda || "PEN",
+        JSON.stringify(lineas_detalle || []),
+        lineas_modo || "tarjetas",
+        lineas_libres ? JSON.stringify(lineas_libres) : null,
+      ]
     );
-    const cotizacionId = cotizacionRes.rows[0].id;
-
-    if (lineas && lineas.length > 0) {
-      for (const linea of lineas) {
-        await client.query(
-          `INSERT INTO cotizacion_lineas (cotizacion_id, producto_id, cantidad, precio_unitario, subtotal)
-           VALUES ($1, $2, $3, $4, $5)`,
-          [cotizacionId, linea.producto_id, linea.cantidad, linea.precio_unitario, linea.subtotal]
-        );
-      }
-    }
-
-    await client.query("COMMIT");
-    return NextResponse.json(cotizacionRes.rows[0], { status: 201 });
+    return NextResponse.json(result.rows[0], { status: 201 });
   } catch (error) {
-    await client.query("ROLLBACK");
     console.error("Error creating cotizacion:", error);
     return NextResponse.json({ error: "Error al crear la cotización" }, { status: 500 });
-  } finally {
-    client.release();
   }
 }

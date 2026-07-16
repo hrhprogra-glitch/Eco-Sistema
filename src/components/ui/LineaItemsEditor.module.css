@@ -1,29 +1,242 @@
 .wrapper {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 
-.headerRow,
-.row {
-  display: grid;
-  grid-template-columns: 2fr 100px 140px 120px 36px;
+/* Cada línea es una "tarjeta" apilada de arriba a abajo, arrastrable para reordenar. */
+.itemCard {
+  display: flex;
+  flex-direction: column;
   gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  background: var(--bg-surface);
+  cursor: grab;
+}
+
+.itemCard[data-dragging] {
+  opacity: 0.4;
+  border-color: var(--eco-celeste);
+}
+
+.cardHeader {
+  display: flex;
   align-items: center;
+  gap: 8px;
 }
 
-.headerRow {
-  font-size: 12px;
+.dragHandle {
+  display: flex;
+  align-items: center;
+  color: var(--text-secondary);
+}
+
+.cardTipoLabel {
+  flex: 1;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--text-secondary);
+}
+
+.encabezadoInput {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+/* Textarea de una sola línea que crece con el contenido (ver ajustarAlturaTextarea) en
+   vez de un input de línea única -así se puede escribir texto largo, con Enter/Shift+Enter
+   para bajar de línea, sin que se corte ni se pise con lo ya escrito-. */
+.textareaAuto {
+  resize: none;
+  overflow: hidden;
+  min-height: 38px;
+  line-height: 1.4;
+}
+
+.datosRow {
+  display: grid;
+  grid-template-columns: 110px 130px 1fr 32px;
+  gap: 10px;
+  align-items: end;
+}
+
+/* Fila de dos campos donde el primero es ancho (Descripción, o Encabezado) y el segundo
+   angosto (Precio, o Precio general) -a diferencia de .datosRow, que es para
+   Cantidad/Precio/Subtotal dentro de una sub-tarjeta de producto-. */
+.filaAncha {
+  display: grid;
+  grid-template-columns: 1fr 170px;
+  gap: 10px;
+  align-items: end;
+}
+
+.datoCampo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.datoLabel {
+  font-size: 11px;
   font-weight: 600;
   color: var(--text-secondary);
-  padding: 0 4px;
+}
+
+/* Cada producto dentro de una tarjeta "Producto" es una sub-tarjeta propia, para poder
+   sumar más de uno bajo el mismo encabezado/precio general. */
+.productoSubcard {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  border: 1px dashed var(--border-color);
+  border-radius: var(--radius);
+  background: var(--bg-page);
+}
+
+.addProductoButton {
+  align-self: flex-start;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
+  border: none;
+  color: var(--eco-azul);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 2px 0;
+}
+
+.addProductoButton:hover {
+  color: var(--eco-celeste);
+}
+
+.cardTotalRow {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  padding-top: 4px;
+  border-top: 1px solid var(--border-color);
+}
+
+.productoBuscador {
+  position: relative;
+}
+
+.productoDropdown {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 220px;
+  overflow-y: auto;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+}
+
+.productoOption {
+  padding: 8px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  color: var(--text-primary);
+}
+
+.productoOption:hover {
+  background: var(--ribbon-hover-bg);
+}
+
+.productoEmpty {
+  padding: 8px 12px;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+}
+
+.productoExterno {
+  padding: 8px 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--eco-azul);
+  cursor: pointer;
+  border-top: 1px solid var(--border-color);
+}
+
+.productoExterno:hover {
+  background: var(--ribbon-hover-bg);
+}
+
+/* Fila input + botón "Negrita": el input ocupa todo el ancho disponible (incluso cuando
+   es el ProductoBuscador, que trae su propio position:relative) y el botón queda fijo. */
+.campoConNegrita {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.campoConNegrita > input,
+.campoConNegrita > textarea,
+.campoConNegrita > .productoBuscador {
+  flex: 1;
+  min-width: 0;
+}
+
+.negritaToggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  background: var(--bg-page);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.negritaToggle:hover {
+  border-color: var(--eco-celeste);
+  color: var(--text-primary);
+}
+
+.negritaToggleActivo {
+  background: var(--accent);
+  border-color: var(--accent-strong);
+  color: var(--accent-text);
+}
+
+.modoToggle {
+  align-self: flex-start;
+  background: transparent;
+  border: none;
+  padding: 0;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.modoToggle:hover {
+  color: var(--eco-celeste);
 }
 
 .subtotal {
-  font-weight: 600;
+  font-weight: 700;
+  font-size: 15px;
   color: var(--text-primary);
-  text-align: right;
-  padding-right: 8px;
+  padding: 9px 0;
 }
 
 .removeButton {
@@ -41,6 +254,16 @@
 
 .removeButton:hover {
   background: color-mix(in srgb, var(--status-error) 10%, transparent);
+}
+
+.removeButton:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.addButtonsRow {
+  display: flex;
+  gap: 8px;
 }
 
 .addButton {

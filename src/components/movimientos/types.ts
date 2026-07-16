@@ -1,16 +1,76 @@
-export type MovimientoInventario = {
+// Sin sesión de gestión propia todavía (ver GET /api/almacenes) -- solo para poblar los
+// <select> de Entradas/Salidas.
+export type Almacen = {
   id: string;
-  producto: string;
-  tipo: "entrada" | "salida";
+  nombre: string;
+  ubicacion: string | null;
+};
+
+// Fila del "cuaderno": una entrada, salida o ajuste ya confirmado, con el nombre de
+// producto/almacén/lote resuelto para mostrar directo en la tabla (join hecho en la API).
+export type MovimientoStock = {
+  id: string;
+  producto_id: string;
+  producto_nombre: string;
+  almacen_id: string;
+  almacen_nombre: string;
+  lote_id: string | null;
+  lote_numero: string | null;
+  tipo: "entrada" | "salida" | "ajuste";
   cantidad: number;
+  motivo: string;
+  entrada_id: string | null;
   fecha: string;
   created_at: string;
 };
 
+// Encabezado de una Entrada (factura de proveedor). Mientras está en "borrador" no afecta
+// stock; recién al confirmarla se generan los lotes y las filas de movimientos_stock.
+export type Entrada = {
+  id: string;
+  numero: number;
+  proveedor_id: string;
+  proveedor_nombre?: string;
+  numero_factura_proveedor: string | null;
+  estado: "borrador" | "confirmada" | "cancelada";
+  total: number;
+  fecha: string;
+  notas: string | null;
+  lineas?: EntradaLinea[];
+  created_at: string;
+  updated_at: string;
+};
+
+export type EntradaLinea = {
+  id: string;
+  entrada_id: string;
+  producto_id: string;
+  producto_nombre?: string;
+  almacen_id: string;
+  cantidad: number;
+  costo_unitario: number;
+  subtotal: number;
+  fecha_vencimiento: string | null;
+};
+
+// Body que espera POST /api/movimientos/salidas para registrar una salida de un lote.
+export type SalidaInput = {
+  lote_id: string;
+  cantidad: number;
+  motivo: string;
+  fecha?: string;
+};
+
 export type MovimientosTables = {
-  movimientos_inventario: {
-    Row: MovimientoInventario;
-    Insert: Omit<MovimientoInventario, "id" | "created_at"> & Partial<Pick<MovimientoInventario, "id" | "created_at">>;
-    Update: Partial<MovimientoInventario>;
+  entradas: {
+    Row: Entrada;
+    Insert: Omit<Entrada, "id" | "numero" | "created_at" | "updated_at" | "estado" | "total"> &
+      Partial<Pick<Entrada, "id" | "numero" | "created_at" | "updated_at" | "estado" | "total">>;
+    Update: Partial<Entrada>;
+  };
+  movimientos_stock: {
+    Row: MovimientoStock;
+    Insert: Omit<MovimientoStock, "id" | "created_at">;
+    Update: never;
   };
 };

@@ -1,5 +1,10 @@
-export type EstadoEvento = "pendiente" | "completado" | "cancelado";
+export type EstadoEvento = "pendiente" | "completado" | "seguimiento" | "cancelado";
 export type TipoEvento = "nota" | "recordatorio" | "mantenimiento" | "visita" | "obra";
+
+export type EmpleadoAsignado = {
+  id: string;
+  nombre: string;
+};
 
 export type EventoCalendario = {
   id: string;
@@ -8,7 +13,7 @@ export type EventoCalendario = {
   descripcion: string | null;
   estado: EstadoEvento;
   tipo: TipoEvento;
-  trabajadores: string | null;
+  empleados: EmpleadoAsignado[];
   proyecto_id: string | null;
   proyecto_nombre: string | null;
   piscina_id: string | null;
@@ -23,7 +28,7 @@ export type EventoCalendarioInput = {
   descripcion: string | null;
   estado: EstadoEvento;
   tipo: TipoEvento;
-  trabajadores: string | null;
+  empleado_ids: string[];
   proyecto_id: string | null;
   piscina_id: string | null;
 };

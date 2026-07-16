@@ -1,0 +1,25 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: var(--radius);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+}
+
+.badge[data-tono="confirmada"] {
+  background: color-mix(in srgb, var(--status-online) 16%, transparent);
+  color: var(--status-online);
+}
+
+.badge[data-tono="negativo"] {
+  background: color-mix(in srgb, var(--status-error) 14%, transparent);
+  color: var(--status-error);
+}
+
+.badge[data-tono="neutro"] {
+  background: color-mix(in srgb, var(--status-offline) 20%, transparent);
+  color: var(--text-secondary);
+}

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Save, FilePlus2, Trash2 } from 'lucide-react';
 import { FloatingWindow } from './FloatingWindow';
-import { Ribbon, type RibbonGroup } from './Ribbon';
+import { ModuleActions, type ModuleAction } from './ModuleActions';
 import styles from './FormLayout.module.css';
 
 interface FormLayoutProps {
@@ -12,6 +12,8 @@ interface FormLayoutProps {
   onDelete?: () => void;
   onSaveAndNew?: () => void;
   isSaving?: boolean;
+  width?: number;
+  extraActions?: ModuleAction[];
 }
 
 export function FormLayout({
@@ -22,26 +24,24 @@ export function FormLayout({
   onDelete,
   onSaveAndNew,
   isSaving = false,
+  width = 860,
+  extraActions = [],
 }: FormLayoutProps) {
-  const groups: RibbonGroup[] = [
-    {
-      label: 'Mantenimiento',
-      buttons: [
-        { key: 'guardar', icon: Save, label: 'Guardar y cerrar', onClick: onSave, disabled: isSaving },
-        ...(onSaveAndNew
-          ? [{ key: 'guardar-nuevo', icon: FilePlus2, label: 'Guardar y nuevo', onClick: onSaveAndNew, disabled: isSaving }]
-          : []),
-        ...(onDelete
-          ? [{ key: 'eliminar', icon: Trash2, label: 'Eliminar', onClick: onDelete, disabled: isSaving, tone: 'danger' as const }]
-          : []),
-      ],
-    },
+  const actions: ModuleAction[] = [
+    { key: 'guardar', icon: Save, label: 'Guardar y cerrar', onClick: onSave, disabled: isSaving, tone: 'primary' },
+    ...(onSaveAndNew
+      ? [{ key: 'guardar-nuevo', icon: FilePlus2, label: 'Guardar y nuevo', onClick: onSaveAndNew, disabled: isSaving }]
+      : []),
+    ...(onDelete
+      ? [{ key: 'eliminar', icon: Trash2, label: 'Eliminar', onClick: onDelete, disabled: isSaving, tone: 'danger' as const }]
+      : []),
+    ...extraActions,
   ];
 
   return (
-    <FloatingWindow title={title} onClose={onCancel} width={860}>
+    <FloatingWindow title={title} onClose={onCancel} width={width}>
       <div className={styles.ribbonWrap}>
-        <Ribbon groups={groups} />
+        <ModuleActions actions={actions} variant="inline" />
       </div>
       <div className={styles.content}>
         {children}
