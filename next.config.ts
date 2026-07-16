@@ -2,7 +2,11 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   devIndicators: false,
-  output: "standalone",
+  // "standalone" empaqueta un server Node self-contained -lo necesita el instalador
+  // de escritorio (pnpm electron:build, ver scripts/prepare-standalone.js). Vercel
+  // NO lo necesita (tiene su propio empaquetado serverless) y se confunde si está
+  // seteado -por eso se salta solo cuando la build corre en Vercel.
+  ...(process.env.VERCEL ? {} : { output: "standalone" as const }),
   // Por defecto Next.js solo mantiene 2 páginas compiladas en memoria en modo
   // desarrollo y las descarta a los 25s de inactividad -con ~50 sesiones en el
   // panel, eso significa recompilar de nuevo cada vez que volvés después de un
