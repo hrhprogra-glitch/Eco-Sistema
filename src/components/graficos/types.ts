@@ -1,4 +1,4 @@
-import type { LucideIcon } from "lucide-react";
+export type { KpiDatum } from "@/components/ui/KpiTile";
 
 export type ChartDatum = {
   label: string;
@@ -7,15 +7,6 @@ export type ChartDatum = {
 
 export type DonutDatum = ChartDatum & {
   color: string;
-};
-
-export type KpiDatum = {
-  label: string;
-  value: string;
-  icon: LucideIcon;
-  color: string;
-  deltaLabel?: string;
-  trend?: "up" | "down";
 };
 
 export type RankedDatum = {

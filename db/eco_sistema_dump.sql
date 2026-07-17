@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict IQeKn74AA6lVq6Ddr3NblZWN7XFpxf8lKqWMu7mdEhX3uAE2T24FMZQNOpp7MHz
+\restrict wQQjSqGeRIqI7hBPsapENVKwt9MiFFcXJpxBFMB2CdbsbEStsWtPAmMQHTi9roL
 
 -- Dumped from database version 16.14
 -- Dumped by pg_dump version 16.14
@@ -68,6 +68,10 @@ CREATE FUNCTION public.sync_outbox_capture() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
 BEGIN
+  IF current_setting('app.sync_apply', true) = 'on' THEN
+    RETURN NULL;
+  END IF;
+
   IF TG_OP = 'DELETE' THEN
     INSERT INTO sync_outbox(table_name, operation, payload) VALUES (TG_TABLE_NAME, TG_OP, to_jsonb(OLD));
   ELSE
@@ -81,6 +85,18 @@ $$;
 SET default_tablespace = '';
 
 SET default_table_access_method = heap;
+
+--
+-- Name: almacenes; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.almacenes (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    nombre character varying(100) NOT NULL,
+    ubicacion character varying(200),
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 
 --
 -- Name: asiento_lineas; Type: TABLE; Schema: public; Owner: -
@@ -134,6 +150,17 @@ ALTER SEQUENCE public.asientos_contables_numero_seq OWNED BY public.asientos_con
 
 
 --
+-- Name: calendario_evento_empleados; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.calendario_evento_empleados (
+    evento_id uuid NOT NULL,
+    empleado_id uuid NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
 -- Name: calendario_eventos; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -144,12 +171,11 @@ CREATE TABLE public.calendario_eventos (
     created_at timestamp without time zone DEFAULT now(),
     estado character varying(20) DEFAULT 'pendiente'::character varying NOT NULL,
     tipo character varying(50) DEFAULT 'nota'::character varying,
-    trabajadores text,
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     piscina_id uuid,
     proyecto_id uuid,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    CONSTRAINT calendario_eventos_estado_check CHECK (((estado)::text = ANY ((ARRAY['pendiente'::character varying, 'completado'::character varying, 'cancelado'::character varying])::text[])))
+    CONSTRAINT calendario_eventos_estado_check CHECK (((estado)::text = ANY ((ARRAY['pendiente'::character varying, 'completado'::character varying, 'seguimiento'::character varying, 'cancelado'::character varying])::text[])))
 );
 
 
@@ -193,10 +219,14 @@ CREATE TABLE public.contactos (
 CREATE TABLE public.cotizacion_lineas (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     cotizacion_id uuid NOT NULL,
-    producto_id uuid NOT NULL,
+    producto_id uuid,
     cantidad numeric(12,2) NOT NULL,
     precio_unitario numeric(12,2) NOT NULL,
-    subtotal numeric(12,2) NOT NULL
+    subtotal numeric(12,2) NOT NULL,
+    descripcion text,
+    descripcion_superior text,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT cotizacion_lineas_producto_o_descripcion CHECK (((producto_id IS NOT NULL) OR (descripcion IS NOT NULL)))
 );
 
 
@@ -214,7 +244,12 @@ CREATE TABLE public.cotizaciones (
     notas text,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    CONSTRAINT cotizaciones_estado_check CHECK (((estado)::text = ANY ((ARRAY['borrador'::character varying, 'enviada'::character varying, 'aceptada'::character varying, 'rechazada'::character varying])::text[])))
+    moneda character varying(3) DEFAULT 'PEN'::character varying NOT NULL,
+    lineas_detalle jsonb DEFAULT '[]'::jsonb NOT NULL,
+    lineas_modo text DEFAULT 'tarjetas'::text NOT NULL,
+    lineas_libres jsonb,
+    CONSTRAINT cotizaciones_estado_check CHECK (((estado)::text = ANY ((ARRAY['borrador'::character varying, 'enviada'::character varying, 'aceptada'::character varying, 'rechazada'::character varying, 'confirmada'::character varying, 'cancelada'::character varying])::text[]))),
+    CONSTRAINT cotizaciones_moneda_check CHECK (((moneda)::text = ANY ((ARRAY['PEN'::character varying, 'USD'::character varying])::text[])))
 );
 
 
@@ -259,6 +294,133 @@ CREATE TABLE public.empleados (
 
 
 --
+-- Name: entrada_lineas; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.entrada_lineas (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    entrada_id uuid NOT NULL,
+    producto_id uuid NOT NULL,
+    almacen_id uuid NOT NULL,
+    cantidad numeric(12,2) NOT NULL,
+    costo_unitario numeric(12,2) NOT NULL,
+    subtotal numeric(12,2) NOT NULL,
+    fecha_vencimiento date
+);
+
+
+--
+-- Name: entradas; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.entradas (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    numero bigint NOT NULL,
+    proveedor_id uuid NOT NULL,
+    numero_factura_proveedor character varying(50),
+    estado character varying(20) DEFAULT 'borrador'::character varying NOT NULL,
+    total numeric(12,2) DEFAULT 0 NOT NULL,
+    fecha date DEFAULT CURRENT_DATE NOT NULL,
+    notas text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    moneda character varying(3) DEFAULT 'PEN'::character varying NOT NULL,
+    CONSTRAINT entradas_estado_check CHECK (((estado)::text = ANY ((ARRAY['borrador'::character varying, 'confirmada'::character varying, 'cancelada'::character varying])::text[]))),
+    CONSTRAINT entradas_moneda_check CHECK (((moneda)::text = ANY ((ARRAY['PEN'::character varying, 'USD'::character varying])::text[])))
+);
+
+
+--
+-- Name: entradas_numero_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.entradas_numero_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: entradas_numero_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.entradas_numero_seq OWNED BY public.entradas.numero;
+
+
+--
+-- Name: factura_lineas; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.factura_lineas (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    factura_id uuid NOT NULL,
+    producto_id uuid,
+    descripcion text,
+    cantidad numeric(12,2) NOT NULL,
+    precio_unitario numeric(12,2) NOT NULL,
+    subtotal numeric(12,2) NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT factura_lineas_producto_o_descripcion CHECK (((producto_id IS NOT NULL) OR (descripcion IS NOT NULL)))
+);
+
+
+--
+-- Name: factura_pagos; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.factura_pagos (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    factura_id uuid NOT NULL,
+    monto numeric(12,2) NOT NULL,
+    fecha date DEFAULT CURRENT_DATE NOT NULL,
+    metodo character varying(30),
+    notas text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: facturas; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.facturas (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    numero bigint NOT NULL,
+    contacto_id uuid NOT NULL,
+    cotizacion_id uuid,
+    estado character varying(20) DEFAULT 'borrador'::character varying NOT NULL,
+    total numeric(12,2) DEFAULT 0 NOT NULL,
+    fecha date DEFAULT CURRENT_DATE NOT NULL,
+    notas text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT facturas_estado_check CHECK (((estado)::text = ANY ((ARRAY['borrador'::character varying, 'enviada'::character varying, 'pagada'::character varying, 'vencida'::character varying])::text[])))
+);
+
+
+--
+-- Name: facturas_numero_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.facturas_numero_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: facturas_numero_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.facturas_numero_seq OWNED BY public.facturas.numero;
+
+
+--
 -- Name: gastos; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -274,6 +436,43 @@ CREATE TABLE public.gastos (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
     CONSTRAINT gastos_estado_check CHECK (((estado)::text = ANY ((ARRAY['pendiente'::character varying, 'pagado'::character varying])::text[])))
+);
+
+
+--
+-- Name: lotes; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.lotes (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    producto_id uuid NOT NULL,
+    almacen_id uuid NOT NULL,
+    numero_lote character varying(50),
+    cantidad_inicial numeric(12,2) NOT NULL,
+    cantidad_actual numeric(12,2) NOT NULL,
+    costo_unitario numeric(12,2) DEFAULT 0 NOT NULL,
+    fecha_vencimiento date,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: movimientos_stock; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.movimientos_stock (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    producto_id uuid NOT NULL,
+    almacen_id uuid NOT NULL,
+    lote_id uuid,
+    tipo character varying(10) NOT NULL,
+    cantidad numeric(12,2) NOT NULL,
+    motivo character varying(200) NOT NULL,
+    entrada_id uuid,
+    fecha date DEFAULT CURRENT_DATE NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT movimientos_stock_tipo_check CHECK (((tipo)::text = ANY ((ARRAY['entrada'::character varying, 'salida'::character varying, 'ajuste'::character varying])::text[])))
 );
 
 
@@ -304,7 +503,8 @@ CREATE TABLE public.pedido_lineas (
     producto_id uuid NOT NULL,
     cantidad numeric(12,2) NOT NULL,
     precio_unitario numeric(12,2) NOT NULL,
-    subtotal numeric(12,2) NOT NULL
+    subtotal numeric(12,2) NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 
@@ -466,6 +666,23 @@ CREATE TABLE public.productos (
 
 
 --
+-- Name: proveedores; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.proveedores (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    nombre character varying(150) NOT NULL,
+    ruc character varying(20),
+    contacto character varying(150),
+    telefono character varying(30),
+    email character varying(150),
+    notas text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
 -- Name: proyecto_empleados; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -549,6 +766,7 @@ CREATE TABLE public.sync_state (
     is_online boolean DEFAULT false NOT NULL,
     last_check_at timestamp with time zone,
     last_success_at timestamp with time zone,
+    last_pull_at timestamp with time zone DEFAULT '-infinity'::timestamp with time zone NOT NULL,
     CONSTRAINT sync_state_id_check CHECK (id)
 );
 
@@ -568,59 +786,6 @@ CREATE TABLE public.usuarios (
 
 
 --
--- Name: venta_lineas; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.venta_lineas (
-    cantidad integer DEFAULT 1 NOT NULL,
-    precio_unitario numeric(12,2) DEFAULT 0 NOT NULL,
-    subtotal numeric(12,2) DEFAULT 0 NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    venta_id uuid NOT NULL,
-    producto_id uuid NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
-);
-
-
---
--- Name: ventas; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.ventas (
-    total numeric(12,2) DEFAULT 0 NOT NULL,
-    estado character varying(50) DEFAULT 'borrador'::character varying NOT NULL,
-    fecha date DEFAULT CURRENT_DATE NOT NULL,
-    notas text,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    contacto_id uuid NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    numero bigint NOT NULL,
-    CONSTRAINT ventas_estado_check CHECK (((estado)::text = ANY ((ARRAY['borrador'::character varying, 'confirmada'::character varying, 'facturada'::character varying, 'cancelada'::character varying])::text[])))
-);
-
-
---
--- Name: ventas_numero_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE SEQUENCE public.ventas_numero_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: ventas_numero_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE public.ventas_numero_seq OWNED BY public.ventas.numero;
-
-
---
 -- Name: asientos_contables numero; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -632,6 +797,20 @@ ALTER TABLE ONLY public.asientos_contables ALTER COLUMN numero SET DEFAULT nextv
 --
 
 ALTER TABLE ONLY public.cotizaciones ALTER COLUMN numero SET DEFAULT nextval('public.cotizaciones_numero_seq'::regclass);
+
+
+--
+-- Name: entradas numero; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.entradas ALTER COLUMN numero SET DEFAULT nextval('public.entradas_numero_seq'::regclass);
+
+
+--
+-- Name: facturas numero; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.facturas ALTER COLUMN numero SET DEFAULT nextval('public.facturas_numero_seq'::regclass);
 
 
 --
@@ -649,10 +828,12 @@ ALTER TABLE ONLY public.sync_outbox ALTER COLUMN id SET DEFAULT nextval('public.
 
 
 --
--- Name: ventas numero; Type: DEFAULT; Schema: public; Owner: -
+-- Data for Name: almacenes; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.ventas ALTER COLUMN numero SET DEFAULT nextval('public.ventas_numero_seq'::regclass);
+COPY public.almacenes (id, nombre, ubicacion, created_at) FROM stdin;
+70591ccd-7b96-44d3-a14c-f65ec633cb1f	Almacén Principal	\N	2026-07-15 17:36:40.71408-05
+\.
 
 
 --
@@ -672,11 +853,20 @@ COPY public.asientos_contables (fecha, descripcion, estado, created_at, id, upda
 
 
 --
+-- Data for Name: calendario_evento_empleados; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.calendario_evento_empleados (evento_id, empleado_id, updated_at) FROM stdin;
+8ee1ecdc-09e0-4de2-bf2f-f154d8c0522b	4e6a0bcb-3f7e-5c8d-a2c4-e7b5acc5c6f9	2026-07-16 10:40:28.616921-05
+\.
+
+
+--
 -- Data for Name: calendario_eventos; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-COPY public.calendario_eventos (titulo, fecha, descripcion, created_at, estado, tipo, trabajadores, id, piscina_id, proyecto_id, updated_at) FROM stdin;
-matenimiendo	2026-07-09	\N	2026-07-08 19:22:58.459099	pendiente	nota	\N	c6f9a7a6-fb9a-54a7-a117-57b2f424ee15	1363072c-725a-5da3-b05d-c4f115a416ec	\N	2026-07-11 15:14:59.630758-05
+COPY public.calendario_eventos (titulo, fecha, descripcion, created_at, estado, tipo, id, piscina_id, proyecto_id, updated_at) FROM stdin;
+BRISEÑO	2026-07-01	Programacion de riego 	2026-07-13 19:00:43.822997	pendiente	recordatorio	8ee1ecdc-09e0-4de2-bf2f-f154d8c0522b	\N	f1b30cad-e0dc-5867-bf91-323fbf08d8bf	2026-07-13 19:00:43.822997-05
 \.
 
 
@@ -686,6 +876,7 @@ matenimiendo	2026-07-09	\N	2026-07-08 19:22:58.459099	pendiente	nota	\N	c6f9a7a6
 
 COPY public.contactos (nombre, tipo, es_empresa, email, telefono, sitio_web, puesto_trabajo, direccion, identificaciones, etiquetas, contactos_relacionados, notas, created_at, id, updated_at, codigo, nombre_fiscal, fax, movil, persona_contacto, nif, agente, tipo_cliente, ubicacion_url) FROM stdin;
 Harry	cliente	t	harry@gmail	946000608			{"zip": "", "pais": "", "calle": "", "calle2": "", "ciudad": "", "estado": "", "distrito": ""}	[]	[]	[]		2026-07-05 20:56:22.216318-05	d142ef26-317d-56bd-aa3b-6b5d29bb6fdb	2026-07-11 15:14:59.630758-05	\N	\N	\N	\N	\N	\N	\N	\N	\N
+Billy el poderoso	otro	f		985832096			{"zip": "", "pais": "", "calle": "Mz A lt 9 Nueva gales Cieneguilla", "calle2": "", "ciudad": "", "estado": "", "distrito": ""}	[]	[]	[]		2026-07-13 18:56:12.713652-05	94ed37e9-c0fd-485a-ad1c-fee4a2b33451	2026-07-13 18:56:12.713652-05	\N	\N	\N	\N	\N	\N	\N	\N	\N
 \.
 
 
@@ -693,7 +884,7 @@ Harry	cliente	t	harry@gmail	946000608			{"zip": "", "pais": "", "calle": "", "ca
 -- Data for Name: cotizacion_lineas; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-COPY public.cotizacion_lineas (id, cotizacion_id, producto_id, cantidad, precio_unitario, subtotal) FROM stdin;
+COPY public.cotizacion_lineas (id, cotizacion_id, producto_id, cantidad, precio_unitario, subtotal, descripcion, descripcion_superior, updated_at) FROM stdin;
 \.
 
 
@@ -701,7 +892,8 @@ COPY public.cotizacion_lineas (id, cotizacion_id, producto_id, cantidad, precio_
 -- Data for Name: cotizaciones; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-COPY public.cotizaciones (id, numero, contacto_id, estado, total, fecha, notas, created_at, updated_at) FROM stdin;
+COPY public.cotizaciones (id, numero, contacto_id, estado, total, fecha, notas, created_at, updated_at, moneda, lineas_detalle, lineas_modo, lineas_libres) FROM stdin;
+b6f7fc59-e3ae-4046-a71f-ff3c53d0da58	10	d142ef26-317d-56bd-aa3b-6b5d29bb6fdb	confirmada	0.00	2026-07-14		2026-07-13 19:11:47.829353-05	2026-07-13 19:12:05.717631-05	PEN	[]	tarjetas	\N
 \.
 
 
@@ -723,10 +915,66 @@ Ulices	Jefe		2026-07-05 22:54:56.766021-05	\N	\N	\N	\N	\N	\N	0.00	c5a1a2b1-f683-
 
 
 --
+-- Data for Name: entrada_lineas; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.entrada_lineas (id, entrada_id, producto_id, almacen_id, cantidad, costo_unitario, subtotal, fecha_vencimiento) FROM stdin;
+\.
+
+
+--
+-- Data for Name: entradas; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.entradas (id, numero, proveedor_id, numero_factura_proveedor, estado, total, fecha, notas, created_at, updated_at, moneda) FROM stdin;
+\.
+
+
+--
+-- Data for Name: factura_lineas; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.factura_lineas (id, factura_id, producto_id, descripcion, cantidad, precio_unitario, subtotal, updated_at) FROM stdin;
+\.
+
+
+--
+-- Data for Name: factura_pagos; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.factura_pagos (id, factura_id, monto, fecha, metodo, notas, created_at, updated_at) FROM stdin;
+\.
+
+
+--
+-- Data for Name: facturas; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.facturas (id, numero, contacto_id, cotizacion_id, estado, total, fecha, notas, created_at, updated_at) FROM stdin;
+\.
+
+
+--
 -- Data for Name: gastos; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.gastos (concepto, categoria, monto, fecha, estado, notas, comprobante_url, created_at, id, updated_at) FROM stdin;
+\.
+
+
+--
+-- Data for Name: lotes; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.lotes (id, producto_id, almacen_id, numero_lote, cantidad_inicial, cantidad_actual, costo_unitario, fecha_vencimiento, created_at, updated_at) FROM stdin;
+\.
+
+
+--
+-- Data for Name: movimientos_stock; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.movimientos_stock (id, producto_id, almacen_id, lote_id, tipo, cantidad, motivo, entrada_id, fecha, created_at) FROM stdin;
 \.
 
 
@@ -742,7 +990,7 @@ COPY public.oportunidades (id, titulo, contacto_id, etapa, monto_estimado, notas
 -- Data for Name: pedido_lineas; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-COPY public.pedido_lineas (id, pedido_id, producto_id, cantidad, precio_unitario, subtotal) FROM stdin;
+COPY public.pedido_lineas (id, pedido_id, producto_id, cantidad, precio_unitario, subtotal, updated_at) FROM stdin;
 \.
 
 
@@ -820,7 +1068,7 @@ COPY public.plan_cuentas (codigo, nombre, tipo, created_at, id, updated_at) FROM
 
 COPY public.productos (nombre, sku, stock, precio, created_at, favorito, foto_url, vende, compra, es_gasto, tipo, rastrear_inventario, unidad, impuesto_venta, codigo_detraccion, costo, categoria, referencia, codigo_barras, notas_internas, limite_stock, id, updated_at) FROM stdin;
 TEE DE 1" S/P INYECTOPLAST	ACC-048	-1	0.00	2026-07-08 16:48:35.329802-05	f	\N	t	f	f	bienes	t	Unidad	\N	\N	0.00	\N	\N	\N	\N	10	f2184d14-d793-5542-8093-935bb6e4b137	2026-07-11 15:14:59.630758-05
-ADAPTADOR DE 1/2" PVC	ACC-001	0	0.00	2026-07-08 16:48:35.302771-05	f	\N	t	f	f	bienes	t	Unidad	\N	\N	0.00	\N	\N	\N	\N	10	40d309f7-efe2-5e18-a8b5-a39cf3c19048	2026-07-11 15:14:59.630758-05
+ADAPTADOR DE 1/2" PVC	ACC-001	100	0.00	2026-07-08 16:48:35.302-05	f	\N	t	f	f	bienes	t	Unidad	\N	\N	0.00	\N	\N	\N	\N	10	40d309f7-efe2-5e18-a8b5-a39cf3c19048	2026-07-13 20:50:12.280895-05
 CODO DE 1/2" MX INYECTOPLAST	ACC-002	0	0.00	2026-07-08 16:48:35.307804-05	f	\N	t	f	f	bienes	t	Unidad	\N	\N	0.00	\N	\N	\N	\N	10	cc5cad1a-732b-528e-a616-b8feee0b7219	2026-07-11 15:14:59.630758-05
 CODO DE 1/2" S/P INYECTOPLAST	ACC-003	0	0.00	2026-07-08 16:48:35.308474-05	f	\N	t	f	f	bienes	t	Unidad	\N	\N	0.00	\N	\N	\N	\N	10	381542e7-b890-55a3-967f-2c5d087871ab	2026-07-11 15:14:59.630758-05
 CODO DE 1/2" S/P PAVCO	ACC-004	0	0.00	2026-07-08 16:48:35.309158-05	f	\N	t	f	f	bienes	t	Unidad	\N	\N	0.00	\N	\N	\N	\N	10	91e92481-eb3d-5bd4-be1b-2f2b23d2dd39	2026-07-11 15:14:59.630758-05
@@ -883,7 +1131,6 @@ CODO DE 1 1/4" S/P PAVCO	ACC-057	0	0.00	2026-07-08 16:48:35.334356-05	f	\N	t	f	f
 TEE DE 1 1/4"	ACC-058	0	0.00	2026-07-08 16:48:35.334804-05	f	\N	t	f	f	bienes	t	Unidad	\N	\N	0.00	\N	\N	\N	\N	10	64351fee-56ae-543c-86a3-29fdf973385b	2026-07-11 15:14:59.630758-05
 REDUCCIÓN 1 1/4" X 1" C/R	ACC-059	0	0.00	2026-07-08 16:48:35.335202-05	f	\N	t	f	f	bienes	t	Unidad	\N	\N	0.00	\N	\N	\N	\N	10	7123701e-bc4e-5456-9042-4e0b7d77421a	2026-07-11 15:14:59.630758-05
 REDUCCIÓN 1 1/4" X 1" S/P	ACC-060	0	0.00	2026-07-08 16:48:35.335617-05	f	\N	t	f	f	bienes	t	Unidad	\N	\N	0.00	\N	\N	\N	\N	10	eb46241c-803d-5560-9ad0-16da41bbc89a	2026-07-11 15:14:59.630758-05
-ADAPTADOR DE 1 1/2 ERA	ACC-061	0	0.00	2026-07-08 16:48:35.336052-05	f	\N	t	f	f	bienes	t	Unidad	\N	\N	0.00	\N	\N	\N	\N	10	34511404-c08a-5451-b2fe-bc875d6e5a80	2026-07-11 15:14:59.630758-05
 ADAPTADOR DE 1 1/2"	ACC-062	0	0.00	2026-07-08 16:48:35.336458-05	f	\N	t	f	f	bienes	t	Unidad	\N	\N	0.00	\N	\N	\N	\N	10	0ebec45b-3a42-5153-9553-bd1c747f23d5	2026-07-11 15:14:59.630758-05
 CODO DE 1 1/2" S/P INYECTOPLAST	ACC-064	0	0.00	2026-07-08 16:48:35.337394-05	f	\N	t	f	f	bienes	t	Unidad	\N	\N	0.00	\N	\N	\N	\N	10	426afc45-d4d5-5e20-b286-5132bd35c5e8	2026-07-11 15:14:59.630758-05
 CODO DE 1 1/2" S/P PAVCO	ACC-065	0	0.00	2026-07-08 16:48:35.337814-05	f	\N	t	f	f	bienes	t	Unidad	\N	\N	0.00	\N	\N	\N	\N	10	e3b897ae-b9d3-5aaf-9462-daf834c8c088	2026-07-11 15:14:59.630758-05
@@ -962,7 +1209,16 @@ BOQUILLA 6 A AJUSTABLE HUNTER	ACC-141	0	0.00	2026-07-08 16:48:35.3712-05	f	\N	t	
 BOQUILLA 8 A AJUSTABLE HUNTER	ACC-142	0	0.00	2026-07-08 16:48:35.371573-05	f	\N	t	f	f	bienes	t	Unidad	\N	\N	0.00	\N	\N	\N	\N	10	2e85468b-0b08-5828-888b-41579c6c4b57	2026-07-11 15:14:59.630758-05
 BOQUILLA 10 A AJUSTABLE HUNTER	ACC-143	0	0.00	2026-07-08 16:48:35.371961-05	f	\N	t	f	f	bienes	t	Unidad	\N	\N	0.00	\N	\N	\N	\N	10	8a4457cf-6ae8-50c1-a8ed-c5fcacab53f0	2026-07-11 15:14:59.630758-05
 CODO DE 1 1/2" S/P ERA	ACC-063	-4	0.00	2026-07-08 16:48:35.336946-05	f	\N	t	f	f	bienes	t	Unidad	\N	\N	0.00	\N	\N	\N	\N	10	93c7236b-7274-58cc-8e79-291f1706e4be	2026-07-11 15:14:59.630758-05
-BOQUILLA 12 A AJUSTABLE HUNTER	ACC-144	-1	0.00	2026-07-08 16:48:35.372374-05	f	\N	t	f	f	bienes	t	Unidad	\N	\N	0.00	\N	\N	\N	\N	10	f0eca9c1-3f0f-5c42-9a8f-6ff1a685a2d2	2026-07-11 15:14:59.630758-05
+ADAPTADOR DE 1 1/2 ERA	ACC-061	0	0.00	2026-07-08 16:48:35.336-05	f	\N	t	f	f	bienes	t	Unidad	\N	\N	0.00		\N	\N		10	34511404-c08a-5451-b2fe-bc875d6e5a80	2026-07-16 11:41:41.505811-05
+BOQUILLA 12 A AJUSTABLE HUNTER	ACC-144	-1	0.00	2026-07-08 16:48:35.372-05	f	\N	t	f	f	bienes	t	Unidad	\N	\N	0.00	\N	\N	\N	\N	10	f0eca9c1-3f0f-5c42-9a8f-6ff1a685a2d2	2026-07-16 19:53:59.781621-05
+\.
+
+
+--
+-- Data for Name: proveedores; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.proveedores (id, nombre, ruc, contacto, telefono, email, notas, created_at, updated_at) FROM stdin;
 \.
 
 
@@ -1017,19 +1273,173 @@ COPY public.sync_outbox (id, table_name, operation, payload, created_at, synced_
 12	piscina_materiales	INSERT	{"id": 1, "fecha": "2026-07-09", "monto": 25.00, "notas": "", "cantidad": 1.00, "created_at": "2026-07-09T14:01:22.707171-05:00", "piscina_id": 1, "nombre_material": "Test Sync Material"}	2026-07-09 14:01:22.707171-05	2026-07-09 14:01:24.232102-05	0	\N
 13	piscina_materiales	DELETE	{"id": 1, "fecha": "2026-07-09", "monto": 25.00, "notas": "", "cantidad": 1.00, "created_at": "2026-07-09T14:01:22.707171-05:00", "piscina_id": 1, "nombre_material": "Test Sync Material"}	2026-07-09 14:01:44.032973-05	2026-07-09 14:01:45.179176-05	0	\N
 14	usuarios	INSERT	{"id": 8, "username": "preview_test", "created_at": "2026-07-09T23:55:53.388862-05:00", "password_hash": "$2b$10$6OGuHoGqMQG1b/Q2dbtDiOc478QJpo1T/k/F7YrGVbuDi0VOHn7N6", "nombre_completo": "Preview Test"}	2026-07-09 23:55:53.388862-05	\N	5	invalid input syntax for type uuid: "8"
-18	usuarios	INSERT	{"id": 10, "username": "preview_test", "created_at": "2026-07-10T00:35:41.319191-05:00", "password_hash": "$2b$10$GL5n6eA5Ieh1nSiseeZ6ieJ9wBg6Uow.DOWeDo/ntJQp.mH6eIT2e", "nombre_completo": "Preview Test"}	2026-07-10 00:35:41.319191-05	\N	0	\N
-19	usuarios	DELETE	{"id": 10, "username": "preview_test", "created_at": "2026-07-10T00:35:41.319191-05:00", "password_hash": "$2b$10$GL5n6eA5Ieh1nSiseeZ6ieJ9wBg6Uow.DOWeDo/ntJQp.mH6eIT2e", "nombre_completo": "Preview Test"}	2026-07-10 00:36:48.298582-05	\N	0	\N
-20	oportunidades	INSERT	{"id": "64257c4e-69dd-4f19-b8b9-a19e37327680", "etapa": "nuevo", "notas": "smoke test", "titulo": "Prueba CRM", "created_at": "2026-07-11T15:29:13.670644-05:00", "updated_at": "2026-07-11T15:29:13.670644-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb", "monto_estimado": 1500.00}	2026-07-11 15:29:13.670644-05	\N	0	\N
-21	cotizaciones	INSERT	{"id": "cb403f21-9cec-4499-9f56-22d75c52d635", "fecha": "2026-07-11", "notas": "smoke test", "total": 100.00, "estado": "borrador", "numero": 1, "created_at": "2026-07-11T15:29:13.713851-05:00", "updated_at": "2026-07-11T15:29:13.713851-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb"}	2026-07-11 15:29:13.713851-05	\N	0	\N
 15	usuarios	DELETE	{"id": 8, "username": "preview_test", "created_at": "2026-07-09T23:55:53.388862-05:00", "password_hash": "$2b$10$6OGuHoGqMQG1b/Q2dbtDiOc478QJpo1T/k/F7YrGVbuDi0VOHn7N6", "nombre_completo": "Preview Test"}	2026-07-09 23:59:41.643611-05	\N	5	invalid input syntax for type uuid: "8"
 16	usuarios	INSERT	{"id": 9, "username": "preview_test", "created_at": "2026-07-10T00:05:36.178061-05:00", "password_hash": "$2b$10$7gqjqaESkoIJVCM9riaSDOtK80qW2ybdLJ/tAk2tSQO.FGo05787C", "nombre_completo": "Preview Test"}	2026-07-10 00:05:36.178061-05	\N	5	invalid input syntax for type uuid: "9"
 17	usuarios	DELETE	{"id": 9, "username": "preview_test", "created_at": "2026-07-10T00:05:36.178061-05:00", "password_hash": "$2b$10$7gqjqaESkoIJVCM9riaSDOtK80qW2ybdLJ/tAk2tSQO.FGo05787C", "nombre_completo": "Preview Test"}	2026-07-10 00:06:41.871027-05	\N	5	invalid input syntax for type uuid: "9"
-22	cotizacion_lineas	INSERT	{"id": "4ec22da6-87a0-4e45-b6f3-54d6adb90ea9", "cantidad": 2.00, "subtotal": 100.00, "producto_id": "f2184d14-d793-5542-8093-935bb6e4b137", "cotizacion_id": "cb403f21-9cec-4499-9f56-22d75c52d635", "precio_unitario": 50.00}	2026-07-11 15:29:13.713851-05	\N	0	\N
-23	oportunidades	DELETE	{"id": "64257c4e-69dd-4f19-b8b9-a19e37327680", "etapa": "nuevo", "notas": "smoke test", "titulo": "Prueba CRM", "created_at": "2026-07-11T15:29:13.670644-05:00", "updated_at": "2026-07-11T15:29:13.670644-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb", "monto_estimado": 1500.00}	2026-07-11 15:29:13.735853-05	\N	0	\N
-24	cotizaciones	DELETE	{"id": "cb403f21-9cec-4499-9f56-22d75c52d635", "fecha": "2026-07-11", "notas": "smoke test", "total": 100.00, "estado": "borrador", "numero": 1, "created_at": "2026-07-11T15:29:13.713851-05:00", "updated_at": "2026-07-11T15:29:13.713851-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb"}	2026-07-11 15:29:13.737953-05	\N	0	\N
-25	cotizacion_lineas	DELETE	{"id": "4ec22da6-87a0-4e45-b6f3-54d6adb90ea9", "cantidad": 2.00, "subtotal": 100.00, "producto_id": "f2184d14-d793-5542-8093-935bb6e4b137", "cotizacion_id": "cb403f21-9cec-4499-9f56-22d75c52d635", "precio_unitario": 50.00}	2026-07-11 15:29:13.737953-05	\N	0	\N
-26	contactos	INSERT	{"id": "f9f04445-b9d9-4b21-b34a-d3f020e670e1", "fax": null, "nif": null, "tipo": "proveedor", "email": "qa@prueba.com", "movil": "666-5678", "notas": "", "agente": null, "codigo": null, "nombre": "Cliente de Prueba QA", "telefono": "555-1234", "direccion": {}, "etiquetas": [], "sitio_web": "", "created_at": "2026-07-12T21:10:06.875611-05:00", "es_empresa": false, "updated_at": "2026-07-12T21:10:06.875611-05:00", "tipo_cliente": null, "nombre_fiscal": null, "puesto_trabajo": "", "identificaciones": [], "persona_contacto": "Juan QA", "contactos_relacionados": []}	2026-07-12 21:10:06.875611-05	\N	0	\N
-27	contactos	DELETE	{"id": "f9f04445-b9d9-4b21-b34a-d3f020e670e1", "fax": null, "nif": null, "tipo": "proveedor", "email": "qa@prueba.com", "movil": "666-5678", "notas": "", "agente": null, "codigo": null, "nombre": "Cliente de Prueba QA", "telefono": "555-1234", "direccion": {}, "etiquetas": [], "sitio_web": "", "created_at": "2026-07-12T21:10:06.875611-05:00", "es_empresa": false, "updated_at": "2026-07-12T21:10:06.875611-05:00", "tipo_cliente": null, "nombre_fiscal": null, "puesto_trabajo": "", "identificaciones": [], "persona_contacto": "Juan QA", "contactos_relacionados": []}	2026-07-12 21:11:32.441335-05	\N	0	\N
+20	oportunidades	INSERT	{"id": "64257c4e-69dd-4f19-b8b9-a19e37327680", "etapa": "nuevo", "notas": "smoke test", "titulo": "Prueba CRM", "created_at": "2026-07-11T15:29:13.670644-05:00", "updated_at": "2026-07-11T15:29:13.670644-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb", "monto_estimado": 1500.00}	2026-07-11 15:29:13.670644-05	\N	5	relation "oportunidades" does not exist
+21	cotizaciones	INSERT	{"id": "cb403f21-9cec-4499-9f56-22d75c52d635", "fecha": "2026-07-11", "notas": "smoke test", "total": 100.00, "estado": "borrador", "numero": 1, "created_at": "2026-07-11T15:29:13.713851-05:00", "updated_at": "2026-07-11T15:29:13.713851-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb"}	2026-07-11 15:29:13.713851-05	\N	5	relation "cotizaciones" does not exist
+22	cotizacion_lineas	INSERT	{"id": "4ec22da6-87a0-4e45-b6f3-54d6adb90ea9", "cantidad": 2.00, "subtotal": 100.00, "producto_id": "f2184d14-d793-5542-8093-935bb6e4b137", "cotizacion_id": "cb403f21-9cec-4499-9f56-22d75c52d635", "precio_unitario": 50.00}	2026-07-11 15:29:13.713851-05	\N	5	relation "cotizacion_lineas" does not exist
+23	oportunidades	DELETE	{"id": "64257c4e-69dd-4f19-b8b9-a19e37327680", "etapa": "nuevo", "notas": "smoke test", "titulo": "Prueba CRM", "created_at": "2026-07-11T15:29:13.670644-05:00", "updated_at": "2026-07-11T15:29:13.670644-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb", "monto_estimado": 1500.00}	2026-07-11 15:29:13.735853-05	\N	5	relation "oportunidades" does not exist
+25	cotizacion_lineas	DELETE	{"id": "4ec22da6-87a0-4e45-b6f3-54d6adb90ea9", "cantidad": 2.00, "subtotal": 100.00, "producto_id": "f2184d14-d793-5542-8093-935bb6e4b137", "cotizacion_id": "cb403f21-9cec-4499-9f56-22d75c52d635", "precio_unitario": 50.00}	2026-07-11 15:29:13.737953-05	\N	5	relation "cotizacion_lineas" does not exist
+27	contactos	DELETE	{"id": "f9f04445-b9d9-4b21-b34a-d3f020e670e1", "fax": null, "nif": null, "tipo": "proveedor", "email": "qa@prueba.com", "movil": "666-5678", "notas": "", "agente": null, "codigo": null, "nombre": "Cliente de Prueba QA", "telefono": "555-1234", "direccion": {}, "etiquetas": [], "sitio_web": "", "created_at": "2026-07-12T21:10:06.875611-05:00", "es_empresa": false, "updated_at": "2026-07-12T21:10:06.875611-05:00", "tipo_cliente": null, "nombre_fiscal": null, "puesto_trabajo": "", "identificaciones": [], "persona_contacto": "Juan QA", "contactos_relacionados": []}	2026-07-12 21:11:32.441335-05	2026-07-13 18:32:49.046447-05	0	\N
+28	oportunidades	INSERT	{"id": "acc9b173-d398-4639-b331-7a8e03c0d71e", "etapa": "nuevo", "notas": "", "titulo": "QA Oportunidad Kanban", "created_at": "2026-07-13T09:30:02.063357-05:00", "updated_at": "2026-07-13T09:30:02.063357-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb", "monto_estimado": 1234.50}	2026-07-13 09:30:02.063357-05	\N	5	relation "oportunidades" does not exist
+29	oportunidades	DELETE	{"id": "acc9b173-d398-4639-b331-7a8e03c0d71e", "etapa": "nuevo", "notas": "", "titulo": "QA Oportunidad Kanban", "created_at": "2026-07-13T09:30:02.063357-05:00", "updated_at": "2026-07-13T09:30:02.063357-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb", "monto_estimado": 1234.50}	2026-07-13 09:30:27.128778-05	\N	5	relation "oportunidades" does not exist
+30	oportunidades	INSERT	{"id": "611d76b6-4cb6-4fc7-9e48-27d8ceedb1f6", "etapa": "nuevo", "notas": "", "titulo": "QA Oportunidad Kanban", "created_at": "2026-07-13T09:34:09.3888-05:00", "updated_at": "2026-07-13T09:34:09.3888-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb", "monto_estimado": 1234.50}	2026-07-13 09:34:09.3888-05	\N	5	relation "oportunidades" does not exist
+31	oportunidades	UPDATE	{"id": "611d76b6-4cb6-4fc7-9e48-27d8ceedb1f6", "etapa": "propuesta", "notas": "", "titulo": "QA Oportunidad Kanban", "created_at": "2026-07-13T09:34:09.3888-05:00", "updated_at": "2026-07-13T09:34:11.770217-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb", "monto_estimado": 1234.50}	2026-07-13 09:34:11.770217-05	\N	5	relation "oportunidades" does not exist
+32	oportunidades	DELETE	{"id": "611d76b6-4cb6-4fc7-9e48-27d8ceedb1f6", "etapa": "propuesta", "notas": "", "titulo": "QA Oportunidad Kanban", "created_at": "2026-07-13T09:34:09.3888-05:00", "updated_at": "2026-07-13T09:34:11.770217-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb", "monto_estimado": 1234.50}	2026-07-13 09:34:12.880115-05	\N	5	relation "oportunidades" does not exist
+33	oportunidades	INSERT	{"id": "45e991c2-42da-47d2-a5e6-72840cc67e81", "etapa": "nuevo", "notas": "", "titulo": "hasdasw", "created_at": "2026-07-13T09:36:14.835763-05:00", "updated_at": "2026-07-13T09:36:14.835763-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb", "monto_estimado": 0.00}	2026-07-13 09:36:14.835763-05	\N	5	relation "oportunidades" does not exist
+34	oportunidades	UPDATE	{"id": "45e991c2-42da-47d2-a5e6-72840cc67e81", "etapa": "calificado", "notas": "", "titulo": "hasdasw", "created_at": "2026-07-13T09:36:14.835763-05:00", "updated_at": "2026-07-13T09:36:28.317674-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb", "monto_estimado": 0.00}	2026-07-13 09:36:28.317674-05	\N	5	relation "oportunidades" does not exist
+35	oportunidades	UPDATE	{"id": "45e991c2-42da-47d2-a5e6-72840cc67e81", "etapa": "propuesta", "notas": "", "titulo": "hasdasw", "created_at": "2026-07-13T09:36:14.835763-05:00", "updated_at": "2026-07-13T09:36:29.551103-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb", "monto_estimado": 0.00}	2026-07-13 09:36:29.551103-05	\N	5	relation "oportunidades" does not exist
+36	oportunidades	UPDATE	{"id": "45e991c2-42da-47d2-a5e6-72840cc67e81", "etapa": "ganado", "notas": "", "titulo": "hasdasw", "created_at": "2026-07-13T09:36:14.835763-05:00", "updated_at": "2026-07-13T09:36:30.299931-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb", "monto_estimado": 0.00}	2026-07-13 09:36:30.299931-05	\N	5	relation "oportunidades" does not exist
+37	oportunidades	UPDATE	{"id": "45e991c2-42da-47d2-a5e6-72840cc67e81", "etapa": "perdido", "notas": "", "titulo": "hasdasw", "created_at": "2026-07-13T09:36:14.835763-05:00", "updated_at": "2026-07-13T09:36:31.916616-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb", "monto_estimado": 0.00}	2026-07-13 09:36:31.916616-05	\N	5	relation "oportunidades" does not exist
+38	oportunidades	UPDATE	{"id": "45e991c2-42da-47d2-a5e6-72840cc67e81", "etapa": "nuevo", "notas": "", "titulo": "hasdasw", "created_at": "2026-07-13T09:36:14.835763-05:00", "updated_at": "2026-07-13T09:36:33.524304-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb", "monto_estimado": 0.00}	2026-07-13 09:36:33.524304-05	\N	5	relation "oportunidades" does not exist
+39	oportunidades	UPDATE	{"id": "45e991c2-42da-47d2-a5e6-72840cc67e81", "etapa": "calificado", "notas": "", "titulo": "hasdasw", "created_at": "2026-07-13T09:36:14.835763-05:00", "updated_at": "2026-07-13T09:38:41.768188-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb", "monto_estimado": 0.00}	2026-07-13 09:38:41.768188-05	\N	5	relation "oportunidades" does not exist
+40	oportunidades	UPDATE	{"id": "45e991c2-42da-47d2-a5e6-72840cc67e81", "etapa": "propuesta", "notas": "", "titulo": "hasdasw", "created_at": "2026-07-13T09:36:14.835763-05:00", "updated_at": "2026-07-13T09:38:42.880694-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb", "monto_estimado": 0.00}	2026-07-13 09:38:42.880694-05	\N	5	relation "oportunidades" does not exist
+41	oportunidades	UPDATE	{"id": "45e991c2-42da-47d2-a5e6-72840cc67e81", "etapa": "nuevo", "notas": "", "titulo": "hasdasw", "created_at": "2026-07-13T09:36:14.835763-05:00", "updated_at": "2026-07-13T09:38:43.908361-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb", "monto_estimado": 0.00}	2026-07-13 09:38:43.908361-05	\N	5	relation "oportunidades" does not exist
+42	oportunidades	UPDATE	{"id": "45e991c2-42da-47d2-a5e6-72840cc67e81", "etapa": "calificado", "notas": "", "titulo": "hasdasw", "created_at": "2026-07-13T09:36:14.835763-05:00", "updated_at": "2026-07-13T09:43:30.417601-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb", "monto_estimado": 0.00}	2026-07-13 09:43:30.417601-05	\N	5	relation "oportunidades" does not exist
+45	oportunidades	UPDATE	{"id": "45e991c2-42da-47d2-a5e6-72840cc67e81", "etapa": "propuesta", "notas": "", "titulo": "hasdasw", "created_at": "2026-07-13T09:36:14.835763-05:00", "updated_at": "2026-07-13T09:43:32.825579-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb", "monto_estimado": 0.00}	2026-07-13 09:43:32.825579-05	\N	5	relation "oportunidades" does not exist
+46	oportunidades	UPDATE	{"id": "45e991c2-42da-47d2-a5e6-72840cc67e81", "etapa": "calificado", "notas": "", "titulo": "hasdasw", "created_at": "2026-07-13T09:36:14.835763-05:00", "updated_at": "2026-07-13T09:43:34.016959-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb", "monto_estimado": 0.00}	2026-07-13 09:43:34.016959-05	\N	5	relation "oportunidades" does not exist
+47	oportunidades	UPDATE	{"id": "45e991c2-42da-47d2-a5e6-72840cc67e81", "etapa": "nuevo", "notas": "", "titulo": "hasdasw", "created_at": "2026-07-13T09:36:14.835763-05:00", "updated_at": "2026-07-13T09:43:34.4968-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb", "monto_estimado": 0.00}	2026-07-13 09:43:34.4968-05	\N	5	relation "oportunidades" does not exist
+49	oportunidades	UPDATE	{"id": "45e991c2-42da-47d2-a5e6-72840cc67e81", "etapa": "nuevo", "notas": "", "titulo": "hasdasw", "created_at": "2026-07-13T09:36:14.835763-05:00", "updated_at": "2026-07-13T09:44:25.254478-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb", "monto_estimado": 0.00}	2026-07-13 09:44:25.254478-05	\N	5	relation "oportunidades" does not exist
+50	oportunidades	UPDATE	{"id": "45e991c2-42da-47d2-a5e6-72840cc67e81", "etapa": "calificado", "notas": "", "titulo": "hasdasw", "created_at": "2026-07-13T09:36:14.835763-05:00", "updated_at": "2026-07-13T09:44:25.932211-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb", "monto_estimado": 0.00}	2026-07-13 09:44:25.932211-05	\N	5	relation "oportunidades" does not exist
+51	oportunidades	UPDATE	{"id": "45e991c2-42da-47d2-a5e6-72840cc67e81", "etapa": "nuevo", "notas": "", "titulo": "hasdasw", "created_at": "2026-07-13T09:36:14.835763-05:00", "updated_at": "2026-07-13T09:55:24.58779-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb", "monto_estimado": 0.00}	2026-07-13 09:55:24.58779-05	\N	5	relation "oportunidades" does not exist
+52	oportunidades	UPDATE	{"id": "45e991c2-42da-47d2-a5e6-72840cc67e81", "etapa": "calificado", "notas": "", "titulo": "hasdasw", "created_at": "2026-07-13T09:36:14.835763-05:00", "updated_at": "2026-07-13T09:55:25.025505-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb", "monto_estimado": 0.00}	2026-07-13 09:55:25.025505-05	\N	5	relation "oportunidades" does not exist
+53	oportunidades	UPDATE	{"id": "45e991c2-42da-47d2-a5e6-72840cc67e81", "etapa": "nuevo", "notas": "", "titulo": "hasdasw", "created_at": "2026-07-13T09:36:14.835763-05:00", "updated_at": "2026-07-13T09:55:25.56218-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb", "monto_estimado": 0.00}	2026-07-13 09:55:25.56218-05	\N	5	relation "oportunidades" does not exist
+54	oportunidades	UPDATE	{"id": "45e991c2-42da-47d2-a5e6-72840cc67e81", "etapa": "calificado", "notas": "", "titulo": "hasdasw", "created_at": "2026-07-13T09:36:14.835763-05:00", "updated_at": "2026-07-13T09:56:49.455383-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb", "monto_estimado": 0.00}	2026-07-13 09:56:49.455383-05	\N	5	relation "oportunidades" does not exist
+55	oportunidades	UPDATE	{"id": "45e991c2-42da-47d2-a5e6-72840cc67e81", "etapa": "nuevo", "notas": "", "titulo": "hasdasw", "created_at": "2026-07-13T09:36:14.835763-05:00", "updated_at": "2026-07-13T09:56:50.092956-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb", "monto_estimado": 0.00}	2026-07-13 09:56:50.092956-05	\N	5	relation "oportunidades" does not exist
+56	oportunidades	UPDATE	{"id": "45e991c2-42da-47d2-a5e6-72840cc67e81", "etapa": "calificado", "notas": "", "titulo": "hasdasw", "created_at": "2026-07-13T09:36:14.835763-05:00", "updated_at": "2026-07-13T10:04:24.692655-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb", "monto_estimado": 0.00}	2026-07-13 10:04:24.692655-05	\N	5	relation "oportunidades" does not exist
+58	oportunidades	UPDATE	{"id": "45e991c2-42da-47d2-a5e6-72840cc67e81", "etapa": "nuevo", "notas": "", "titulo": "hasdaswaaaaaaaaaaaaaaaaa", "created_at": "2026-07-13T09:36:14.835763-05:00", "updated_at": "2026-07-13T10:16:32.734037-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb", "monto_estimado": 0.00}	2026-07-13 10:16:32.734037-05	\N	5	relation "oportunidades" does not exist
+59	oportunidades	INSERT	{"id": "9f39a631-650d-4589-a481-1edeaa4dad57", "etapa": "nuevo", "notas": "", "titulo": "hasdaswaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "created_at": "2026-07-13T10:18:23.521573-05:00", "updated_at": "2026-07-13T10:18:23.521573-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb", "monto_estimado": 0.00}	2026-07-13 10:18:23.521573-05	\N	5	relation "oportunidades" does not exist
+60	oportunidades	DELETE	{"id": "9f39a631-650d-4589-a481-1edeaa4dad57", "etapa": "nuevo", "notas": "", "titulo": "hasdaswaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "created_at": "2026-07-13T10:18:23.521573-05:00", "updated_at": "2026-07-13T10:18:23.521573-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb", "monto_estimado": 0.00}	2026-07-13 10:18:25.271852-05	\N	5	relation "oportunidades" does not exist
+61	oportunidades	DELETE	{"id": "45e991c2-42da-47d2-a5e6-72840cc67e81", "etapa": "nuevo", "notas": "", "titulo": "hasdaswaaaaaaaaaaaaaaaaa", "created_at": "2026-07-13T09:36:14.835763-05:00", "updated_at": "2026-07-13T10:16:32.734037-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb", "monto_estimado": 0.00}	2026-07-13 10:26:46.930188-05	\N	5	relation "oportunidades" does not exist
+62	oportunidades	INSERT	{"id": "a0447f25-e4a4-44a4-b06a-c907acf924bb", "etapa": "nuevo", "notas": "", "titulo": "asdasdasd", "created_at": "2026-07-13T10:38:56.147479-05:00", "updated_at": "2026-07-13T10:38:56.147479-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb", "monto_estimado": 0.00}	2026-07-13 10:38:56.147479-05	\N	5	relation "oportunidades" does not exist
+63	oportunidades	UPDATE	{"id": "a0447f25-e4a4-44a4-b06a-c907acf924bb", "etapa": "calificado", "notas": "", "titulo": "asdasdasd", "created_at": "2026-07-13T10:38:56.147479-05:00", "updated_at": "2026-07-13T10:38:57.231795-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb", "monto_estimado": 0.00}	2026-07-13 10:38:57.231795-05	\N	5	relation "oportunidades" does not exist
+64	oportunidades	UPDATE	{"id": "a0447f25-e4a4-44a4-b06a-c907acf924bb", "etapa": "nuevo", "notas": "", "titulo": "asdasdasd", "created_at": "2026-07-13T10:38:56.147479-05:00", "updated_at": "2026-07-13T10:38:59.454976-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb", "monto_estimado": 0.00}	2026-07-13 10:38:59.454976-05	\N	5	relation "oportunidades" does not exist
+66	oportunidades	UPDATE	{"id": "a0447f25-e4a4-44a4-b06a-c907acf924bb", "etapa": "propuesta", "notas": "", "titulo": "asdasdasd", "created_at": "2026-07-13T10:38:56.147479-05:00", "updated_at": "2026-07-13T10:39:00.696279-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb", "monto_estimado": 0.00}	2026-07-13 10:39:00.696279-05	\N	5	relation "oportunidades" does not exist
+68	oportunidades	UPDATE	{"id": "a0447f25-e4a4-44a4-b06a-c907acf924bb", "etapa": "perdido", "notas": "", "titulo": "asdasdasd", "created_at": "2026-07-13T10:38:56.147479-05:00", "updated_at": "2026-07-13T10:39:02.04163-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb", "monto_estimado": 0.00}	2026-07-13 10:39:02.04163-05	\N	5	relation "oportunidades" does not exist
+69	oportunidades	UPDATE	{"id": "a0447f25-e4a4-44a4-b06a-c907acf924bb", "etapa": "ganado", "notas": "", "titulo": "asdasdasd", "created_at": "2026-07-13T10:38:56.147479-05:00", "updated_at": "2026-07-13T10:39:03.055562-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb", "monto_estimado": 0.00}	2026-07-13 10:39:03.055562-05	\N	5	relation "oportunidades" does not exist
+70	oportunidades	UPDATE	{"id": "a0447f25-e4a4-44a4-b06a-c907acf924bb", "etapa": "perdido", "notas": "", "titulo": "asdasdasd", "created_at": "2026-07-13T10:38:56.147479-05:00", "updated_at": "2026-07-13T10:39:03.560791-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb", "monto_estimado": 0.00}	2026-07-13 10:39:03.560791-05	\N	5	relation "oportunidades" does not exist
+71	oportunidades	UPDATE	{"id": "a0447f25-e4a4-44a4-b06a-c907acf924bb", "etapa": "ganado", "notas": "", "titulo": "asdasdasd", "created_at": "2026-07-13T10:38:56.147479-05:00", "updated_at": "2026-07-13T10:39:05.116955-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb", "monto_estimado": 0.00}	2026-07-13 10:39:05.116955-05	\N	5	relation "oportunidades" does not exist
+72	oportunidades	UPDATE	{"id": "a0447f25-e4a4-44a4-b06a-c907acf924bb", "etapa": "propuesta", "notas": "", "titulo": "asdasdasd", "created_at": "2026-07-13T10:38:56.147479-05:00", "updated_at": "2026-07-13T10:39:07.20767-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb", "monto_estimado": 0.00}	2026-07-13 10:39:07.20767-05	\N	5	relation "oportunidades" does not exist
+73	oportunidades	UPDATE	{"id": "a0447f25-e4a4-44a4-b06a-c907acf924bb", "etapa": "calificado", "notas": "", "titulo": "asdasdasd", "created_at": "2026-07-13T10:38:56.147479-05:00", "updated_at": "2026-07-13T10:39:09.209483-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb", "monto_estimado": 0.00}	2026-07-13 10:39:09.209483-05	\N	5	relation "oportunidades" does not exist
+74	oportunidades	UPDATE	{"id": "a0447f25-e4a4-44a4-b06a-c907acf924bb", "etapa": "propuesta", "notas": "", "titulo": "asdasdasd", "created_at": "2026-07-13T10:38:56.147479-05:00", "updated_at": "2026-07-13T10:39:28.743238-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb", "monto_estimado": 0.00}	2026-07-13 10:39:28.743238-05	\N	5	relation "oportunidades" does not exist
+75	oportunidades	UPDATE	{"id": "a0447f25-e4a4-44a4-b06a-c907acf924bb", "etapa": "ganado", "notas": "", "titulo": "asdasdasd", "created_at": "2026-07-13T10:38:56.147479-05:00", "updated_at": "2026-07-13T10:39:33.258016-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb", "monto_estimado": 0.00}	2026-07-13 10:39:33.258016-05	\N	5	relation "oportunidades" does not exist
+77	oportunidades	UPDATE	{"id": "a0447f25-e4a4-44a4-b06a-c907acf924bb", "etapa": "perdido", "notas": "", "titulo": "asdasdasd", "created_at": "2026-07-13T10:38:56.147479-05:00", "updated_at": "2026-07-13T10:39:42.348862-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb", "monto_estimado": 0.00}	2026-07-13 10:39:42.348862-05	\N	5	relation "oportunidades" does not exist
+78	oportunidades	UPDATE	{"id": "a0447f25-e4a4-44a4-b06a-c907acf924bb", "etapa": "nuevo", "notas": "", "titulo": "asdasdasd", "created_at": "2026-07-13T10:38:56.147479-05:00", "updated_at": "2026-07-13T10:50:34.447116-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb", "monto_estimado": 0.00}	2026-07-13 10:50:34.447116-05	\N	5	relation "oportunidades" does not exist
+79	cotizaciones	INSERT	{"id": "55485082-7548-44d5-bcd5-0b37c9a75b65", "fecha": "2026-07-13", "notas": "", "total": 0.00, "estado": "borrador", "numero": 2, "created_at": "2026-07-13T10:51:20.352434-05:00", "updated_at": "2026-07-13T10:51:20.352434-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb"}	2026-07-13 10:51:20.352434-05	\N	5	relation "cotizaciones" does not exist
+80	cotizaciones	INSERT	{"id": "9ff69043-f773-4c41-a379-1aa60a325ecc", "fecha": "2026-08-15", "notas": "", "total": 1350.50, "estado": "borrador", "numero": 3, "created_at": "2026-07-13T13:06:07.375563-05:00", "updated_at": "2026-07-13T13:06:07.375563-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb"}	2026-07-13 13:06:07.375563-05	\N	5	relation "cotizaciones" does not exist
+81	cotizacion_lineas	INSERT	{"id": "6463ab4f-7a97-4dba-be9a-deae78a4d681", "cantidad": 1.00, "subtotal": 450.00, "descripcion": "BOMBA DE AGUA 1HP", "producto_id": null, "cotizacion_id": "9ff69043-f773-4c41-a379-1aa60a325ecc", "precio_unitario": 450.00}	2026-07-13 13:06:07.375563-05	\N	5	relation "cotizacion_lineas" does not exist
+82	cotizacion_lineas	INSERT	{"id": "bd85a7a8-5670-4d12-b20c-6bd302f7a5ab", "cantidad": 1.00, "subtotal": 780.50, "descripcion": "FILTRO DE ARENA N4", "producto_id": null, "cotizacion_id": "9ff69043-f773-4c41-a379-1aa60a325ecc", "precio_unitario": 780.50}	2026-07-13 13:06:07.375563-05	\N	5	relation "cotizacion_lineas" does not exist
+83	cotizacion_lineas	INSERT	{"id": "7529b3ba-bb28-4d9e-9ee4-e53decb1ddee", "cantidad": 1.00, "subtotal": 120.00, "descripcion": "TUBERIA PVC 2 PULG", "producto_id": null, "cotizacion_id": "9ff69043-f773-4c41-a379-1aa60a325ecc", "precio_unitario": 120.00}	2026-07-13 13:06:07.375563-05	\N	5	relation "cotizacion_lineas" does not exist
+84	cotizaciones	DELETE	{"id": "9ff69043-f773-4c41-a379-1aa60a325ecc", "fecha": "2026-08-15", "notas": "", "total": 1350.50, "estado": "borrador", "numero": 3, "created_at": "2026-07-13T13:06:07.375563-05:00", "updated_at": "2026-07-13T13:06:07.375563-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb"}	2026-07-13 13:06:29.736044-05	\N	5	relation "cotizaciones" does not exist
+85	cotizacion_lineas	DELETE	{"id": "6463ab4f-7a97-4dba-be9a-deae78a4d681", "cantidad": 1.00, "subtotal": 450.00, "descripcion": "BOMBA DE AGUA 1HP", "producto_id": null, "cotizacion_id": "9ff69043-f773-4c41-a379-1aa60a325ecc", "precio_unitario": 450.00}	2026-07-13 13:06:29.736044-05	\N	5	relation "cotizacion_lineas" does not exist
+86	cotizacion_lineas	DELETE	{"id": "bd85a7a8-5670-4d12-b20c-6bd302f7a5ab", "cantidad": 1.00, "subtotal": 780.50, "descripcion": "FILTRO DE ARENA N4", "producto_id": null, "cotizacion_id": "9ff69043-f773-4c41-a379-1aa60a325ecc", "precio_unitario": 780.50}	2026-07-13 13:06:29.736044-05	\N	5	relation "cotizacion_lineas" does not exist
+88	oportunidades	UPDATE	{"id": "a0447f25-e4a4-44a4-b06a-c907acf924bb", "etapa": "calificado", "notas": "", "titulo": "asdasdasd", "created_at": "2026-07-13T10:38:56.147479-05:00", "updated_at": "2026-07-13T16:18:40.747417-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb", "monto_estimado": 0.00}	2026-07-13 16:18:40.747417-05	\N	5	relation "oportunidades" does not exist
+90	oportunidades	UPDATE	{"id": "a0447f25-e4a4-44a4-b06a-c907acf924bb", "etapa": "calificado", "notas": "", "titulo": "asdasdasd", "created_at": "2026-07-13T10:38:56.147479-05:00", "updated_at": "2026-07-13T16:18:50.21982-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb", "monto_estimado": 0.00}	2026-07-13 16:18:50.21982-05	\N	5	relation "oportunidades" does not exist
+91	oportunidades	UPDATE	{"id": "a0447f25-e4a4-44a4-b06a-c907acf924bb", "etapa": "propuesta", "notas": "", "titulo": "asdasdasd", "created_at": "2026-07-13T10:38:56.147479-05:00", "updated_at": "2026-07-13T16:18:52.592409-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb", "monto_estimado": 0.00}	2026-07-13 16:18:52.592409-05	\N	5	relation "oportunidades" does not exist
+92	oportunidades	UPDATE	{"id": "a0447f25-e4a4-44a4-b06a-c907acf924bb", "etapa": "ganado", "notas": "", "titulo": "asdasdasd", "created_at": "2026-07-13T10:38:56.147479-05:00", "updated_at": "2026-07-13T16:18:54.079859-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb", "monto_estimado": 0.00}	2026-07-13 16:18:54.079859-05	\N	5	relation "oportunidades" does not exist
+93	oportunidades	UPDATE	{"id": "a0447f25-e4a4-44a4-b06a-c907acf924bb", "etapa": "perdido", "notas": "", "titulo": "asdasdasd", "created_at": "2026-07-13T10:38:56.147479-05:00", "updated_at": "2026-07-13T16:18:55.696406-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb", "monto_estimado": 0.00}	2026-07-13 16:18:55.696406-05	\N	5	relation "oportunidades" does not exist
+94	oportunidades	UPDATE	{"id": "a0447f25-e4a4-44a4-b06a-c907acf924bb", "etapa": "ganado", "notas": "", "titulo": "asdasdasd", "created_at": "2026-07-13T10:38:56.147479-05:00", "updated_at": "2026-07-13T16:18:57.128197-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb", "monto_estimado": 0.00}	2026-07-13 16:18:57.128197-05	\N	5	relation "oportunidades" does not exist
+95	oportunidades	UPDATE	{"id": "a0447f25-e4a4-44a4-b06a-c907acf924bb", "etapa": "perdido", "notas": "", "titulo": "asdasdasd", "created_at": "2026-07-13T10:38:56.147479-05:00", "updated_at": "2026-07-13T16:19:05.592142-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb", "monto_estimado": 0.00}	2026-07-13 16:19:05.592142-05	\N	5	relation "oportunidades" does not exist
+96	oportunidades	UPDATE	{"id": "a0447f25-e4a4-44a4-b06a-c907acf924bb", "etapa": "ganado", "notas": "", "titulo": "asdasdasd", "created_at": "2026-07-13T10:38:56.147479-05:00", "updated_at": "2026-07-13T16:19:09.974805-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb", "monto_estimado": 0.00}	2026-07-13 16:19:09.974805-05	\N	5	relation "oportunidades" does not exist
+97	oportunidades	UPDATE	{"id": "a0447f25-e4a4-44a4-b06a-c907acf924bb", "etapa": "propuesta", "notas": "", "titulo": "asdasdasd", "created_at": "2026-07-13T10:38:56.147479-05:00", "updated_at": "2026-07-13T16:19:10.757562-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb", "monto_estimado": 0.00}	2026-07-13 16:19:10.757562-05	\N	5	relation "oportunidades" does not exist
+98	oportunidades	UPDATE	{"id": "a0447f25-e4a4-44a4-b06a-c907acf924bb", "etapa": "perdido", "notas": "", "titulo": "asdasdasd", "created_at": "2026-07-13T10:38:56.147479-05:00", "updated_at": "2026-07-13T16:19:11.48703-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb", "monto_estimado": 0.00}	2026-07-13 16:19:11.48703-05	\N	5	relation "oportunidades" does not exist
+100	cotizacion_lineas	INSERT	{"id": "25495e39-cf4a-4f5b-a195-2a9975c61065", "cantidad": 1.00, "subtotal": 450.00, "descripcion": "BOMBA DE AGUA 1HP", "producto_id": null, "cotizacion_id": "1bb22524-bfe6-455c-8c1d-10edb7448253", "precio_unitario": 450.00}	2026-07-13 17:28:43.386152-05	\N	5	relation "cotizacion_lineas" does not exist
+101	cotizacion_lineas	INSERT	{"id": "55d83f8a-1098-4987-a724-5238a2d82df9", "cantidad": 1.00, "subtotal": 780.50, "descripcion": "FILTRO DE ARENA N4", "producto_id": null, "cotizacion_id": "1bb22524-bfe6-455c-8c1d-10edb7448253", "precio_unitario": 780.50}	2026-07-13 17:28:43.386152-05	\N	5	relation "cotizacion_lineas" does not exist
+102	cotizacion_lineas	INSERT	{"id": "120b2adb-9deb-42d3-bfae-3151f92e3cb6", "cantidad": 1.00, "subtotal": 120.00, "descripcion": "TUBERIA PVC 2 PULG", "producto_id": null, "cotizacion_id": "1bb22524-bfe6-455c-8c1d-10edb7448253", "precio_unitario": 120.00}	2026-07-13 17:28:43.386152-05	\N	5	relation "cotizacion_lineas" does not exist
+103	cotizaciones	DELETE	{"id": "1bb22524-bfe6-455c-8c1d-10edb7448253", "fecha": "2026-08-15", "notas": "", "total": 1350.50, "estado": "borrador", "numero": 4, "created_at": "2026-07-13T17:28:43.386152-05:00", "updated_at": "2026-07-13T17:28:43.386152-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb"}	2026-07-13 17:32:20.269175-05	\N	5	relation "cotizaciones" does not exist
+104	cotizacion_lineas	DELETE	{"id": "25495e39-cf4a-4f5b-a195-2a9975c61065", "cantidad": 1.00, "subtotal": 450.00, "descripcion": "BOMBA DE AGUA 1HP", "producto_id": null, "cotizacion_id": "1bb22524-bfe6-455c-8c1d-10edb7448253", "precio_unitario": 450.00}	2026-07-13 17:32:20.269175-05	\N	5	relation "cotizacion_lineas" does not exist
+105	cotizacion_lineas	DELETE	{"id": "55d83f8a-1098-4987-a724-5238a2d82df9", "cantidad": 1.00, "subtotal": 780.50, "descripcion": "FILTRO DE ARENA N4", "producto_id": null, "cotizacion_id": "1bb22524-bfe6-455c-8c1d-10edb7448253", "precio_unitario": 780.50}	2026-07-13 17:32:20.269175-05	\N	5	relation "cotizacion_lineas" does not exist
+106	cotizacion_lineas	DELETE	{"id": "120b2adb-9deb-42d3-bfae-3151f92e3cb6", "cantidad": 1.00, "subtotal": 120.00, "descripcion": "TUBERIA PVC 2 PULG", "producto_id": null, "cotizacion_id": "1bb22524-bfe6-455c-8c1d-10edb7448253", "precio_unitario": 120.00}	2026-07-13 17:32:20.269175-05	\N	5	relation "cotizacion_lineas" does not exist
+107	cotizaciones	DELETE	{"id": "55485082-7548-44d5-bcd5-0b37c9a75b65", "fecha": "2026-07-13", "notas": "", "total": 0.00, "estado": "borrador", "numero": 2, "created_at": "2026-07-13T10:51:20.352434-05:00", "updated_at": "2026-07-13T10:51:20.352434-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb"}	2026-07-13 17:33:16.763426-05	\N	5	relation "cotizaciones" does not exist
+109	productos	UPDATE	{"id": "40d309f7-efe2-5e18-a8b5-a39cf3c19048", "sku": "ACC-001", "tipo": "bienes", "costo": 0.00, "stock": 100, "vende": true, "compra": false, "nombre": "ADAPTADOR DE 1/2\\" PVC", "precio": 0.00, "unidad": "Unidad", "es_gasto": false, "favorito": false, "foto_url": null, "categoria": null, "created_at": "2026-07-08T16:48:35.302771-05:00", "referencia": null, "updated_at": "2026-07-13T18:17:08.444298-05:00", "limite_stock": 10, "codigo_barras": null, "impuesto_venta": null, "notas_internas": null, "codigo_detraccion": null, "rastrear_inventario": true}	2026-07-13 18:17:08.444298-05	2026-07-13 20:48:30.783127-05	0	\N
+113	cotizaciones	UPDATE	{"id": "a005edd9-79db-4a92-8b89-eb33b9473e5e", "fecha": "2026-07-13", "notas": "", "total": 0.00, "estado": "confirmada", "numero": 6, "created_at": "2026-07-13T18:21:50.590418-05:00", "updated_at": "2026-07-13T18:21:53.778968-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb"}	2026-07-13 18:21:53.778968-05	\N	5	relation "cotizaciones" does not exist
+110	cotizaciones	INSERT	{"id": "a005edd9-79db-4a92-8b89-eb33b9473e5e", "fecha": "2026-07-13", "notas": "", "total": 0.00, "estado": "borrador", "numero": 6, "created_at": "2026-07-13T18:21:50.590418-05:00", "updated_at": "2026-07-13T18:21:50.590418-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb"}	2026-07-13 18:21:50.590418-05	\N	5	relation "cotizaciones" does not exist
+18	usuarios	INSERT	{"id": 10, "username": "preview_test", "created_at": "2026-07-10T00:35:41.319191-05:00", "password_hash": "$2b$10$GL5n6eA5Ieh1nSiseeZ6ieJ9wBg6Uow.DOWeDo/ntJQp.mH6eIT2e", "nombre_completo": "Preview Test"}	2026-07-10 00:35:41.319191-05	\N	5	invalid input syntax for type uuid: "10"
+114	productos	UPDATE	{"id": "40d309f7-efe2-5e18-a8b5-a39cf3c19048", "sku": "ACC-001", "tipo": "bienes", "costo": 0.00, "stock": 100, "vende": true, "compra": false, "nombre": "ADAPTADOR DE 1/2\\" PVC", "precio": 0.00, "unidad": "Unidad", "es_gasto": false, "favorito": false, "foto_url": null, "categoria": null, "created_at": "2026-07-08T16:48:35.302771-05:00", "referencia": null, "updated_at": "2026-07-13T18:23:07.979273-05:00", "limite_stock": 10, "codigo_barras": null, "impuesto_venta": null, "notas_internas": null, "codigo_detraccion": null, "rastrear_inventario": true}	2026-07-13 18:23:07.979273-05	2026-07-13 20:53:30.66879-05	0	\N
+111	cotizacion_lineas	INSERT	{"id": "83fd7401-3fda-4dae-82c0-772b6fb15978", "cantidad": 3.00, "subtotal": 0.00, "descripcion": null, "producto_id": "40d309f7-efe2-5e18-a8b5-a39cf3c19048", "cotizacion_id": "a005edd9-79db-4a92-8b89-eb33b9473e5e", "precio_unitario": 0.00}	2026-07-13 18:21:50.590418-05	\N	5	relation "cotizacion_lineas" does not exist
+19	usuarios	DELETE	{"id": 10, "username": "preview_test", "created_at": "2026-07-10T00:35:41.319191-05:00", "password_hash": "$2b$10$GL5n6eA5Ieh1nSiseeZ6ieJ9wBg6Uow.DOWeDo/ntJQp.mH6eIT2e", "nombre_completo": "Preview Test"}	2026-07-10 00:36:48.298582-05	\N	5	invalid input syntax for type uuid: "10"
+116	productos	UPDATE	{"id": "40d309f7-efe2-5e18-a8b5-a39cf3c19048", "sku": "ACC-001", "tipo": "bienes", "costo": 0.00, "stock": 97, "vende": true, "compra": false, "nombre": "ADAPTADOR DE 1/2\\" PVC", "precio": 0.00, "unidad": "Unidad", "es_gasto": false, "favorito": false, "foto_url": null, "categoria": null, "created_at": "2026-07-08T16:48:35.302771-05:00", "referencia": null, "updated_at": "2026-07-13T18:24:20.51933-05:00", "limite_stock": 10, "codigo_barras": null, "impuesto_venta": null, "notas_internas": null, "codigo_detraccion": null, "rastrear_inventario": true}	2026-07-13 18:24:20.51933-05	2026-07-13 20:55:10.587355-05	0	\N
+112	productos	UPDATE	{"id": "40d309f7-efe2-5e18-a8b5-a39cf3c19048", "sku": "ACC-001", "tipo": "bienes", "costo": 0.00, "stock": 97, "vende": true, "compra": false, "nombre": "ADAPTADOR DE 1/2\\" PVC", "precio": 0.00, "unidad": "Unidad", "es_gasto": false, "favorito": false, "foto_url": null, "categoria": null, "created_at": "2026-07-08T16:48:35.302771-05:00", "referencia": null, "updated_at": "2026-07-13T18:21:53.778968-05:00", "limite_stock": 10, "codigo_barras": null, "impuesto_venta": null, "notas_internas": null, "codigo_detraccion": null, "rastrear_inventario": true}	2026-07-13 18:21:53.778968-05	2026-07-13 20:51:50.527066-05	0	\N
+115	cotizaciones	UPDATE	{"id": "a005edd9-79db-4a92-8b89-eb33b9473e5e", "fecha": "2026-07-13", "notas": "", "total": 0.00, "estado": "aceptada", "numero": 6, "created_at": "2026-07-13T18:21:50.590418-05:00", "updated_at": "2026-07-13T18:23:07.979273-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb"}	2026-07-13 18:23:07.979273-05	\N	5	relation "cotizaciones" does not exist
+117	cotizaciones	UPDATE	{"id": "a005edd9-79db-4a92-8b89-eb33b9473e5e", "fecha": "2026-07-13", "notas": "", "total": 0.00, "estado": "confirmada", "numero": 6, "created_at": "2026-07-13T18:21:50.590418-05:00", "updated_at": "2026-07-13T18:24:20.51933-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb"}	2026-07-13 18:24:20.51933-05	\N	5	relation "cotizaciones" does not exist
+118	productos	UPDATE	{"id": "40d309f7-efe2-5e18-a8b5-a39cf3c19048", "sku": "ACC-001", "tipo": "bienes", "costo": 0.00, "stock": 100, "vende": true, "compra": false, "nombre": "ADAPTADOR DE 1/2\\" PVC", "precio": 0.00, "unidad": "Unidad", "es_gasto": false, "favorito": false, "foto_url": null, "categoria": null, "created_at": "2026-07-08T16:48:35.302771-05:00", "referencia": null, "updated_at": "2026-07-13T18:24:21.868018-05:00", "limite_stock": 10, "codigo_barras": null, "impuesto_venta": null, "notas_internas": null, "codigo_detraccion": null, "rastrear_inventario": true}	2026-07-13 18:24:21.868018-05	2026-07-13 20:56:51.104397-05	0	\N
+24	cotizaciones	DELETE	{"id": "cb403f21-9cec-4499-9f56-22d75c52d635", "fecha": "2026-07-11", "notas": "smoke test", "total": 100.00, "estado": "borrador", "numero": 1, "created_at": "2026-07-11T15:29:13.713851-05:00", "updated_at": "2026-07-11T15:29:13.713851-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb"}	2026-07-11 15:29:13.737953-05	\N	5	relation "cotizaciones" does not exist
+26	contactos	INSERT	{"id": "f9f04445-b9d9-4b21-b34a-d3f020e670e1", "fax": null, "nif": null, "tipo": "proveedor", "email": "qa@prueba.com", "movil": "666-5678", "notas": "", "agente": null, "codigo": null, "nombre": "Cliente de Prueba QA", "telefono": "555-1234", "direccion": {}, "etiquetas": [], "sitio_web": "", "created_at": "2026-07-12T21:10:06.875611-05:00", "es_empresa": false, "updated_at": "2026-07-12T21:10:06.875611-05:00", "tipo_cliente": null, "nombre_fiscal": null, "puesto_trabajo": "", "identificaciones": [], "persona_contacto": "Juan QA", "contactos_relacionados": []}	2026-07-12 21:10:06.875611-05	2026-07-13 18:32:48.74944-05	0	\N
+121	cotizaciones	DELETE	{"id": "a005edd9-79db-4a92-8b89-eb33b9473e5e", "fecha": "2026-07-13", "notas": "", "total": 0.00, "estado": "aceptada", "numero": 6, "created_at": "2026-07-13T18:21:50.590418-05:00", "updated_at": "2026-07-13T18:24:21.868018-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb"}	2026-07-13 18:37:33.209145-05	\N	5	relation "cotizaciones" does not exist
+122	cotizacion_lineas	DELETE	{"id": "83fd7401-3fda-4dae-82c0-772b6fb15978", "cantidad": 3.00, "subtotal": 0.00, "descripcion": null, "producto_id": "40d309f7-efe2-5e18-a8b5-a39cf3c19048", "cotizacion_id": "a005edd9-79db-4a92-8b89-eb33b9473e5e", "precio_unitario": 0.00}	2026-07-13 18:37:33.209145-05	\N	5	relation "cotizacion_lineas" does not exist
+123	productos	UPDATE	{"id": "40d309f7-efe2-5e18-a8b5-a39cf3c19048", "sku": "ACC-001", "tipo": "bienes", "costo": 0.00, "stock": 0, "vende": true, "compra": false, "nombre": "ADAPTADOR DE 1/2\\" PVC", "precio": 0.00, "unidad": "Unidad", "es_gasto": false, "favorito": false, "foto_url": null, "categoria": null, "created_at": "2026-07-08T16:48:35.302771-05:00", "referencia": null, "updated_at": "2026-07-13T18:37:33.217301-05:00", "limite_stock": 10, "codigo_barras": null, "impuesto_venta": null, "notas_internas": null, "codigo_detraccion": null, "rastrear_inventario": true}	2026-07-13 18:37:33.217301-05	2026-07-13 21:03:30.772451-05	0	\N
+124	cotizaciones	INSERT	{"id": "822212f6-00bd-4da4-99b0-25f10b3fd5fd", "fecha": "2026-07-13", "notas": "", "total": 0.00, "estado": "borrador", "numero": 7, "created_at": "2026-07-13T18:48:28.860851-05:00", "updated_at": "2026-07-13T18:48:28.860851-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb"}	2026-07-13 18:48:28.860851-05	\N	5	relation "cotizaciones" does not exist
+125	cotizaciones	UPDATE	{"id": "822212f6-00bd-4da4-99b0-25f10b3fd5fd", "fecha": "2026-07-13", "notas": "", "total": 0.00, "estado": "confirmada", "numero": 7, "created_at": "2026-07-13T18:48:28.860851-05:00", "updated_at": "2026-07-13T18:51:52.438663-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb"}	2026-07-13 18:51:52.438663-05	\N	5	relation "cotizaciones" does not exist
+126	cotizaciones	UPDATE	{"id": "822212f6-00bd-4da4-99b0-25f10b3fd5fd", "fecha": "2026-07-13", "notas": "", "total": 0.00, "estado": "aceptada", "numero": 7, "created_at": "2026-07-13T18:48:28.860851-05:00", "updated_at": "2026-07-13T18:52:30.124538-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb"}	2026-07-13 18:52:30.124538-05	\N	5	relation "cotizaciones" does not exist
+127	calendario_eventos	DELETE	{"id": "c6f9a7a6-fb9a-54a7-a117-57b2f424ee15", "tipo": "nota", "fecha": "2026-07-09", "estado": "pendiente", "titulo": "matenimiendo", "created_at": "2026-07-08T19:22:58.459099", "piscina_id": "1363072c-725a-5da3-b05d-c4f115a416ec", "updated_at": "2026-07-11T15:14:59.630758-05:00", "descripcion": null, "proyecto_id": null}	2026-07-13 18:53:58.156354-05	2026-07-14 13:37:41.663787-05	0	\N
+128	cotizaciones	INSERT	{"id": "b4ce5f61-ed42-4f1b-b866-97452ad66085", "fecha": "2026-07-13", "notas": "", "total": 0.00, "estado": "borrador", "numero": 8, "created_at": "2026-07-13T18:55:03.800882-05:00", "updated_at": "2026-07-13T18:55:03.800882-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb"}	2026-07-13 18:55:03.800882-05	\N	5	relation "cotizaciones" does not exist
+129	cotizaciones	UPDATE	{"id": "b4ce5f61-ed42-4f1b-b866-97452ad66085", "fecha": "2026-07-13", "notas": "", "total": 0.00, "estado": "confirmada", "numero": 8, "created_at": "2026-07-13T18:55:03.800882-05:00", "updated_at": "2026-07-13T18:55:42.509127-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb"}	2026-07-13 18:55:42.509127-05	\N	5	relation "cotizaciones" does not exist
+131	cotizaciones	INSERT	{"id": "7351a15d-d27c-49d7-a566-5f5136f3fa24", "fecha": "2026-07-13", "notas": "", "total": 0.00, "estado": "borrador", "numero": 9, "created_at": "2026-07-13T18:56:49.371923-05:00", "updated_at": "2026-07-13T18:56:49.371923-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb"}	2026-07-13 18:56:49.371923-05	\N	5	relation "cotizaciones" does not exist
+132	oportunidades	UPDATE	{"id": "a0447f25-e4a4-44a4-b06a-c907acf924bb", "etapa": "nuevo", "notas": "", "titulo": "asdasdasd", "created_at": "2026-07-13T10:38:56.147479-05:00", "updated_at": "2026-07-13T18:57:23.209786-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb", "monto_estimado": 0.00}	2026-07-13 18:57:23.209786-05	\N	5	relation "oportunidades" does not exist
+133	cotizaciones	DELETE	{"id": "822212f6-00bd-4da4-99b0-25f10b3fd5fd", "fecha": "2026-07-13", "notas": "", "total": 0.00, "estado": "aceptada", "numero": 7, "created_at": "2026-07-13T18:48:28.860851-05:00", "updated_at": "2026-07-13T18:52:30.124538-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb"}	2026-07-13 18:57:30.497737-05	\N	5	relation "cotizaciones" does not exist
+134	cotizaciones	DELETE	{"id": "b4ce5f61-ed42-4f1b-b866-97452ad66085", "fecha": "2026-07-13", "notas": "", "total": 0.00, "estado": "confirmada", "numero": 8, "created_at": "2026-07-13T18:55:03.800882-05:00", "updated_at": "2026-07-13T18:55:42.509127-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb"}	2026-07-13 18:57:30.497737-05	\N	5	relation "cotizaciones" does not exist
+150	calendario_evento_empleados	INSERT	{"evento_id": "8ee1ecdc-09e0-4de2-bf2f-f154d8c0522b", "empleado_id": "4e6a0bcb-3f7e-5c8d-a2c4-e7b5acc5c6f9"}	2026-07-13 19:00:43.822997-05	\N	5	relation "calendario_evento_empleados" does not exist
+48	oportunidades	UPDATE	{"id": "45e991c2-42da-47d2-a5e6-72840cc67e81", "etapa": "calificado", "notas": "", "titulo": "hasdasw", "created_at": "2026-07-13T09:36:14.835763-05:00", "updated_at": "2026-07-13T09:43:49.678576-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb", "monto_estimado": 0.00}	2026-07-13 09:43:49.678576-05	\N	5	relation "oportunidades" does not exist
+43	oportunidades	UPDATE	{"id": "45e991c2-42da-47d2-a5e6-72840cc67e81", "etapa": "nuevo", "notas": "", "titulo": "hasdasw", "created_at": "2026-07-13T09:36:14.835763-05:00", "updated_at": "2026-07-13T09:43:31.340176-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb", "monto_estimado": 0.00}	2026-07-13 09:43:31.340176-05	\N	5	relation "oportunidades" does not exist
+44	oportunidades	UPDATE	{"id": "45e991c2-42da-47d2-a5e6-72840cc67e81", "etapa": "calificado", "notas": "", "titulo": "hasdasw", "created_at": "2026-07-13T09:36:14.835763-05:00", "updated_at": "2026-07-13T09:43:31.927515-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb", "monto_estimado": 0.00}	2026-07-13 09:43:31.927515-05	\N	5	relation "oportunidades" does not exist
+135	cotizaciones	DELETE	{"id": "7351a15d-d27c-49d7-a566-5f5136f3fa24", "fecha": "2026-07-13", "notas": "", "total": 0.00, "estado": "borrador", "numero": 9, "created_at": "2026-07-13T18:56:49.371923-05:00", "updated_at": "2026-07-13T18:56:49.371923-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb"}	2026-07-13 18:57:30.497737-05	\N	5	relation "cotizaciones" does not exist
+136	oportunidades	UPDATE	{"id": "a0447f25-e4a4-44a4-b06a-c907acf924bb", "etapa": "calificado", "notas": "", "titulo": "NOSE", "created_at": "2026-07-13T10:38:56.147479-05:00", "updated_at": "2026-07-13T18:57:36.183429-05:00", "contacto_id": "94ed37e9-c0fd-485a-ad1c-fee4a2b33451", "monto_estimado": 0.00}	2026-07-13 18:57:36.183429-05	\N	5	relation "oportunidades" does not exist
+138	oportunidades	UPDATE	{"id": "a0447f25-e4a4-44a4-b06a-c907acf924bb", "etapa": "calificado", "notas": "", "titulo": "NOSE", "created_at": "2026-07-13T10:38:56.147479-05:00", "updated_at": "2026-07-13T18:57:39.684342-05:00", "contacto_id": "94ed37e9-c0fd-485a-ad1c-fee4a2b33451", "monto_estimado": 0.00}	2026-07-13 18:57:39.684342-05	\N	5	relation "oportunidades" does not exist
+139	oportunidades	UPDATE	{"id": "a0447f25-e4a4-44a4-b06a-c907acf924bb", "etapa": "nuevo", "notas": "", "titulo": "NOSE", "created_at": "2026-07-13T10:38:56.147479-05:00", "updated_at": "2026-07-13T18:57:40.392837-05:00", "contacto_id": "94ed37e9-c0fd-485a-ad1c-fee4a2b33451", "monto_estimado": 0.00}	2026-07-13 18:57:40.392837-05	\N	5	relation "oportunidades" does not exist
+140	oportunidades	UPDATE	{"id": "a0447f25-e4a4-44a4-b06a-c907acf924bb", "etapa": "calificado", "notas": "", "titulo": "NOSE", "created_at": "2026-07-13T10:38:56.147479-05:00", "updated_at": "2026-07-13T18:57:41.179083-05:00", "contacto_id": "94ed37e9-c0fd-485a-ad1c-fee4a2b33451", "monto_estimado": 0.00}	2026-07-13 18:57:41.179083-05	\N	5	relation "oportunidades" does not exist
+141	oportunidades	UPDATE	{"id": "a0447f25-e4a4-44a4-b06a-c907acf924bb", "etapa": "nuevo", "notas": "", "titulo": "NOSE", "created_at": "2026-07-13T10:38:56.147479-05:00", "updated_at": "2026-07-13T18:57:41.772088-05:00", "contacto_id": "94ed37e9-c0fd-485a-ad1c-fee4a2b33451", "monto_estimado": 0.00}	2026-07-13 18:57:41.772088-05	\N	5	relation "oportunidades" does not exist
+142	oportunidades	UPDATE	{"id": "a0447f25-e4a4-44a4-b06a-c907acf924bb", "etapa": "calificado", "notas": "", "titulo": "NOSE", "created_at": "2026-07-13T10:38:56.147479-05:00", "updated_at": "2026-07-13T18:57:42.351251-05:00", "contacto_id": "94ed37e9-c0fd-485a-ad1c-fee4a2b33451", "monto_estimado": 0.00}	2026-07-13 18:57:42.351251-05	\N	5	relation "oportunidades" does not exist
+143	oportunidades	UPDATE	{"id": "a0447f25-e4a4-44a4-b06a-c907acf924bb", "etapa": "nuevo", "notas": "", "titulo": "NOSE", "created_at": "2026-07-13T10:38:56.147479-05:00", "updated_at": "2026-07-13T18:57:42.939414-05:00", "contacto_id": "94ed37e9-c0fd-485a-ad1c-fee4a2b33451", "monto_estimado": 0.00}	2026-07-13 18:57:42.939414-05	\N	5	relation "oportunidades" does not exist
+144	oportunidades	UPDATE	{"id": "a0447f25-e4a4-44a4-b06a-c907acf924bb", "etapa": "propuesta", "notas": "", "titulo": "NOSE", "created_at": "2026-07-13T10:38:56.147479-05:00", "updated_at": "2026-07-13T18:57:57.884106-05:00", "contacto_id": "94ed37e9-c0fd-485a-ad1c-fee4a2b33451", "monto_estimado": 0.00}	2026-07-13 18:57:57.884106-05	\N	5	relation "oportunidades" does not exist
+145	oportunidades	UPDATE	{"id": "a0447f25-e4a4-44a4-b06a-c907acf924bb", "etapa": "calificado", "notas": "", "titulo": "NOSE", "created_at": "2026-07-13T10:38:56.147479-05:00", "updated_at": "2026-07-13T18:57:58.932044-05:00", "contacto_id": "94ed37e9-c0fd-485a-ad1c-fee4a2b33451", "monto_estimado": 0.00}	2026-07-13 18:57:58.932044-05	\N	5	relation "oportunidades" does not exist
+147	oportunidades	INSERT	{"id": "10ec1af9-b80e-4361-9b6e-9c077b0a6f81", "etapa": "calificado", "notas": "", "titulo": "A LO BRAVO", "created_at": "2026-07-13T18:58:37.256571-05:00", "updated_at": "2026-07-13T18:58:37.256571-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb", "monto_estimado": 0.00}	2026-07-13 18:58:37.256571-05	\N	5	relation "oportunidades" does not exist
+148	oportunidades	UPDATE	{"id": "10ec1af9-b80e-4361-9b6e-9c077b0a6f81", "etapa": "nuevo", "notas": "", "titulo": "A LO BRAVO", "created_at": "2026-07-13T18:58:37.256571-05:00", "updated_at": "2026-07-13T18:58:38.27699-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb", "monto_estimado": 0.00}	2026-07-13 18:58:38.27699-05	\N	5	relation "oportunidades" does not exist
+149	calendario_eventos	INSERT	{"id": "8ee1ecdc-09e0-4de2-bf2f-f154d8c0522b", "tipo": "recordatorio", "fecha": "2026-07-01", "estado": "pendiente", "titulo": "BRISEÑO", "created_at": "2026-07-13T19:00:43.822997", "piscina_id": null, "updated_at": "2026-07-13T19:00:43.822997-05:00", "descripcion": "Programacion de riego ", "proyecto_id": "f1b30cad-e0dc-5867-bf91-323fbf08d8bf"}	2026-07-13 19:00:43.822997-05	2026-07-14 14:14:15.542988-05	0	\N
+151	cotizaciones	INSERT	{"id": "b6f7fc59-e3ae-4046-a71f-ff3c53d0da58", "fecha": "2026-07-14", "notas": "", "total": 0.00, "estado": "borrador", "numero": 10, "created_at": "2026-07-13T19:11:47.829353-05:00", "updated_at": "2026-07-13T19:11:47.829353-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb"}	2026-07-13 19:11:47.829353-05	\N	5	relation "cotizaciones" does not exist
+152	cotizaciones	UPDATE	{"id": "b6f7fc59-e3ae-4046-a71f-ff3c53d0da58", "fecha": "2026-07-14", "notas": "", "total": 0.00, "estado": "confirmada", "numero": 10, "created_at": "2026-07-13T19:11:47.829353-05:00", "updated_at": "2026-07-13T19:12:05.717631-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb"}	2026-07-13 19:12:05.717631-05	\N	5	relation "cotizaciones" does not exist
+57	oportunidades	UPDATE	{"id": "45e991c2-42da-47d2-a5e6-72840cc67e81", "etapa": "nuevo", "notas": "", "titulo": "hasdasw", "created_at": "2026-07-13T09:36:14.835763-05:00", "updated_at": "2026-07-13T10:04:25.151254-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb", "monto_estimado": 0.00}	2026-07-13 10:04:25.151254-05	\N	5	relation "oportunidades" does not exist
+119	cotizaciones	UPDATE	{"id": "a005edd9-79db-4a92-8b89-eb33b9473e5e", "fecha": "2026-07-13", "notas": "", "total": 0.00, "estado": "aceptada", "numero": 6, "created_at": "2026-07-13T18:21:50.590418-05:00", "updated_at": "2026-07-13T18:24:21.868018-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb"}	2026-07-13 18:24:21.868018-05	\N	5	relation "cotizaciones" does not exist
+65	oportunidades	UPDATE	{"id": "a0447f25-e4a4-44a4-b06a-c907acf924bb", "etapa": "calificado", "notas": "", "titulo": "asdasdasd", "created_at": "2026-07-13T10:38:56.147479-05:00", "updated_at": "2026-07-13T10:39:00.033601-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb", "monto_estimado": 0.00}	2026-07-13 10:39:00.033601-05	\N	5	relation "oportunidades" does not exist
+87	cotizacion_lineas	DELETE	{"id": "7529b3ba-bb28-4d9e-9ee4-e53decb1ddee", "cantidad": 1.00, "subtotal": 120.00, "descripcion": "TUBERIA PVC 2 PULG", "producto_id": null, "cotizacion_id": "9ff69043-f773-4c41-a379-1aa60a325ecc", "precio_unitario": 120.00}	2026-07-13 13:06:29.736044-05	\N	5	relation "cotizacion_lineas" does not exist
+67	oportunidades	UPDATE	{"id": "a0447f25-e4a4-44a4-b06a-c907acf924bb", "etapa": "ganado", "notas": "", "titulo": "asdasdasd", "created_at": "2026-07-13T10:38:56.147479-05:00", "updated_at": "2026-07-13T10:39:01.330461-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb", "monto_estimado": 0.00}	2026-07-13 10:39:01.330461-05	\N	5	relation "oportunidades" does not exist
+108	cotizaciones	INSERT	{"id": "b7d5f4a3-9838-450c-ac4c-49122ec4de94", "fecha": "2026-07-13", "notas": "", "total": 0.00, "estado": "borrador", "numero": 5, "created_at": "2026-07-13T17:33:32.910036-05:00", "updated_at": "2026-07-13T17:33:32.910036-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb"}	2026-07-13 17:33:32.910036-05	\N	5	relation "cotizaciones" does not exist
+76	oportunidades	UPDATE	{"id": "a0447f25-e4a4-44a4-b06a-c907acf924bb", "etapa": "nuevo", "notas": "", "titulo": "asdasdasd", "created_at": "2026-07-13T10:38:56.147479-05:00", "updated_at": "2026-07-13T10:39:42.314268-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb", "monto_estimado": 0.00}	2026-07-13 10:39:42.314268-05	\N	5	relation "oportunidades" does not exist
+99	cotizaciones	INSERT	{"id": "1bb22524-bfe6-455c-8c1d-10edb7448253", "fecha": "2026-08-15", "notas": "", "total": 1350.50, "estado": "borrador", "numero": 4, "created_at": "2026-07-13T17:28:43.386152-05:00", "updated_at": "2026-07-13T17:28:43.386152-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb"}	2026-07-13 17:28:43.386152-05	\N	5	relation "cotizaciones" does not exist
+89	oportunidades	UPDATE	{"id": "a0447f25-e4a4-44a4-b06a-c907acf924bb", "etapa": "nuevo", "notas": "", "titulo": "asdasdasd", "created_at": "2026-07-13T10:38:56.147479-05:00", "updated_at": "2026-07-13T16:18:41.356557-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb", "monto_estimado": 0.00}	2026-07-13 16:18:41.356557-05	\N	5	relation "oportunidades" does not exist
+130	contactos	INSERT	{"id": "94ed37e9-c0fd-485a-ad1c-fee4a2b33451", "fax": null, "nif": null, "tipo": "otro", "email": "", "movil": null, "notas": "", "agente": null, "codigo": null, "nombre": "Billy el poderoso", "telefono": "985832096", "direccion": {"zip": "", "pais": "", "calle": "Mz A lt 9 Nueva gales Cieneguilla", "calle2": "", "ciudad": "", "estado": "", "distrito": ""}, "etiquetas": [], "sitio_web": "", "created_at": "2026-07-13T18:56:12.713652-05:00", "es_empresa": false, "updated_at": "2026-07-13T18:56:12.713652-05:00", "tipo_cliente": null, "nombre_fiscal": null, "ubicacion_url": null, "puesto_trabajo": "", "identificaciones": [], "persona_contacto": null, "contactos_relacionados": []}	2026-07-13 18:56:12.713652-05	2026-07-14 13:41:01.596929-05	0	\N
+120	cotizaciones	DELETE	{"id": "b7d5f4a3-9838-450c-ac4c-49122ec4de94", "fecha": "2026-07-13", "notas": "", "total": 0.00, "estado": "borrador", "numero": 5, "created_at": "2026-07-13T17:33:32.910036-05:00", "updated_at": "2026-07-13T17:33:32.910036-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb"}	2026-07-13 18:37:33.209145-05	\N	5	relation "cotizaciones" does not exist
+137	oportunidades	UPDATE	{"id": "a0447f25-e4a4-44a4-b06a-c907acf924bb", "etapa": "nuevo", "notas": "", "titulo": "NOSE", "created_at": "2026-07-13T10:38:56.147479-05:00", "updated_at": "2026-07-13T18:57:37.43394-05:00", "contacto_id": "94ed37e9-c0fd-485a-ad1c-fee4a2b33451", "monto_estimado": 0.00}	2026-07-13 18:57:37.43394-05	\N	5	relation "oportunidades" does not exist
+154	cotizaciones	DELETE	{"id": "6b912352-a097-4155-8c22-447cf91f505c", "fecha": "2026-07-14", "notas": "", "total": 0.00, "estado": "borrador", "moneda": "USD", "numero": 11, "created_at": "2026-07-13T19:22:39.949081-05:00", "updated_at": "2026-07-13T19:22:39.949081-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb"}	2026-07-13 19:23:00.027698-05	\N	5	relation "cotizaciones" does not exist
+155	cotizaciones	INSERT	{"id": "58a4f244-e291-4b4f-af17-710e7ba1ab25", "fecha": "2026-07-14", "notas": "", "total": 450.00, "estado": "borrador", "moneda": "PEN", "numero": 12, "created_at": "2026-07-13T20:16:09.086307-05:00", "updated_at": "2026-07-13T20:16:09.086307-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb"}	2026-07-13 20:16:09.086307-05	\N	5	relation "cotizaciones" does not exist
+156	cotizacion_lineas	INSERT	{"id": "95733f3e-e250-4f3c-bf2a-77424bd2d40b", "cantidad": 1.00, "subtotal": 450.00, "descripcion": "cableado especial", "producto_id": null, "cotizacion_id": "58a4f244-e291-4b4f-af17-710e7ba1ab25", "precio_unitario": 450.00, "descripcion_superior": "INSTALACIÓN ELÉCTRICA"}	2026-07-13 20:16:09.086307-05	\N	5	relation "cotizacion_lineas" does not exist
+157	cotizaciones	DELETE	{"id": "58a4f244-e291-4b4f-af17-710e7ba1ab25", "fecha": "2026-07-14", "notas": "", "total": 450.00, "estado": "borrador", "moneda": "PEN", "numero": 12, "created_at": "2026-07-13T20:16:09.086307-05:00", "updated_at": "2026-07-13T20:16:09.086307-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb"}	2026-07-13 20:16:29.758672-05	\N	5	relation "cotizaciones" does not exist
+158	cotizacion_lineas	DELETE	{"id": "95733f3e-e250-4f3c-bf2a-77424bd2d40b", "cantidad": 1.00, "subtotal": 450.00, "descripcion": "cableado especial", "producto_id": null, "cotizacion_id": "58a4f244-e291-4b4f-af17-710e7ba1ab25", "precio_unitario": 450.00, "descripcion_superior": "INSTALACIÓN ELÉCTRICA"}	2026-07-13 20:16:29.758672-05	\N	5	relation "cotizacion_lineas" does not exist
+146	oportunidades	UPDATE	{"id": "a0447f25-e4a4-44a4-b06a-c907acf924bb", "etapa": "nuevo", "notas": "", "titulo": "NOSE", "created_at": "2026-07-13T10:38:56.147479-05:00", "updated_at": "2026-07-13T18:57:59.517476-05:00", "contacto_id": "94ed37e9-c0fd-485a-ad1c-fee4a2b33451", "monto_estimado": 0.00}	2026-07-13 18:57:59.517476-05	\N	5	relation "oportunidades" does not exist
+159	cotizaciones	INSERT	{"id": "813ad070-8a94-47b4-9fdf-6d5fceed0132", "fecha": "2026-07-14", "notas": "", "total": 1149.00, "estado": "borrador", "moneda": "PEN", "numero": 13, "created_at": "2026-07-14T14:26:51.608398-05:00", "updated_at": "2026-07-14T14:26:51.608398-05:00", "contacto_id": "94ed37e9-c0fd-485a-ad1c-fee4a2b33451", "lineas_detalle": [{"id": "c0894fee-77e4-48bd-b25b-32cec9846f23", "tipo": "descripcion", "precio": 150, "descripcion": "Servicio de mantenimiento"}, {"id": "2e6f1f9e-82e3-444f-83e5-118ff2ce176f", "tipo": "producto", "productos": [{"id": "3860d167-b8c2-46a7-b366-92b74a93055c", "esLibre": true, "cantidad": 3, "descripcion": "Cable HDMI de prueba", "producto_id": null, "precio_unitario": 25.5}, {"id": "07754ece-8ba9-46c5-9d93-0b764c9df7f8", "esLibre": true, "cantidad": 2, "descripcion": "Cable de red", "producto_id": null, "precio_unitario": 10}], "precio_general": 999, "descripcion_superior": "Paquete de instalación"}]}	2026-07-14 14:26:51.608398-05	\N	5	relation "cotizaciones" does not exist
+153	cotizaciones	INSERT	{"id": "6b912352-a097-4155-8c22-447cf91f505c", "fecha": "2026-07-14", "notas": "", "total": 0.00, "estado": "borrador", "moneda": "USD", "numero": 11, "created_at": "2026-07-13T19:22:39.949081-05:00", "updated_at": "2026-07-13T19:22:39.949081-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb"}	2026-07-13 19:22:39.949081-05	\N	5	relation "cotizaciones" does not exist
+160	cotizaciones	INSERT	{"id": "99c6bd75-5a06-48fd-bcb7-f1274a0e9ab6", "fecha": "2026-07-14", "notas": "", "total": 1149.00, "estado": "borrador", "moneda": "PEN", "numero": 14, "created_at": "2026-07-14T14:27:50.330249-05:00", "updated_at": "2026-07-14T14:27:50.330249-05:00", "contacto_id": "94ed37e9-c0fd-485a-ad1c-fee4a2b33451", "lineas_detalle": [{"id": "1823df8d-f8fc-48c8-9a7c-c67f0b9fc202", "tipo": "descripcion", "precio": 150, "descripcion": "Servicio de mantenimiento"}, {"id": "c37bf7aa-9da0-4491-9fac-7cea141300a6", "tipo": "producto", "productos": [{"id": "d74be577-edd2-471c-b065-650eb05b6aec", "esLibre": true, "cantidad": 3, "descripcion": "Cable HDMI de prueba", "producto_id": null, "precio_unitario": 25.5}, {"id": "a9178abe-6c4b-4f80-a48a-0c33da63d98b", "esLibre": true, "cantidad": 2, "descripcion": "Cable de red", "producto_id": null, "precio_unitario": 10}], "precio_general": 999, "descripcion_superior": "Paquete de instalación"}]}	2026-07-14 14:27:50.330249-05	\N	5	relation "cotizaciones" does not exist
+162	cotizaciones	UPDATE	{"id": "99c6bd75-5a06-48fd-bcb7-f1274a0e9ab6", "fecha": "2026-07-14", "notas": "", "total": 1149.00, "estado": "aceptada", "moneda": "PEN", "numero": 14, "created_at": "2026-07-14T14:27:50.330249-05:00", "updated_at": "2026-07-14T14:29:43.389023-05:00", "contacto_id": "94ed37e9-c0fd-485a-ad1c-fee4a2b33451", "lineas_detalle": [{"id": "1823df8d-f8fc-48c8-9a7c-c67f0b9fc202", "tipo": "descripcion", "precio": 150, "descripcion": "Servicio de mantenimiento"}, {"id": "c37bf7aa-9da0-4491-9fac-7cea141300a6", "tipo": "producto", "productos": [{"id": "d74be577-edd2-471c-b065-650eb05b6aec", "esLibre": true, "cantidad": 3, "descripcion": "Cable HDMI de prueba", "producto_id": null, "precio_unitario": 25.5}, {"id": "a9178abe-6c4b-4f80-a48a-0c33da63d98b", "esLibre": true, "cantidad": 2, "descripcion": "Cable de red", "producto_id": null, "precio_unitario": 10}], "precio_general": 999, "descripcion_superior": "Paquete de instalación"}]}	2026-07-14 14:29:43.389023-05	\N	5	relation "cotizaciones" does not exist
+161	cotizaciones	UPDATE	{"id": "99c6bd75-5a06-48fd-bcb7-f1274a0e9ab6", "fecha": "2026-07-14", "notas": "", "total": 1149.00, "estado": "confirmada", "moneda": "PEN", "numero": 14, "created_at": "2026-07-14T14:27:50.330249-05:00", "updated_at": "2026-07-14T14:29:41.63815-05:00", "contacto_id": "94ed37e9-c0fd-485a-ad1c-fee4a2b33451", "lineas_detalle": [{"id": "1823df8d-f8fc-48c8-9a7c-c67f0b9fc202", "tipo": "descripcion", "precio": 150, "descripcion": "Servicio de mantenimiento"}, {"id": "c37bf7aa-9da0-4491-9fac-7cea141300a6", "tipo": "producto", "productos": [{"id": "d74be577-edd2-471c-b065-650eb05b6aec", "esLibre": true, "cantidad": 3, "descripcion": "Cable HDMI de prueba", "producto_id": null, "precio_unitario": 25.5}, {"id": "a9178abe-6c4b-4f80-a48a-0c33da63d98b", "esLibre": true, "cantidad": 2, "descripcion": "Cable de red", "producto_id": null, "precio_unitario": 10}], "precio_general": 999, "descripcion_superior": "Paquete de instalación"}]}	2026-07-14 14:29:41.63815-05	\N	5	relation "cotizaciones" does not exist
+165	cotizaciones	INSERT	{"id": "84e3d2d4-ab1d-4291-a160-2e374d703175", "fecha": "2026-08-15", "notas": "", "total": 1350.50, "estado": "borrador", "moneda": "PEN", "numero": 15, "created_at": "2026-07-14T21:30:54.918076-05:00", "updated_at": "2026-07-14T21:30:54.918076-05:00", "contacto_id": "94ed37e9-c0fd-485a-ad1c-fee4a2b33451", "lineas_modo": "libre", "lineas_libres": {"filas": [{"id": "2a3e0adf-3669-424c-8956-df227fc95ab6", "html": "BOMBA DE AGUA EDITADA 2HP", "precio": "S/ 450.00"}, {"id": "bef32dc7-06f6-4992-9d3f-ec11224d6662", "html": "FILTRO DE ARENA N4", "precio": "S/ 780.50"}, {"id": "e32ffacd-ca20-4a57-9034-02bab3acda68", "html": "SERVICIO ADICIONAL", "precio": ""}], "total": "S/ 1350.50", "cantidad": "01"}, "lineas_detalle": []}	2026-07-14 21:30:54.918076-05	\N	5	relation "cotizaciones" does not exist
+164	cotizaciones	DELETE	{"id": "813ad070-8a94-47b4-9fdf-6d5fceed0132", "fecha": "2026-07-14", "notas": "", "total": 1149.00, "estado": "borrador", "moneda": "PEN", "numero": 13, "created_at": "2026-07-14T14:26:51.608398-05:00", "updated_at": "2026-07-14T14:26:51.608398-05:00", "contacto_id": "94ed37e9-c0fd-485a-ad1c-fee4a2b33451", "lineas_detalle": [{"id": "c0894fee-77e4-48bd-b25b-32cec9846f23", "tipo": "descripcion", "precio": 150, "descripcion": "Servicio de mantenimiento"}, {"id": "2e6f1f9e-82e3-444f-83e5-118ff2ce176f", "tipo": "producto", "productos": [{"id": "3860d167-b8c2-46a7-b366-92b74a93055c", "esLibre": true, "cantidad": 3, "descripcion": "Cable HDMI de prueba", "producto_id": null, "precio_unitario": 25.5}, {"id": "07754ece-8ba9-46c5-9d93-0b764c9df7f8", "esLibre": true, "cantidad": 2, "descripcion": "Cable de red", "producto_id": null, "precio_unitario": 10}], "precio_general": 999, "descripcion_superior": "Paquete de instalación"}]}	2026-07-14 14:31:30.575896-05	\N	5	relation "cotizaciones" does not exist
+163	cotizaciones	DELETE	{"id": "99c6bd75-5a06-48fd-bcb7-f1274a0e9ab6", "fecha": "2026-07-14", "notas": "", "total": 1149.00, "estado": "aceptada", "moneda": "PEN", "numero": 14, "created_at": "2026-07-14T14:27:50.330249-05:00", "updated_at": "2026-07-14T14:29:43.389023-05:00", "contacto_id": "94ed37e9-c0fd-485a-ad1c-fee4a2b33451", "lineas_detalle": [{"id": "1823df8d-f8fc-48c8-9a7c-c67f0b9fc202", "tipo": "descripcion", "precio": 150, "descripcion": "Servicio de mantenimiento"}, {"id": "c37bf7aa-9da0-4491-9fac-7cea141300a6", "tipo": "producto", "productos": [{"id": "d74be577-edd2-471c-b065-650eb05b6aec", "esLibre": true, "cantidad": 3, "descripcion": "Cable HDMI de prueba", "producto_id": null, "precio_unitario": 25.5}, {"id": "a9178abe-6c4b-4f80-a48a-0c33da63d98b", "esLibre": true, "cantidad": 2, "descripcion": "Cable de red", "producto_id": null, "precio_unitario": 10}], "precio_general": 999, "descripcion_superior": "Paquete de instalación"}]}	2026-07-14 14:30:25.499002-05	\N	5	relation "cotizaciones" does not exist
+172	productos	UPDATE	{"id": "62f5014a-acbd-4395-9311-532fb903435b", "sku": "__TEST-SKU__", "tipo": "bienes", "costo": 0.00, "stock": 25, "vende": true, "compra": false, "nombre": "__TEST producto__", "precio": 10.00, "unidad": "Unidad", "es_gasto": false, "favorito": false, "foto_url": null, "categoria": null, "created_at": "2026-07-15T18:04:44.44232-05:00", "referencia": null, "updated_at": "2026-07-15T18:04:44.482531-05:00", "limite_stock": 0, "codigo_barras": null, "impuesto_venta": null, "notas_internas": null, "codigo_detraccion": null, "rastrear_inventario": true}	2026-07-15 18:04:44.482531-05	2026-07-15 18:05:04.218204-05	0	\N
+173	productos	UPDATE	{"id": "62f5014a-acbd-4395-9311-532fb903435b", "sku": "__TEST-SKU__", "tipo": "bienes", "costo": 0.00, "stock": 15, "vende": true, "compra": false, "nombre": "__TEST producto__", "precio": 10.00, "unidad": "Unidad", "es_gasto": false, "favorito": false, "foto_url": null, "categoria": null, "created_at": "2026-07-15T18:04:44.44232-05:00", "referencia": null, "updated_at": "2026-07-15T18:04:44.498644-05:00", "limite_stock": 0, "codigo_barras": null, "impuesto_venta": null, "notas_internas": null, "codigo_detraccion": null, "rastrear_inventario": true}	2026-07-15 18:04:44.498644-05	2026-07-15 18:05:04.386088-05	0	\N
+171	productos	INSERT	{"id": "62f5014a-acbd-4395-9311-532fb903435b", "sku": "__TEST-SKU__", "tipo": "bienes", "costo": 0.00, "stock": 0, "vende": true, "compra": false, "nombre": "__TEST producto__", "precio": 10.00, "unidad": "Unidad", "es_gasto": false, "favorito": false, "foto_url": null, "categoria": null, "created_at": "2026-07-15T18:04:44.44232-05:00", "referencia": null, "updated_at": "2026-07-15T18:04:44.44232-05:00", "limite_stock": 0, "codigo_barras": null, "impuesto_venta": null, "notas_internas": null, "codigo_detraccion": null, "rastrear_inventario": true}	2026-07-15 18:04:44.44232-05	2026-07-15 18:05:03.880172-05	0	\N
+167	oportunidades	DELETE	{"id": "10ec1af9-b80e-4361-9b6e-9c077b0a6f81", "etapa": "nuevo", "notas": "", "titulo": "A LO BRAVO", "created_at": "2026-07-13T18:58:37.256571-05:00", "updated_at": "2026-07-13T18:58:38.27699-05:00", "contacto_id": "d142ef26-317d-56bd-aa3b-6b5d29bb6fdb", "monto_estimado": 0.00}	2026-07-15 11:51:51.807703-05	\N	5	relation "oportunidades" does not exist
+166	cotizaciones	DELETE	{"id": "84e3d2d4-ab1d-4291-a160-2e374d703175", "fecha": "2026-08-15", "notas": "", "total": 1350.50, "estado": "borrador", "moneda": "PEN", "numero": 15, "created_at": "2026-07-14T21:30:54.918076-05:00", "updated_at": "2026-07-14T21:30:54.918076-05:00", "contacto_id": "94ed37e9-c0fd-485a-ad1c-fee4a2b33451", "lineas_modo": "libre", "lineas_libres": {"filas": [{"id": "2a3e0adf-3669-424c-8956-df227fc95ab6", "html": "BOMBA DE AGUA EDITADA 2HP", "precio": "S/ 450.00"}, {"id": "bef32dc7-06f6-4992-9d3f-ec11224d6662", "html": "FILTRO DE ARENA N4", "precio": "S/ 780.50"}, {"id": "e32ffacd-ca20-4a57-9034-02bab3acda68", "html": "SERVICIO ADICIONAL", "precio": ""}], "total": "S/ 1350.50", "cantidad": "01"}, "lineas_detalle": []}	2026-07-14 21:32:20.826344-05	\N	5	relation "cotizaciones" does not exist
+168	oportunidades	DELETE	{"id": "a0447f25-e4a4-44a4-b06a-c907acf924bb", "etapa": "nuevo", "notas": "", "titulo": "NOSE", "created_at": "2026-07-13T10:38:56.147479-05:00", "updated_at": "2026-07-13T18:57:59.517476-05:00", "contacto_id": "94ed37e9-c0fd-485a-ad1c-fee4a2b33451", "monto_estimado": 0.00}	2026-07-15 11:51:55.137016-05	\N	5	relation "oportunidades" does not exist
+169	productos	INSERT	{"id": "2136bdd6-ab2c-45e9-aab3-532563a5051e", "sku": "__TEST-SKU__", "tipo": "bienes", "costo": 0.00, "stock": 0, "vende": true, "compra": false, "nombre": "__TEST producto__", "precio": 10.00, "unidad": "Unidad", "es_gasto": false, "favorito": false, "foto_url": null, "categoria": null, "created_at": "2026-07-15T18:00:43.2659-05:00", "referencia": null, "updated_at": "2026-07-15T18:00:43.2659-05:00", "limite_stock": 0, "codigo_barras": null, "impuesto_venta": null, "notas_internas": null, "codigo_detraccion": null, "rastrear_inventario": true}	2026-07-15 18:00:43.2659-05	2026-07-15 18:00:55.688384-05	0	\N
+170	productos	DELETE	{"id": "2136bdd6-ab2c-45e9-aab3-532563a5051e", "sku": "__TEST-SKU__", "tipo": "bienes", "costo": 0.00, "stock": 0, "vende": true, "compra": false, "nombre": "__TEST producto__", "precio": 10.00, "unidad": "Unidad", "es_gasto": false, "favorito": false, "foto_url": null, "categoria": null, "created_at": "2026-07-15T18:00:43.2659-05:00", "referencia": null, "updated_at": "2026-07-15T18:00:43.2659-05:00", "limite_stock": 0, "codigo_barras": null, "impuesto_venta": null, "notas_internas": null, "codigo_detraccion": null, "rastrear_inventario": true}	2026-07-15 18:02:39.770449-05	2026-07-15 18:02:56.910368-05	0	\N
+174	productos	DELETE	{"id": "62f5014a-acbd-4395-9311-532fb903435b", "sku": "__TEST-SKU__", "tipo": "bienes", "costo": 0.00, "stock": 15, "vende": true, "compra": false, "nombre": "__TEST producto__", "precio": 10.00, "unidad": "Unidad", "es_gasto": false, "favorito": false, "foto_url": null, "categoria": null, "created_at": "2026-07-15T18:04:44.44232-05:00", "referencia": null, "updated_at": "2026-07-15T18:04:44.498644-05:00", "limite_stock": 0, "codigo_barras": null, "impuesto_venta": null, "notas_internas": null, "codigo_detraccion": null, "rastrear_inventario": true}	2026-07-15 18:04:44.51111-05	2026-07-15 18:05:04.784308-05	0	\N
+175	usuarios	UPDATE	{"id": "c40ab922-aaca-545a-9f8c-0be28f1c5c8e", "username": "harry", "created_at": "2026-07-05T15:25:03.511624-05:00", "updated_at": "2026-07-16T17:31:31.063235-05:00", "password_hash": "$2b$10$2j9tjrA6JiEPV1cyKr5qweYBDYpykBqqoK0UzQn9l0JfQpPNLKkr6", "nombre_completo": "harry"}	2026-07-16 17:31:31.063235-05	2026-07-16 17:31:34.266172-05	0	\N
+176	productos	INSERT	{"id": "da7cce1e-c089-49eb-89b8-bc5ee68f87cf", "sku": "TEST-CLAUDE-001", "tipo": "bienes", "costo": 0.00, "stock": 0, "vende": true, "compra": false, "nombre": "Manguera de Prueba Claude", "precio": 0.00, "unidad": "Unidad", "es_gasto": false, "favorito": false, "foto_url": null, "categoria": "", "created_at": "2026-07-16T18:56:51.555687-05:00", "referencia": null, "updated_at": "2026-07-16T18:56:51.555687-05:00", "limite_stock": 0, "codigo_barras": null, "impuesto_venta": null, "notas_internas": "", "codigo_detraccion": null, "rastrear_inventario": true}	2026-07-16 18:56:51.555687-05	2026-07-16 18:56:56.002254-05	0	\N
+177	productos	DELETE	{"id": "da7cce1e-c089-49eb-89b8-bc5ee68f87cf", "sku": "TEST-CLAUDE-001", "tipo": "bienes", "costo": 0.00, "stock": 0, "vende": true, "compra": false, "nombre": "Manguera de Prueba Claude", "precio": 0.00, "unidad": "Unidad", "es_gasto": false, "favorito": false, "foto_url": null, "categoria": "", "created_at": "2026-07-16T18:56:51.555687-05:00", "referencia": null, "updated_at": "2026-07-16T18:56:51.555687-05:00", "limite_stock": 0, "codigo_barras": null, "impuesto_venta": null, "notas_internas": "", "codigo_detraccion": null, "rastrear_inventario": true}	2026-07-16 18:58:04.53485-05	2026-07-16 18:58:16.312334-05	0	\N
+178	productos	UPDATE	{"id": "f0eca9c1-3f0f-5c42-9a8f-6ff1a685a2d2", "sku": "ACC-144", "tipo": "bienes", "costo": 0.00, "stock": 109, "vende": true, "compra": false, "nombre": "BOQUILLA 12 A AJUSTABLE HUNTER", "precio": 0.00, "unidad": "Unidad", "es_gasto": false, "favorito": false, "foto_url": null, "categoria": null, "created_at": "2026-07-08T16:48:35.372374-05:00", "referencia": null, "updated_at": "2026-07-16T19:49:54.049539-05:00", "limite_stock": 10, "codigo_barras": null, "impuesto_venta": null, "notas_internas": null, "codigo_detraccion": null, "rastrear_inventario": true}	2026-07-16 19:49:54.049539-05	2026-07-16 19:49:57.379803-05	0	\N
+179	productos	UPDATE	{"id": "f0eca9c1-3f0f-5c42-9a8f-6ff1a685a2d2", "sku": "ACC-144", "tipo": "bienes", "costo": 0.00, "stock": 94, "vende": true, "compra": false, "nombre": "BOQUILLA 12 A AJUSTABLE HUNTER", "precio": 0.00, "unidad": "Unidad", "es_gasto": false, "favorito": false, "foto_url": null, "categoria": null, "created_at": "2026-07-08T16:48:35.372-05:00", "referencia": null, "updated_at": "2026-07-16T19:50:58.405688-05:00", "limite_stock": 10, "codigo_barras": null, "impuesto_venta": null, "notas_internas": null, "codigo_detraccion": null, "rastrear_inventario": true}	2026-07-16 19:50:58.405688-05	2026-07-16 19:51:17.125972-05	0	\N
+180	productos	UPDATE	{"id": "f0eca9c1-3f0f-5c42-9a8f-6ff1a685a2d2", "sku": "ACC-144", "tipo": "bienes", "costo": 0.00, "stock": 99, "vende": true, "compra": false, "nombre": "BOQUILLA 12 A AJUSTABLE HUNTER", "precio": 0.00, "unidad": "Unidad", "es_gasto": false, "favorito": false, "foto_url": null, "categoria": null, "created_at": "2026-07-08T16:48:35.372-05:00", "referencia": null, "updated_at": "2026-07-16T19:51:39.30645-05:00", "limite_stock": 10, "codigo_barras": null, "impuesto_venta": null, "notas_internas": null, "codigo_detraccion": null, "rastrear_inventario": true}	2026-07-16 19:51:39.30645-05	2026-07-16 19:51:57.262569-05	0	\N
+181	productos	UPDATE	{"id": "f0eca9c1-3f0f-5c42-9a8f-6ff1a685a2d2", "sku": "ACC-144", "tipo": "bienes", "costo": 0.00, "stock": -1, "vende": true, "compra": false, "nombre": "BOQUILLA 12 A AJUSTABLE HUNTER", "precio": 0.00, "unidad": "Unidad", "es_gasto": false, "favorito": false, "foto_url": null, "categoria": null, "created_at": "2026-07-08T16:48:35.372-05:00", "referencia": null, "updated_at": "2026-07-16T19:53:40.320993-05:00", "limite_stock": 10, "codigo_barras": null, "impuesto_venta": null, "notas_internas": null, "codigo_detraccion": null, "rastrear_inventario": true}	2026-07-16 19:53:40.320993-05	2026-07-16 19:53:58.194683-05	0	\N
 \.
 
 
@@ -1037,8 +1447,8 @@ COPY public.sync_outbox (id, table_name, operation, payload, created_at, synced_
 -- Data for Name: sync_state; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-COPY public.sync_state (id, is_online, last_check_at, last_success_at) FROM stdin;
-t	t	2026-07-10 00:12:20.766049-05	2026-07-09 14:01:45.180046-05
+COPY public.sync_state (id, is_online, last_check_at, last_success_at, last_pull_at) FROM stdin;
+t	t	2026-07-16 20:02:57.473446-05	2026-07-16 20:02:44.158871-05	2026-07-16 20:02:40.137-05
 \.
 
 
@@ -1047,23 +1457,7 @@ t	t	2026-07-10 00:12:20.766049-05	2026-07-09 14:01:45.180046-05
 --
 
 COPY public.usuarios (username, password_hash, nombre_completo, created_at, id, updated_at) FROM stdin;
-harry	$2b$10$2oO0ysur9CFTXVPZJ81Smenyt6MkD6tmmcZ7Lln.cPf/y0GwPrrmC	Harry	2026-07-05 15:25:03.511624-05	c40ab922-aaca-545a-9f8c-0be28f1c5c8e	2026-07-11 15:14:59.630758-05
-\.
-
-
---
--- Data for Name: venta_lineas; Type: TABLE DATA; Schema: public; Owner: -
---
-
-COPY public.venta_lineas (cantidad, precio_unitario, subtotal, created_at, id, venta_id, producto_id, updated_at) FROM stdin;
-\.
-
-
---
--- Data for Name: ventas; Type: TABLE DATA; Schema: public; Owner: -
---
-
-COPY public.ventas (total, estado, fecha, notas, created_at, id, contacto_id, updated_at, numero) FROM stdin;
+harry	$2b$10$2j9tjrA6JiEPV1cyKr5qweYBDYpykBqqoK0UzQn9l0JfQpPNLKkr6	harry	2026-07-05 15:25:03.511-05	c40ab922-aaca-545a-9f8c-0be28f1c5c8e	2026-07-16 17:31:34.581667-05
 \.
 
 
@@ -1078,7 +1472,21 @@ SELECT pg_catalog.setval('public.asientos_contables_numero_seq', 1, false);
 -- Name: cotizaciones_numero_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.cotizaciones_numero_seq', 1, true);
+SELECT pg_catalog.setval('public.cotizaciones_numero_seq', 15, true);
+
+
+--
+-- Name: entradas_numero_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+--
+
+SELECT pg_catalog.setval('public.entradas_numero_seq', 3, true);
+
+
+--
+-- Name: facturas_numero_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+--
+
+SELECT pg_catalog.setval('public.facturas_numero_seq', 1, false);
 
 
 --
@@ -1092,14 +1500,15 @@ SELECT pg_catalog.setval('public.pedidos_numero_seq', 1, false);
 -- Name: sync_outbox_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.sync_outbox_id_seq', 27, true);
+SELECT pg_catalog.setval('public.sync_outbox_id_seq', 181, true);
 
 
 --
--- Name: ventas_numero_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: almacenes almacenes_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.ventas_numero_seq', 1, false);
+ALTER TABLE ONLY public.almacenes
+    ADD CONSTRAINT almacenes_pkey PRIMARY KEY (id);
 
 
 --
@@ -1116,6 +1525,14 @@ ALTER TABLE ONLY public.asiento_lineas
 
 ALTER TABLE ONLY public.asientos_contables
     ADD CONSTRAINT asientos_contables_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: calendario_evento_empleados calendario_evento_empleados_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.calendario_evento_empleados
+    ADD CONSTRAINT calendario_evento_empleados_pkey PRIMARY KEY (evento_id, empleado_id);
 
 
 --
@@ -1159,11 +1576,67 @@ ALTER TABLE ONLY public.empleados
 
 
 --
+-- Name: entrada_lineas entrada_lineas_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.entrada_lineas
+    ADD CONSTRAINT entrada_lineas_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: entradas entradas_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.entradas
+    ADD CONSTRAINT entradas_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: factura_lineas factura_lineas_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.factura_lineas
+    ADD CONSTRAINT factura_lineas_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: factura_pagos factura_pagos_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.factura_pagos
+    ADD CONSTRAINT factura_pagos_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: facturas facturas_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.facturas
+    ADD CONSTRAINT facturas_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: gastos gastos_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.gastos
     ADD CONSTRAINT gastos_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: lotes lotes_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.lotes
+    ADD CONSTRAINT lotes_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: movimientos_stock movimientos_stock_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.movimientos_stock
+    ADD CONSTRAINT movimientos_stock_pkey PRIMARY KEY (id);
 
 
 --
@@ -1255,6 +1728,14 @@ ALTER TABLE ONLY public.productos
 
 
 --
+-- Name: proveedores proveedores_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.proveedores
+    ADD CONSTRAINT proveedores_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: proyecto_empleados proyecto_empleados_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1311,19 +1792,17 @@ ALTER TABLE ONLY public.usuarios
 
 
 --
--- Name: venta_lineas venta_lineas_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: idx_lotes_producto_almacen; Type: INDEX; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.venta_lineas
-    ADD CONSTRAINT venta_lineas_pkey PRIMARY KEY (id);
+CREATE INDEX idx_lotes_producto_almacen ON public.lotes USING btree (producto_id, almacen_id);
 
 
 --
--- Name: ventas ventas_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: idx_movimientos_stock_producto; Type: INDEX; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.ventas
-    ADD CONSTRAINT ventas_pkey PRIMARY KEY (id);
+CREATE INDEX idx_movimientos_stock_producto ON public.movimientos_stock USING btree (producto_id, fecha DESC);
 
 
 --
@@ -1348,6 +1827,13 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.asientos_contables FOR
 
 
 --
+-- Name: calendario_evento_empleados trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.calendario_evento_empleados FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+
+--
 -- Name: calendario_eventos trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -1359,6 +1845,13 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.calendario_eventos FOR
 --
 
 CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.contactos FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+
+--
+-- Name: cotizacion_lineas trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.cotizacion_lineas FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
 
 --
@@ -1376,6 +1869,34 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.empleados FOR EACH ROW
 
 
 --
+-- Name: entradas trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.entradas FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+
+--
+-- Name: factura_lineas trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.factura_lineas FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+
+--
+-- Name: factura_pagos trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.factura_pagos FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+
+--
+-- Name: facturas trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.facturas FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+
+--
 -- Name: gastos trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -1383,10 +1904,24 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.gastos FOR EACH ROW EX
 
 
 --
+-- Name: lotes trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.lotes FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+
+--
 -- Name: oportunidades trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
 CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.oportunidades FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+
+--
+-- Name: pedido_lineas trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.pedido_lineas FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
 
 --
@@ -1439,6 +1974,13 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.productos FOR EACH ROW
 
 
 --
+-- Name: proveedores trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.proveedores FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+
+--
 -- Name: proyecto_empleados trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -1467,20 +2009,6 @@ CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.usuarios FOR EACH ROW 
 
 
 --
--- Name: venta_lineas trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.venta_lineas FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
-
-
---
--- Name: ventas trg_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.ventas FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
-
-
---
 -- Name: asiento_lineas trg_sync_outbox; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -1492,6 +2020,13 @@ CREATE TRIGGER trg_sync_outbox AFTER INSERT OR DELETE OR UPDATE ON public.asient
 --
 
 CREATE TRIGGER trg_sync_outbox AFTER INSERT OR DELETE OR UPDATE ON public.asientos_contables FOR EACH ROW EXECUTE FUNCTION public.sync_outbox_capture();
+
+
+--
+-- Name: calendario_evento_empleados trg_sync_outbox; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_sync_outbox AFTER INSERT OR DELETE OR UPDATE ON public.calendario_evento_empleados FOR EACH ROW EXECUTE FUNCTION public.sync_outbox_capture();
 
 
 --
@@ -1527,6 +2062,27 @@ CREATE TRIGGER trg_sync_outbox AFTER INSERT OR DELETE OR UPDATE ON public.cotiza
 --
 
 CREATE TRIGGER trg_sync_outbox AFTER INSERT OR DELETE OR UPDATE ON public.empleados FOR EACH ROW EXECUTE FUNCTION public.sync_outbox_capture();
+
+
+--
+-- Name: factura_lineas trg_sync_outbox; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_sync_outbox AFTER INSERT OR DELETE OR UPDATE ON public.factura_lineas FOR EACH ROW EXECUTE FUNCTION public.sync_outbox_capture();
+
+
+--
+-- Name: factura_pagos trg_sync_outbox; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_sync_outbox AFTER INSERT OR DELETE OR UPDATE ON public.factura_pagos FOR EACH ROW EXECUTE FUNCTION public.sync_outbox_capture();
+
+
+--
+-- Name: facturas trg_sync_outbox; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_sync_outbox AFTER INSERT OR DELETE OR UPDATE ON public.facturas FOR EACH ROW EXECUTE FUNCTION public.sync_outbox_capture();
 
 
 --
@@ -1628,20 +2184,6 @@ CREATE TRIGGER trg_sync_outbox AFTER INSERT OR DELETE OR UPDATE ON public.usuari
 
 
 --
--- Name: venta_lineas trg_sync_outbox; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER trg_sync_outbox AFTER INSERT OR DELETE OR UPDATE ON public.venta_lineas FOR EACH ROW EXECUTE FUNCTION public.sync_outbox_capture();
-
-
---
--- Name: ventas trg_sync_outbox; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER trg_sync_outbox AFTER INSERT OR DELETE OR UPDATE ON public.ventas FOR EACH ROW EXECUTE FUNCTION public.sync_outbox_capture();
-
-
---
 -- Name: asiento_lineas asiento_lineas_asiento_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1655,6 +2197,22 @@ ALTER TABLE ONLY public.asiento_lineas
 
 ALTER TABLE ONLY public.asiento_lineas
     ADD CONSTRAINT asiento_lineas_cuenta_id_fkey FOREIGN KEY (cuenta_id) REFERENCES public.plan_cuentas(id);
+
+
+--
+-- Name: calendario_evento_empleados calendario_evento_empleados_empleado_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.calendario_evento_empleados
+    ADD CONSTRAINT calendario_evento_empleados_empleado_id_fkey FOREIGN KEY (empleado_id) REFERENCES public.empleados(id) ON DELETE CASCADE;
+
+
+--
+-- Name: calendario_evento_empleados calendario_evento_empleados_evento_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.calendario_evento_empleados
+    ADD CONSTRAINT calendario_evento_empleados_evento_id_fkey FOREIGN KEY (evento_id) REFERENCES public.calendario_eventos(id) ON DELETE CASCADE;
 
 
 --
@@ -1695,6 +2253,126 @@ ALTER TABLE ONLY public.cotizacion_lineas
 
 ALTER TABLE ONLY public.cotizaciones
     ADD CONSTRAINT cotizaciones_contacto_id_fkey FOREIGN KEY (contacto_id) REFERENCES public.contactos(id) ON DELETE CASCADE;
+
+
+--
+-- Name: entrada_lineas entrada_lineas_almacen_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.entrada_lineas
+    ADD CONSTRAINT entrada_lineas_almacen_id_fkey FOREIGN KEY (almacen_id) REFERENCES public.almacenes(id);
+
+
+--
+-- Name: entrada_lineas entrada_lineas_entrada_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.entrada_lineas
+    ADD CONSTRAINT entrada_lineas_entrada_id_fkey FOREIGN KEY (entrada_id) REFERENCES public.entradas(id) ON DELETE CASCADE;
+
+
+--
+-- Name: entrada_lineas entrada_lineas_producto_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.entrada_lineas
+    ADD CONSTRAINT entrada_lineas_producto_id_fkey FOREIGN KEY (producto_id) REFERENCES public.productos(id);
+
+
+--
+-- Name: entradas entradas_proveedor_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.entradas
+    ADD CONSTRAINT entradas_proveedor_id_fkey FOREIGN KEY (proveedor_id) REFERENCES public.proveedores(id);
+
+
+--
+-- Name: factura_lineas factura_lineas_factura_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.factura_lineas
+    ADD CONSTRAINT factura_lineas_factura_id_fkey FOREIGN KEY (factura_id) REFERENCES public.facturas(id) ON DELETE CASCADE;
+
+
+--
+-- Name: factura_lineas factura_lineas_producto_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.factura_lineas
+    ADD CONSTRAINT factura_lineas_producto_id_fkey FOREIGN KEY (producto_id) REFERENCES public.productos(id);
+
+
+--
+-- Name: factura_pagos factura_pagos_factura_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.factura_pagos
+    ADD CONSTRAINT factura_pagos_factura_id_fkey FOREIGN KEY (factura_id) REFERENCES public.facturas(id) ON DELETE CASCADE;
+
+
+--
+-- Name: facturas facturas_contacto_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.facturas
+    ADD CONSTRAINT facturas_contacto_id_fkey FOREIGN KEY (contacto_id) REFERENCES public.contactos(id) ON DELETE CASCADE;
+
+
+--
+-- Name: facturas facturas_cotizacion_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.facturas
+    ADD CONSTRAINT facturas_cotizacion_id_fkey FOREIGN KEY (cotizacion_id) REFERENCES public.cotizaciones(id);
+
+
+--
+-- Name: lotes lotes_almacen_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.lotes
+    ADD CONSTRAINT lotes_almacen_id_fkey FOREIGN KEY (almacen_id) REFERENCES public.almacenes(id);
+
+
+--
+-- Name: lotes lotes_producto_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.lotes
+    ADD CONSTRAINT lotes_producto_id_fkey FOREIGN KEY (producto_id) REFERENCES public.productos(id);
+
+
+--
+-- Name: movimientos_stock movimientos_stock_almacen_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.movimientos_stock
+    ADD CONSTRAINT movimientos_stock_almacen_id_fkey FOREIGN KEY (almacen_id) REFERENCES public.almacenes(id);
+
+
+--
+-- Name: movimientos_stock movimientos_stock_entrada_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.movimientos_stock
+    ADD CONSTRAINT movimientos_stock_entrada_id_fkey FOREIGN KEY (entrada_id) REFERENCES public.entradas(id);
+
+
+--
+-- Name: movimientos_stock movimientos_stock_lote_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.movimientos_stock
+    ADD CONSTRAINT movimientos_stock_lote_id_fkey FOREIGN KEY (lote_id) REFERENCES public.lotes(id);
+
+
+--
+-- Name: movimientos_stock movimientos_stock_producto_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.movimientos_stock
+    ADD CONSTRAINT movimientos_stock_producto_id_fkey FOREIGN KEY (producto_id) REFERENCES public.productos(id);
 
 
 --
@@ -1802,16 +2480,8 @@ ALTER TABLE ONLY public.proyecto_items
 
 
 --
--- Name: venta_lineas venta_lineas_venta_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.venta_lineas
-    ADD CONSTRAINT venta_lineas_venta_id_fkey FOREIGN KEY (venta_id) REFERENCES public.ventas(id) ON DELETE CASCADE;
-
-
---
 -- PostgreSQL database dump complete
 --
 
-\unrestrict IQeKn74AA6lVq6Ddr3NblZWN7XFpxf8lKqWMu7mdEhX3uAE2T24FMZQNOpp7MHz
+\unrestrict wQQjSqGeRIqI7hBPsapENVKwt9MiFFcXJpxBFMB2CdbsbEStsWtPAmMQHTi9roL
 

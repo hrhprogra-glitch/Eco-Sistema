@@ -18,10 +18,14 @@ const sectionComponents: Record<string, React.ComponentType> = {
   bancos: dynamic(() => import("@/components/bancos")),
   "cuentas-cobrar": dynamic(() => import("@/components/cuentas-cobrar")),
   "cuentas-pagar": dynamic(() => import("@/components/cuentas-pagar")),
-  inventario: dynamic(() => import("@/components/inventario")),
-  proveedores: dynamic(() => import("@/components/proveedores")),
-  movimientos: dynamic(() => import("@/components/movimientos")),
+  salidas: dynamic(() => import("@/components/salidas")),
+  compras: dynamic(() => import("@/components/compras")),
   stock: dynamic(() => import("@/components/stock")),
+  // proveedores/movimientos ya no tienen ningún grupo que los muestre en el sidebar --
+  // proveedores/index.tsx se reutiliza directo como pestaña dentro de Compras
+  // (components/ComprasList.tsx vive junto a él), y movimientos/index.tsx se borró: su
+  // EntradaForm pasó a compras/components y su SalidaForm a salidas/components. Las rutas
+  // API, las tablas de la base y movimientos/types.ts (tipos compartidos) siguen intactos.
   vehiculos: dynamic(() => import("@/components/vehiculos")),
   equipos: dynamic(() => import("@/components/equipos")),
   mantenimientos: dynamic(() => import("@/components/mantenimientos")),
@@ -56,10 +60,7 @@ const sectionComponents: Record<string, React.ComponentType> = {
   "roles-permisos": dynamic(() => import("@/components/roles-permisos")),
   "empresas-sucursales": dynamic(() => import("@/components/empresas-sucursales")),
   integraciones: dynamic(() => import("@/components/integraciones")),
-  "graficos-comercial": dynamic(() => import("@/components/graficos/components/ComercialCharts")),
-  "graficos-finanzas": dynamic(() => import("@/components/graficos/components/FinanzasCharts")),
-  "graficos-inventario": dynamic(() => import("@/components/graficos/components/InventarioCharts")),
-  "graficos-analitica": dynamic(() => import("@/components/graficos/components/AnaliticaCharts")),
+  resumen: dynamic(() => import("@/components/graficos")),
 };
 
 export function GroupPage({ groupSlug }: { groupSlug: string }) {

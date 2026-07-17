@@ -1,4 +1,6 @@
 .tile {
+  position: relative;
+  overflow: hidden;
   display: flex;
   align-items: flex-start;
   gap: 12px;
@@ -6,6 +8,30 @@
   background: var(--bg-surface);
   border: 1px solid var(--border-color);
   border-radius: var(--radius);
+  transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.2s cubic-bezier(0.2, 0.8, 0.2, 1),
+    border-color 0.2s ease;
+}
+
+.tile::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--eco-celeste), var(--eco-azul) 55%, transparent);
+  opacity: 0.5;
+  transition: opacity 0.3s ease;
+}
+
+.tile:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(2, 132, 199, 0.12);
+  border-color: var(--eco-celeste);
+}
+
+.tile:hover::before {
+  opacity: 1;
 }
 
 .iconBadge {

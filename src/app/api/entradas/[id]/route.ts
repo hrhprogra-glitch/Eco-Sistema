@@ -39,7 +39,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
   const { id } = await params;
   const body = await request.json();
-  const { proveedor_id, numero_factura_proveedor, fecha, notas, lineas } = body;
+  const { proveedor_id, numero_factura_proveedor, fecha, notas, lineas, moneda } = body;
 
   const client = await pool.connect();
   try {
@@ -73,6 +73,10 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     if (notas !== undefined) {
       updateFields.push(`notas = $${updateFields.length + 1}`);
       values.push(notas);
+    }
+    if (moneda !== undefined) {
+      updateFields.push(`moneda = $${updateFields.length + 1}`);
+      values.push(moneda === "USD" ? "USD" : "PEN");
     }
 
     let lineasFinales = null;

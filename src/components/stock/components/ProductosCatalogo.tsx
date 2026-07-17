@@ -1,16 +1,17 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { PackagePlus } from "lucide-react";
+import { PackagePlus, ClipboardList } from "lucide-react";
 import { ModuleActions, type ModuleAction } from "@/components/ui/ModuleActions";
 import { DataTable, type Column } from "@/components/ui/DataTable";
 import { FilterLayout, FilterSection } from "@/components/ui/FilterLayout";
 import filterStyles from "@/components/ui/FilterLayout.module.css";
 import fieldStyles from "@/components/ui/formFields.module.css";
-import { ProductoForm } from "./components/ProductoForm";
-import type { Producto } from "./types";
+import { ProductoForm } from "@/components/inventario/components/ProductoForm";
+import { AjusteStockForm } from "./AjusteStockForm";
+import type { Producto } from "@/components/inventario/types";
 
-type View = { mode: "list" } | { mode: "form"; producto?: Producto };
+type View = { mode: "list" } | { mode: "form"; producto?: Producto } | { mode: "ajuste" };
 
 const TIPO_LABEL: Record<Producto["tipo"], string> = {
   bienes: "Bienes",
@@ -18,7 +19,7 @@ const TIPO_LABEL: Record<Producto["tipo"], string> = {
   combo: "Combo",
 };
 
-export default function InventarioModule() {
+export function ProductosCatalogo({ onDataChanged }: { onDataChanged?: () => void }) {
   const [view, setView] = useState<View>({ mode: "list" });
   const [productos, setProductos] = useState<Producto[]>([]);
   const [loading, setLoading] = useState(true);
@@ -63,6 +64,7 @@ export default function InventarioModule() {
 
   const actions: ModuleAction[] = [
     { key: "nuevo", label: "Nuevo producto", icon: PackagePlus, tone: "primary", onClick: () => setView({ mode: "form" }) },
+    { key: "ajustar", label: "Marcar cantidad física", icon: ClipboardList, onClick: () => setView({ mode: "ajuste" }) },
   ];
 
   const productosFiltrados = productos.filter((producto) => {
@@ -134,10 +136,23 @@ export default function InventarioModule() {
           onSaved={() => {
             setView({ mode: "list" });
             loadProductos();
+            onDataChanged?.();
           }}
           onDeleted={() => {
             setView({ mode: "list" });
             loadProductos();
+            onDataChanged?.();
+          }}
+        />
+      )}
+
+      {view.mode === "ajuste" && (
+        <AjusteStockForm
+          onCancel={() => setView({ mode: "list" })}
+          onSaved={() => {
+            setView({ mode: "list" });
+            loadProductos();
+            onDataChanged?.();
           }}
         />
       )}

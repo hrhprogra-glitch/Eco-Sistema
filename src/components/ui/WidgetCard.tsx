@@ -16,7 +16,11 @@ export function WidgetCard({ title, icon: Icon, children, headerAction, classNam
     <div className={`${styles.card} ${className}`} style={style}>
       <div className={styles.header}>
         <div className={styles.titleGroup}>
-          {Icon && <Icon size={16} className={styles.icon} />}
+          {Icon && (
+            <span className={styles.iconBadge}>
+              <Icon size={14} />
+            </span>
+          )}
           <span>{title}</span>
         </div>
         {headerAction && <div>{headerAction}</div>}

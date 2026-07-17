@@ -33,6 +33,8 @@ export type Entrada = {
   proveedor_nombre?: string;
   numero_factura_proveedor: string | null;
   estado: "borrador" | "confirmada" | "cancelada";
+  // Precios de entrada_lineas.costo_unitario y total siempre se cargan sin IGV.
+  moneda: "PEN" | "USD";
   total: number;
   fecha: string;
   notas: string | null;

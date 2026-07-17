@@ -7,7 +7,7 @@ import type { ModuleAction } from "@/components/ui/ModuleActions";
 import fieldStyles from "@/components/ui/formFields.module.css";
 import type { Producto } from "@/components/inventario/types";
 import type { Proveedor } from "@/components/proveedores/types";
-import type { Entrada, Almacen } from "../types";
+import type { Entrada, Almacen } from "@/components/movimientos/types";
 import styles from "./EntradaForm.module.css";
 
 type LineaEditable = {
@@ -40,6 +40,7 @@ export function EntradaForm({
   const [proveedorId, setProveedorId] = useState(entrada?.proveedor_id ?? "");
   const [numeroFactura, setNumeroFactura] = useState(entrada?.numero_factura_proveedor ?? "");
   const [fecha, setFecha] = useState(entrada?.fecha?.slice(0, 10) ?? new Date().toISOString().slice(0, 10));
+  const [moneda, setMoneda] = useState<"PEN" | "USD">(entrada?.moneda ?? "PEN");
   const [notas, setNotas] = useState(entrada?.notas ?? "");
   const [lineas, setLineas] = useState<LineaEditable[]>(
     entrada?.lineas?.map((l) => ({
@@ -81,6 +82,7 @@ export function EntradaForm({
 
   const total = lineas.reduce((sum, l) => sum + l.cantidad * l.costo_unitario, 0);
   const puedeEditar = estado === "borrador";
+  const simboloMoneda = moneda === "USD" ? "US$" : "S/";
 
   function validar(): string | null {
     if (!proveedorId) return "Elegí un proveedor.";
@@ -107,6 +109,7 @@ export function EntradaForm({
         proveedor_id: proveedorId,
         numero_factura_proveedor: numeroFactura || null,
         fecha,
+        moneda,
         notas: notas || null,
         lineas: lineas.map((l) => ({
           producto_id: l.producto_id,
@@ -123,7 +126,7 @@ export function EntradaForm({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      if (!res.ok) throw new Error("No se pudo guardar la entrada.");
+      if (!res.ok) throw new Error("No se pudo guardar la compra.");
       const data = await res.json();
       const id = entradaId ?? data.id;
       setEntradaId(id);
@@ -150,7 +153,7 @@ export function EntradaForm({
       const res = await fetch(`/api/entradas/${id}/confirmar`, { method: "POST" });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "No se pudo confirmar la entrada.");
+        throw new Error(data.error || "No se pudo confirmar la compra.");
       }
       setEstado("confirmada");
       onSaved();
@@ -163,14 +166,14 @@ export function EntradaForm({
 
   async function handleEliminar() {
     if (!entradaId) return onCancel();
-    if (!window.confirm("¿Eliminar esta entrada? Esta acción no se puede deshacer.")) return;
+    if (!window.confirm("¿Eliminar esta compra? Esta acción no se puede deshacer.")) return;
 
     setIsSaving(true);
     try {
       const res = await fetch(`/api/entradas/${entradaId}`, { method: "DELETE" });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "No se pudo eliminar la entrada.");
+        throw new Error(data.error || "No se pudo eliminar la compra.");
       }
       onDeleted();
     } catch (err) {
@@ -182,7 +185,7 @@ export function EntradaForm({
   const actions: ModuleAction[] = [
     { key: "guardar", icon: Save, label: "Guardar borrador", onClick: handleGuardar, disabled: isSaving || !puedeEditar, tone: "primary" },
     ...(puedeEditar
-      ? [{ key: "confirmar", icon: CheckCircle2, label: "Confirmar entrada", onClick: handleConfirmar, disabled: isSaving }]
+      ? [{ key: "confirmar", icon: CheckCircle2, label: "Confirmar compra", onClick: handleConfirmar, disabled: isSaving }]
       : []),
     ...(entradaId
       ? [{ key: "eliminar", icon: Trash2, label: "Eliminar", onClick: handleEliminar, disabled: isSaving, tone: "danger" as const }]
@@ -208,7 +211,7 @@ export function EntradaForm({
 
           <div className={fieldStyles.row}>
             <label className={fieldStyles.field}>
-              <span className={fieldStyles.label}>Proveedor</span>
+              <span className={fieldStyles.label}>Proveedor (razón social)</span>
               <select
                 className={fieldStyles.select}
                 value={proveedorId}
@@ -217,7 +220,9 @@ export function EntradaForm({
               >
                 <option value="">Elegir proveedor…</option>
                 {proveedores.map((p) => (
-                  <option key={p.id} value={p.id}>{p.nombre}</option>
+                  <option key={p.id} value={p.id}>
+                    {p.nombre}{p.ruc ? ` — RUC ${p.ruc}` : ""}
+                  </option>
                 ))}
               </select>
             </label>
@@ -231,7 +236,7 @@ export function EntradaForm({
               />
             </label>
             <label className={fieldStyles.field}>
-              <span className={fieldStyles.label}>Fecha</span>
+              <span className={fieldStyles.label}>Fecha de compra</span>
               <input
                 type="date"
                 className={fieldStyles.input}
@@ -240,16 +245,28 @@ export function EntradaForm({
                 onChange={(e) => setFecha(e.target.value)}
               />
             </label>
+            <label className={fieldStyles.field}>
+              <span className={fieldStyles.label}>Moneda</span>
+              <select
+                className={fieldStyles.select}
+                value={moneda}
+                disabled={!puedeEditar}
+                onChange={(e) => setMoneda(e.target.value as "PEN" | "USD")}
+              >
+                <option value="PEN">Soles (S/)</option>
+                <option value="USD">Dólares (US$)</option>
+              </select>
+            </label>
           </div>
 
           <div>
             <table className={styles.lineasTable}>
               <thead>
                 <tr>
-                  <th style={{ width: "32%" }}>Producto</th>
-                  <th style={{ width: "18%" }}>Almacén</th>
+                  <th style={{ width: "30%" }}>Producto</th>
+                  <th style={{ width: "16%" }}>Almacén</th>
                   <th>Cantidad</th>
-                  <th>Costo unitario</th>
+                  <th>Costo unitario (sin IGV)</th>
                   <th>Vencimiento</th>
                   <th>Subtotal</th>
                   {puedeEditar && <th />}
@@ -309,7 +326,7 @@ export function EntradaForm({
                         onChange={(e) => actualizarLinea(index, { fecha_vencimiento: e.target.value })}
                       />
                     </td>
-                    <td className={styles.subtotalCell}>{(linea.cantidad * linea.costo_unitario).toFixed(2)}</td>
+                    <td className={styles.subtotalCell}>{simboloMoneda} {(linea.cantidad * linea.costo_unitario).toFixed(2)}</td>
                     {puedeEditar && (
                       <td>
                         <button type="button" className={styles.removeBtn} onClick={() => quitarLinea(index)} aria-label="Quitar línea">
@@ -330,8 +347,8 @@ export function EntradaForm({
             )}
 
             <div className={styles.totalRow}>
-              <span>Total</span>
-              <span>{total.toFixed(2)}</span>
+              <span>Total (sin IGV)</span>
+              <span>{simboloMoneda} {total.toFixed(2)}</span>
             </div>
           </div>
 

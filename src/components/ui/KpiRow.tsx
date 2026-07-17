@@ -1,5 +1,4 @@
-import type { KpiDatum } from "../types";
-import { KpiTile } from "./KpiTile";
+import { KpiTile, type KpiDatum } from "./KpiTile";
 import styles from "./KpiRow.module.css";
 
 export function KpiRow({ items }: { items: KpiDatum[] }) {

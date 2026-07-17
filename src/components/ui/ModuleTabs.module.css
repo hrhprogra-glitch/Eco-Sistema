@@ -1,0 +1,109 @@
+.tabs {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 12px;
+  height: 44px;
+  flex-shrink: 0;
+  background: var(--empresa-topbar-bg);
+  overflow-x: auto;
+}
+
+.tabs::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(56, 189, 248, 0.7), transparent);
+  box-shadow: 0 1px 10px rgba(56, 189, 248, 0.45);
+  pointer-events: none;
+}
+
+.tab {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 100%;
+  padding: 0 14px;
+  color: var(--menu-fg);
+  font-size: 12.5px;
+  font-weight: 600;
+  background: none;
+  border: none;
+  cursor: pointer;
+  flex-shrink: 0;
+  opacity: 0.85;
+  transition: color 0.25s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 0.15s ease;
+}
+
+.tab::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg, transparent 20%, rgba(255, 255, 255, 0.22) 50%, transparent 80%);
+  background-size: 250% 100%;
+  background-position: 150% 0;
+  transition: background-position 0.55s ease;
+  pointer-events: none;
+}
+
+.tab:hover::before {
+  background-position: -50% 0;
+}
+
+.tab:hover {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.tab:active {
+  transform: scale(0.97);
+  transition-duration: 0.08s;
+}
+
+.tab[data-active] {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.12);
+  font-weight: 700;
+}
+
+.tab[data-active]::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 10px;
+  right: 10px;
+  height: 2px;
+  background: var(--eco-celeste);
+  animation: tab-glow 2.4s ease-in-out infinite;
+}
+
+@keyframes tab-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 6px 0px rgba(56, 189, 248, 0.65);
+  }
+  50% {
+    box-shadow: 0 0 15px 2px rgba(56, 189, 248, 0.95);
+  }
+}
+
+.tabIcon {
+  flex-shrink: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tab[data-active]::after {
+    animation: none;
+  }
+
+  .tab::before {
+    transition: none;
+  }
+}
