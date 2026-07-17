@@ -58,6 +58,11 @@
   user-select: none;
 }
 
+.letter:active {
+  transform: scale(0.8);
+  transition-duration: 0.08s;
+}
+
 .letter[data-wide] {
   font-size: 9px;
   font-weight: 700;
@@ -109,6 +114,11 @@
 .toggleButton:hover {
   background: var(--ribbon-hover-bg);
   color: var(--eco-azul);
+}
+
+.toggleButton:active {
+  transform: scale(0.85);
+  transition-duration: 0.08s;
 }
 
 .sidebar {

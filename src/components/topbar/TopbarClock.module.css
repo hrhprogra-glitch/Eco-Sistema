@@ -1,0 +1,22 @@
+.clock {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  color: var(--menu-fg);
+  user-select: none;
+}
+
+.time {
+  font-size: 14px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.3px;
+}
+
+.date {
+  font-size: 11px;
+  font-weight: 600;
+  opacity: 0.75;
+  text-transform: capitalize;
+  white-space: nowrap;
+}

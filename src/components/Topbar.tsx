@@ -1,11 +1,13 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { appGroups } from "@/components/lib/apps";
 import { AlertsMenu } from "@/components/topbar/AlertsMenu";
 import { UndoRedoControls } from "@/components/topbar/UndoRedoControls";
 import { SettingsMenu } from "@/components/topbar/SettingsMenu";
+import { TopbarClock } from "@/components/topbar/TopbarClock";
 import { UserMenu } from "@/components/session/UserMenu";
 import styles from "./Topbar.module.css";
 
@@ -22,8 +24,22 @@ export function Topbar() {
   return (
     <header className={styles.topbar}>
       <div className={styles.left}>
+        {group && (
+          <div
+            className={styles.moduleBadge}
+            style={{ "--module-accent": group.color } as CSSProperties}
+          >
+            <span className={styles.moduleBadgeIcon}>
+              <group.icon size={15} />
+            </span>
+            <span className={styles.moduleBadgeName}>{group.name}</span>
+          </div>
+        )}
         {group && sections.length > 1 && (
-          <nav className={styles.sectionsNav}>
+          <nav
+            className={styles.sectionsNav}
+            style={{ "--module-accent": group.color } as CSSProperties}
+          >
             {sections.map((sec) => {
               const SecIcon = sec.icon;
               const isSectionActive = (activeSectionSlug ?? defaultSectionSlug) === sec.slug;
@@ -44,6 +60,7 @@ export function Topbar() {
       </div>
 
       <div className={styles.center}>
+        <TopbarClock />
       </div>
 
       <div className={styles.right}>

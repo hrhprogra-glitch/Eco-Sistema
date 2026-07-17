@@ -35,10 +35,12 @@
   --status-offline: #9ca3af;
   --status-error: #dc2626;
 
-  --empresa-rail-bg: var(--eco-azul);
+  --eco-azul-profundo: #043352;
+  --empresa-rail-bg: linear-gradient(180deg, var(--eco-azul-profundo) 0%, var(--eco-azul) 100%);
+  --empresa-topbar-bg: linear-gradient(90deg, var(--eco-azul-profundo) 0%, var(--eco-azul) 60%);
   --empresa-rail-text: var(--eco-blanco);
   --empresa-rail-active-bg: rgba(255, 255, 255, 0.12);
-  --menu-fg: #000000;
+  --menu-fg: #ffffff;
   --menu-border-fg: var(--eco-azul);
 
   --ribbon-bg: #e0f2fe;

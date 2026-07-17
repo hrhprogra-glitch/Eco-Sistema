@@ -8,27 +8,73 @@
   align-items: center;
   gap: 16px;
   padding: 0 16px 0 0;
-  background: var(--eco-azul);
+  background: var(--empresa-topbar-bg);
   color: var(--eco-blanco);
   transition: background-color 0.2s ease;
+}
+
+.topbar::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(56, 189, 248, 0.7), transparent);
+  box-shadow: 0 1px 10px rgba(56, 189, 248, 0.45);
+  pointer-events: none;
 }
 
 .left {
   min-width: 0;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   height: 100%;
 }
 
+.moduleBadge {
+  --module-bright: color-mix(in oklch, var(--module-accent, var(--eco-celeste)) 45%, var(--eco-celeste) 55%);
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  height: 100%;
+  padding: 0 16px;
+  flex-shrink: 0;
+}
+
+.moduleBadgeIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  color: var(--module-bright);
+  background: color-mix(in srgb, var(--module-bright) 25%, transparent);
+  box-shadow: 0 0 10px -1px color-mix(in srgb, var(--module-bright) 70%, transparent);
+}
+
+.moduleBadgeName {
+  color: var(--menu-fg);
+  font-size: 13.5px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+}
+
 .sectionsNav {
+  --module-bright: color-mix(in oklch, var(--module-accent, var(--eco-celeste)) 45%, var(--eco-celeste) 55%);
   display: flex;
   align-items: flex-end;
   gap: 2px;
   height: 100%;
-  padding-left: 16px;
+  padding-left: 4px;
+  border-left: 1px solid rgba(255, 255, 255, 0.18);
 }
 
 .sectionTab {
+  position: relative;
+  overflow: hidden;
   display: flex;
   align-items: center;
   gap: 5px;
@@ -36,10 +82,24 @@
   color: var(--menu-fg);
   font-size: 11.5px;
   font-weight: 500;
-  border-radius: 6px 6px 0 0;
   flex-shrink: 0;
   text-decoration: none;
-  transition: color 0.25s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.25s cubic-bezier(0.4, 0, 0.2, 1), transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: color 0.25s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.25s cubic-bezier(0.4, 0, 0.2, 1), transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sectionTab::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg, transparent 20%, rgba(255, 255, 255, 0.28) 50%, transparent 80%);
+  background-size: 250% 100%;
+  background-position: 150% 0;
+  transition: background-position 0.55s ease;
+  pointer-events: none;
+}
+
+.sectionTab:hover::before {
+  background-position: -50% 0;
 }
 
 .sectionIcon {
@@ -53,13 +113,49 @@
 .sectionTab:hover {
   color: var(--menu-fg);
   background: rgba(0, 0, 0, 0.1);
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+}
+
+.sectionTab:active {
+  transform: translateY(-1px) scale(0.94);
+  transition-duration: 0.08s;
 }
 
 .sectionTab[data-active] {
-  color: var(--menu-fg);
+  color: var(--text-primary);
   background: var(--ribbon-bg);
   font-weight: 700;
+}
+
+.sectionTab[data-active]::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 6px;
+  right: 6px;
+  height: 2px;
+  background: var(--module-bright, var(--eco-celeste));
+  animation: tab-glow 2.4s ease-in-out infinite;
+}
+
+@keyframes tab-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 6px 0px color-mix(in srgb, var(--module-bright, var(--eco-celeste)) 65%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 15px 2px color-mix(in srgb, var(--module-bright, var(--eco-celeste)) 95%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sectionTab[data-active]::after {
+    animation: none;
+  }
+
+  .sectionTab::before {
+    transition: none;
+  }
 }
 
 .center {
@@ -112,4 +208,10 @@
   color: var(--menu-fg);
   background: rgba(0, 0, 0, 0.1);
   transform: scale(1.05);
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.5);
+}
+
+.logoutButton:active {
+  transform: scale(0.9);
+  transition-duration: 0.08s;
 }

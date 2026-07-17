@@ -1,8 +1,10 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import logo from "@/app/imagenes/logo.png";
 import { appGroups } from "@/components/lib/apps";
 import { useSidebar } from "./SidebarProvider";
@@ -10,8 +12,8 @@ import styles from "./Sidebar.module.css";
 
 const SIDEBAR_SECTIONS: { label: string; slugs: string[] }[] = [
   { label: "Resumen", slugs: ["resumen"] },
-  { label: "Ingresos", slugs: ["comercial", "finanzas"] },
-  { label: "Recursos", slugs: ["inventario", "activos"] },
+  { label: "Comercial", slugs: ["contacto", "cotizaciones", "calendario"] },
+  { label: "Inventario", slugs: ["salidas", "compras", "stock", "activos"] },
   { label: "Operación", slugs: ["recursos-humanos", "operaciones"] },
   { label: "Gestión", slugs: ["analitica", "administracion"] },
   { label: "Piscina", slugs: ["piscina"] },
@@ -21,6 +23,7 @@ export function Sidebar() {
   const pathname = usePathname();
   const { collapsed, toggle, position } = useSidebar();
   const activeGroupSlug = pathname.split("/")[1] || null;
+  const ChevronIcon = position === "right" ? ChevronRight : ChevronLeft;
 
   return (
     <aside
@@ -32,17 +35,20 @@ export function Sidebar() {
         <button
           type="button"
           onClick={toggle}
-          className={styles.logoButton}
+          className={styles.headerToggle}
           aria-label="Mostrar u ocultar el menú"
           title="Mostrar u ocultar el menú"
         >
-          <Image src={logo} alt="Eco-Sistema" className={styles.logo} priority />
+          <span className={styles.logoWrap}>
+            <Image src={logo} alt="Eco-Sistema" className={styles.logo} priority />
+          </span>
+          {!collapsed && (
+            <>
+              <span className={styles.brandName}>Eco-Sistema</span>
+              <ChevronIcon size={16} className={styles.chevron} />
+            </>
+          )}
         </button>
-        {!collapsed && (
-          <div className={styles.brandBlock}>
-            <span className={styles.brandName}>Eco-Sistema</span>
-          </div>
-        )}
       </div>
 
       <nav className={styles.nav}>
@@ -62,8 +68,11 @@ export function Sidebar() {
                     className={styles.item}
                     data-active={isGroupActive ? "" : undefined}
                     title={group.name}
+                    style={{ "--module-accent": group.color } as CSSProperties}
                   >
-                    <Icon size={20} />
+                    <span className={styles.iconWrap}>
+                      <Icon size={20} />
+                    </span>
                     {!collapsed && <span>{group.name}</span>}
                   </Link>
                 </div>
