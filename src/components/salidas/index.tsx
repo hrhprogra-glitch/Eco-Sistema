@@ -60,7 +60,7 @@ export default function SalidasModule() {
     { key: "cantidad", header: "Cantidad", render: (m) => <span style={{ color: "var(--status-error)", fontWeight: 600 }}>-{m.cantidad}</span> },
     { key: "motivo", header: "Motivo" },
     {
-      key: "acciones",
+      key: "acciones" as keyof MovimientoStock,
       header: "",
       render: (m) => (
         <button

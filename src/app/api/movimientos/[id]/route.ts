@@ -2,13 +2,13 @@ import { NextResponse } from "next/server";
 import { pool } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 
-export async function PUT(request: Request, { params }: { params: { id: string } }) {
+export async function PUT(request: Request, context: { params: Promise<{ id: string }> }) {
   const session = await getSession();
   if (!session) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 
-  const { id } = params;
+  const { id } = await context.params;
   if (!id) {
     return NextResponse.json({ error: "ID de movimiento requerido" }, { status: 400 });
   }
