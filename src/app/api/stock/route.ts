@@ -14,12 +14,14 @@ export async function GET(request: Request) {
   const productoId = new URL(request.url).searchParams.get("producto_id");
 
   if (productoId) {
-    // Detalle de lotes de un producto puntual, para expandir su fila en la tabla de Stock.
+    // Detalle de lotes de un producto puntual, para la sesión de Lotes -- incluye los que
+    // ya se agotaron (cantidad_actual = 0), a diferencia del resumen agregado de abajo,
+    // porque acá se pueden editar o borrar aunque ya no tengan stock disponible.
     const result = await query(
       `SELECT l.*, a.nombre as almacen_nombre
        FROM lotes l
        LEFT JOIN almacenes a ON l.almacen_id = a.id
-       WHERE l.producto_id = $1 AND l.cantidad_actual > 0
+       WHERE l.producto_id = $1
        ORDER BY l.fecha_vencimiento ASC NULLS LAST, l.created_at ASC`,
       [productoId]
     );

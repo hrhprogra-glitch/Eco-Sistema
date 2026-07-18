@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { FileInput } from "lucide-react";
+import { FileInput, ShoppingCart, Truck } from "lucide-react";
 import { ModuleActions, type ModuleAction } from "@/components/ui/ModuleActions";
 import { DataTable, type Column } from "@/components/ui/DataTable";
 import { FilterLayout, FilterSection } from "@/components/ui/FilterLayout";
@@ -9,6 +9,7 @@ import filterStyles from "@/components/ui/FilterLayout.module.css";
 import fieldStyles from "@/components/ui/formFields.module.css";
 import { EntradaForm } from "./EntradaForm";
 import type { Entrada } from "../types";
+import type { ComprasVista } from "..";
 
 type View = { mode: "list" } | { mode: "entrada"; entrada?: Entrada };
 
@@ -18,7 +19,13 @@ const ESTADO_LABEL: Record<Entrada["estado"], string> = {
   cancelada: "Cancelada",
 };
 
-export function ComprasList() {
+export function ComprasList({
+  vista,
+  onCambiarVista,
+}: {
+  vista?: ComprasVista;
+  onCambiarVista?: (vista: ComprasVista) => void;
+}) {
   const [view, setView] = useState<View>({ mode: "list" });
   const [compras, setCompras] = useState<Entrada[]>([]);
   const [loading, setLoading] = useState(true);
@@ -81,6 +88,13 @@ export function ComprasList() {
     { key: "nueva-compra", label: "Nueva compra", icon: FileInput, tone: "primary", onClick: () => setView({ mode: "entrada" }) },
   ];
 
+  const vistaActions: ModuleAction[] = onCambiarVista
+    ? [
+        { key: "compras", label: "Compras", icon: ShoppingCart, active: vista === "compras", onClick: () => onCambiarVista("compras") },
+        { key: "proveedores", label: "Proveedores", icon: Truck, active: vista === "proveedores", onClick: () => onCambiarVista("proveedores") },
+      ]
+    : [];
+
   const comprasFiltradas = compras.filter((compra) => {
     if (searchTerm.trim()) {
       const termino = searchTerm.trim().toLowerCase();
@@ -94,6 +108,12 @@ export function ComprasList() {
 
   const sidebarContent = (
     <>
+      {vistaActions.length > 0 && (
+        <FilterSection title="Vista">
+          <ModuleActions actions={vistaActions} variant="sidebar" />
+        </FilterSection>
+      )}
+
       <FilterSection title="Acciones">
         <ModuleActions actions={actions} variant="sidebar" />
       </FilterSection>
@@ -118,6 +138,8 @@ export function ComprasList() {
     return (
       <EntradaForm
         entrada={view.entrada}
+        vista={vista}
+        onCambiarVista={onCambiarVista}
         onCancel={() => setView({ mode: "list" })}
         onSaved={() => {
           setView({ mode: "list" });

@@ -1,0 +1,459 @@
+.pos {
+  display: flex;
+  gap: 24px;
+  align-items: stretch;
+  padding: 24px;
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  margin: 0 auto;
+}
+
+.buscador {
+  flex: 1.5;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.buscador > div {
+  flex: 1;
+}
+
+.cajaArea {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.cajaActualWidget {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 24px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.cajaActualWidget:hover {
+  border-color: var(--accent);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
+}
+
+.cajaActualInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cajaActualLabel {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.cajaActualValue {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.cajaActualAction {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  pointer-events: none;
+  transition: color 0.2s;
+}
+
+.cajaActualWidget:hover .cajaActualAction {
+  color: var(--accent);
+}
+
+.caja {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.cajaCard {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.areaTrabajo {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  border: 2px dashed var(--border-color);
+  border-radius: var(--radius);
+  background: var(--bg-page);
+  padding: 16px;
+}
+
+.resultados {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.resultadoRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 9px 10px;
+  border: none;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+
+.resultadoRow:hover:not(:disabled) {
+  background: var(--ribbon-hover-bg);
+}
+
+.resultadoRow:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.resultadoNombre {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.resultadoSku {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.resultadoStock {
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.cajaVacia {
+  padding: 16px 4px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.carritoTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+
+.carritoTable th {
+  text-align: left;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.carritoTable td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border-color);
+  vertical-align: top;
+}
+
+.carritoTable tbody tr:hover {
+  background: var(--ribbon-hover-bg);
+}
+
+.stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.stepper button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.stepper button:hover {
+  border-color: var(--accent);
+  color: var(--accent-text);
+}
+
+.carritoTable input {
+  width: 46px;
+  text-align: center;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-size: 12.5px;
+  padding: 5px 4px;
+}
+
+.carritoTable input[data-error] {
+  border-color: var(--status-error);
+}
+
+.totalRow {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 8px 0;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.avisoStock {
+  display: block;
+  margin-top: 2px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--status-error);
+}
+
+.removeBtn {
+  border: none;
+  background: transparent;
+  color: var(--status-error);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  padding: 4px;
+}
+
+.btnEspera {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: #eab308; /* Yellow-500 */
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: background-color 0.2s;
+}
+
+.btnEspera:hover {
+  background: #ca8a04; /* Yellow-600 */
+}
+
+.esperaContainer {
+  padding: 12px 16px;
+  background: var(--bg-page);
+  border-bottom: 1px dashed var(--border-color);
+}
+
+.esperaTitle {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.esperaItems {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.esperaItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  padding: 8px 12px;
+  border-radius: var(--radius);
+}
+
+.esperaInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.esperaTime {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.esperaCount {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.esperaActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.esperaBtnRecuperar {
+  background: var(--accent);
+  color: var(--accent-contrast);
+  border: none;
+  border-radius: var(--radius);
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.esperaBtnRecuperar:hover {
+  background: var(--accent-strong);
+}
+
+.esperaBtnDescartar {
+  background: transparent;
+  color: var(--status-error);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  padding: 4px;
+}
+
+.confirmarBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 16px;
+  padding: 12px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--accent);
+  color: var(--accent-contrast);
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.confirmarBtn:hover:not(:disabled) {
+  background: var(--accent-strong);
+  border-color: var(--accent-strong);
+  box-shadow: 0 0 14px rgba(56, 189, 248, 0.35);
+}
+
+.confirmarBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+@media (max-width: 860px) {
+  .pos {
+    flex-direction: column;
+  }
+}
+
+.modalContent {
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.modalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 16px;
+}
+
+.modalTitle {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.modalBadge {
+  background: var(--accent);
+  color: var(--accent-contrast);
+  padding: 6px 12px;
+  border-radius: 16px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.modalTableContainer {
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+}
+
+.modalTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.modalTable th {
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-surface);
+  position: sticky;
+  top: 0;
+}
+
+.modalTable td {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+.modalTable tbody tr:hover {
+  background: var(--ribbon-hover-bg);
+}

@@ -1,17 +1,24 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { UserPlus } from "lucide-react";
+import { ShoppingCart, Truck, UserPlus } from "lucide-react";
 import { ModuleActions, type ModuleAction } from "@/components/ui/ModuleActions";
 import { DataTable, type Column } from "@/components/ui/DataTable";
 import { FilterLayout, FilterSection } from "@/components/ui/FilterLayout";
 import fieldStyles from "@/components/ui/formFields.module.css";
 import { ProveedorForm } from "./components/ProveedorForm";
 import type { Proveedor } from "./types";
+import type { ComprasVista } from "@/components/compras";
 
 type View = { mode: "list" } | { mode: "form"; proveedor?: Proveedor };
 
-export default function ProveedoresModule() {
+export default function ProveedoresModule({
+  vista,
+  onCambiarVista,
+}: {
+  vista?: ComprasVista;
+  onCambiarVista?: (vista: ComprasVista) => void;
+}) {
   const [view, setView] = useState<View>({ mode: "list" });
   const [proveedores, setProveedores] = useState<Proveedor[]>([]);
   const [loading, setLoading] = useState(true);
@@ -49,6 +56,13 @@ export default function ProveedoresModule() {
     { key: "nuevo", label: "Nuevo proveedor", icon: UserPlus, tone: "primary", onClick: () => setView({ mode: "form" }) },
   ];
 
+  const vistaActions: ModuleAction[] = onCambiarVista
+    ? [
+        { key: "compras", label: "Compras", icon: ShoppingCart, active: vista === "compras", onClick: () => onCambiarVista("compras") },
+        { key: "proveedores", label: "Proveedores", icon: Truck, active: vista === "proveedores", onClick: () => onCambiarVista("proveedores") },
+      ]
+    : [];
+
   const proveedoresFiltrados = proveedores.filter((proveedor) => {
     if (searchTerm.trim()) {
       const termino = searchTerm.trim().toLowerCase();
@@ -66,9 +80,16 @@ export default function ProveedoresModule() {
   });
 
   const sidebarContent = (
-    <FilterSection title="Acciones">
-      <ModuleActions actions={actions} variant="sidebar" />
-    </FilterSection>
+    <>
+      {vistaActions.length > 0 && (
+        <FilterSection title="Vista">
+          <ModuleActions actions={vistaActions} variant="sidebar" />
+        </FilterSection>
+      )}
+      <FilterSection title="Acciones">
+        <ModuleActions actions={actions} variant="sidebar" />
+      </FilterSection>
+    </>
   );
 
   return (

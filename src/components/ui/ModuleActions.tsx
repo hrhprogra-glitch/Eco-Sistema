@@ -11,6 +11,8 @@ export type ModuleAction = {
   disabled?: boolean;
   /** "primary" resalta la acción principal de la sesión (ej. "Nuevo…"). */
   tone?: "primary" | "danger";
+  /** Resalta el botón como la opción actualmente seleccionada (ej. switch de vista). */
+  active?: boolean;
 };
 
 /**
@@ -36,6 +38,7 @@ export function ModuleActions({ actions, variant }: { actions: ModuleAction[]; v
           type="button"
           className={styles.button}
           data-tone={action.tone}
+          data-active={action.active ? "" : undefined}
           disabled={action.disabled}
           onClick={action.onClick}
         >

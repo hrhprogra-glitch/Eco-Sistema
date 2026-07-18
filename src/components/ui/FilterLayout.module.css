@@ -78,16 +78,35 @@
   color: white;
 }
 
-/* Misma columna que .alphabetIndex: mismo ancho, fondo y borde, para que se
-   vea como continuación de la tira de letras, no como un elemento aparte. */
+/* Misma columna que .alphabetIndex: mismo ancho y fondo, para que se vea como
+   continuación de la tira de letras. Es un <button> único (no un div con un botón
+   adentro) para que TODA la columna -de punta a punta, arriba y abajo incluidos- sea
+   el área clickeable, sin depender de que un hijo herede bien la altura. */
 .toggleWrap {
   width: 32px;
-  background: var(--bg-surface);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 8px 0;
+  height: 100%;
+  /* Un <button> es un elemento "reemplazado" para efectos de flexbox: sin este trío
+     (align-self explícito + min-height/min-width en 0 + appearance apagado), algunos
+     motores no lo estiran igual que a un <div> normal y le queda un alto "intrínseco"
+     -el del ícono más el padding- en vez de ocupar toda la columna, dejando arriba y
+     abajo como zona muerta al clic. */
+  align-self: stretch;
+  min-height: 0;
+  min-width: 0;
+  appearance: none;
+  -webkit-appearance: none;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  /* Resaltado sólido y permanente (no solo al pasar el mouse): con un tinte tenue no se
+     notaba que ahí vive el filtro. */
+  background: var(--accent);
+  color: var(--accent-contrast);
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.08s;
+  animation: toggle-pulse 2.2s ease-in-out infinite;
 }
 
 .toggleWrap[data-side="right"] {
@@ -98,27 +117,36 @@
   border-left: 1px solid var(--border-color);
 }
 
-.toggleButton {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 3px 0;
-  border: none;
-  background: transparent;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: all 0.2s;
+.toggleWrap:hover {
+  background: var(--accent-strong);
 }
 
-.toggleButton:hover {
-  background: var(--ribbon-hover-bg);
-  color: var(--eco-azul);
-}
-
-.toggleButton:active {
-  transform: scale(0.85);
+.toggleWrap:active {
+  transform: scale(0.9);
   transition-duration: 0.08s;
+}
+
+/* El "presioname" solo hace falta mientras el panel está cerrado -- una vez que el
+   usuario ya lo abrió una vez, sabe que está ahí y seguir pulsando sería ruido. */
+.toggleWrap[data-open] {
+  animation: none;
+}
+
+@keyframes toggle-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.7);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(56, 189, 248, 0);
+    transform: scale(1.08);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toggleWrap {
+    animation: none;
+  }
 }
 
 .sidebar {

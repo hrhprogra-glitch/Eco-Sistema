@@ -139,38 +139,15 @@ input[type="number"] {
   appearance: textfield;
 }
 
-/* Scrollbar Styles */
+/* Scrollbar Styles: invisible en todos lados -- el scroll sigue funcionando
+   (mouse wheel, touchpad, teclado), solo no se dibuja la barra. */
 * {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(17, 24, 39, 0.1) transparent;
-}
-
-:root[data-theme="dark"] * {
-  scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* Edge legacy */
 }
 
 ::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(17, 24, 39, 0.15);
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(17, 24, 39, 0.25);
-}
-
-:root[data-theme="dark"] ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
-}
-
-:root[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.25);
+  display: none; /* Chromium (Electron, el motor de esta app) */
+  width: 0;
+  height: 0;
 }

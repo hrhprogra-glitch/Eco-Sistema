@@ -27,7 +27,7 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json();
-  const { proveedor_id, numero_factura_proveedor, fecha, notas, lineas, moneda } = body;
+  const { proveedor_id, numero_factura_proveedor, fecha, notas, lineas, moneda, factura_pdf_url } = body;
 
   const client = await pool.connect();
   try {
@@ -36,9 +36,9 @@ export async function POST(request: Request) {
     const total = (lineas || []).reduce((acc: number, l: { subtotal: number }) => acc + Number(l.subtotal), 0);
 
     const entradaRes = await client.query(
-      `INSERT INTO entradas (proveedor_id, numero_factura_proveedor, total, fecha, notas, moneda)
-       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-      [proveedor_id, numero_factura_proveedor || null, total, fecha || new Date().toISOString().split("T")[0], notas || null, moneda === "USD" ? "USD" : "PEN"]
+      `INSERT INTO entradas (proveedor_id, numero_factura_proveedor, total, fecha, notas, moneda, factura_pdf_url)
+       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+      [proveedor_id, numero_factura_proveedor || null, total, fecha || new Date().toISOString().split("T")[0], notas || null, moneda === "USD" ? "USD" : "PEN", factura_pdf_url || null]
     );
     const entradaId = entradaRes.rows[0].id;
 

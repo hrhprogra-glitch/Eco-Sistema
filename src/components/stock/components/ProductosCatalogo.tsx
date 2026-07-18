@@ -1,17 +1,18 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { PackagePlus, ClipboardList } from "lucide-react";
+import { PackagePlus, Package, Layers } from "lucide-react";
 import { ModuleActions, type ModuleAction } from "@/components/ui/ModuleActions";
 import { DataTable, type Column } from "@/components/ui/DataTable";
 import { FilterLayout, FilterSection } from "@/components/ui/FilterLayout";
 import filterStyles from "@/components/ui/FilterLayout.module.css";
 import fieldStyles from "@/components/ui/formFields.module.css";
 import { ProductoForm } from "@/components/inventario/components/ProductoForm";
-import { AjusteStockForm } from "./AjusteStockForm";
+import { StockResumen } from "./StockResumen";
 import type { Producto } from "@/components/inventario/types";
+import type { StockVista } from "..";
 
-type View = { mode: "list" } | { mode: "form"; producto?: Producto } | { mode: "ajuste" };
+type View = { mode: "list" } | { mode: "form"; producto?: Producto };
 
 const TIPO_LABEL: Record<Producto["tipo"], string> = {
   bienes: "Bienes",
@@ -19,7 +20,17 @@ const TIPO_LABEL: Record<Producto["tipo"], string> = {
   combo: "Combo",
 };
 
-export function ProductosCatalogo({ onDataChanged }: { onDataChanged?: () => void }) {
+export function ProductosCatalogo({
+  vista,
+  onCambiarVista,
+  refreshKey,
+  onDataChanged,
+}: {
+  vista?: StockVista;
+  onCambiarVista?: (vista: StockVista) => void;
+  refreshKey?: number;
+  onDataChanged?: () => void;
+}) {
   const [view, setView] = useState<View>({ mode: "list" });
   const [productos, setProductos] = useState<Producto[]>([]);
   const [loading, setLoading] = useState(true);
@@ -64,7 +75,6 @@ export function ProductosCatalogo({ onDataChanged }: { onDataChanged?: () => voi
 
   const actions: ModuleAction[] = [
     { key: "nuevo", label: "Nuevo producto", icon: PackagePlus, tone: "primary", onClick: () => setView({ mode: "form" }) },
-    { key: "ajustar", label: "Marcar cantidad física", icon: ClipboardList, onClick: () => setView({ mode: "ajuste" }) },
   ];
 
   const productosFiltrados = productos.filter((producto) => {
@@ -87,8 +97,21 @@ export function ProductosCatalogo({ onDataChanged }: { onDataChanged?: () => voi
     return true;
   });
 
+  const vistaActions: ModuleAction[] = onCambiarVista
+    ? [
+        { key: "productos", label: "Productos", icon: Package, active: vista === "productos", onClick: () => onCambiarVista("productos") },
+        { key: "lotes", label: "Lotes", icon: Layers, active: vista === "lotes", onClick: () => onCambiarVista("lotes") },
+      ]
+    : [];
+
   const sidebarContent = (
     <>
+      {vistaActions.length > 0 && (
+        <FilterSection title="Vista">
+          <ModuleActions actions={vistaActions} variant="sidebar" />
+        </FilterSection>
+      )}
+
       <FilterSection title="Acciones">
         <ModuleActions actions={actions} variant="sidebar" />
       </FilterSection>
@@ -121,12 +144,15 @@ export function ProductosCatalogo({ onDataChanged }: { onDataChanged?: () => voi
         onSearchChange={setSearchTerm}
         searchPlaceholder="Buscar producto…"
       >
-        <DataTable
-          data={productosFiltrados}
-          columns={columns}
-          onRowClick={(producto) => setView({ mode: "form", producto })}
-          emptyMessage={loading ? "Cargando…" : "No hay productos que coincidan con el filtro."}
-        />
+        <div style={{ display: "flex", flexDirection: "column", gap: "16px", height: "100%", minHeight: 0, overflowY: "auto", padding: "16px" }}>
+          <StockResumen key={refreshKey} />
+          <DataTable
+            data={productosFiltrados}
+            columns={columns}
+            onRowClick={(producto) => setView({ mode: "form", producto })}
+            emptyMessage={loading ? "Cargando…" : "No hay productos que coincidan con el filtro."}
+          />
+        </div>
       </FilterLayout>
 
       {view.mode === "form" && (
@@ -139,17 +165,6 @@ export function ProductosCatalogo({ onDataChanged }: { onDataChanged?: () => voi
             onDataChanged?.();
           }}
           onDeleted={() => {
-            setView({ mode: "list" });
-            loadProductos();
-            onDataChanged?.();
-          }}
-        />
-      )}
-
-      {view.mode === "ajuste" && (
-        <AjusteStockForm
-          onCancel={() => setView({ mode: "list" })}
-          onSaved={() => {
             setView({ mode: "list" });
             loadProductos();
             onDataChanged?.();

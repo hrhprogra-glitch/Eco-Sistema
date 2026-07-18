@@ -1,27 +1,23 @@
 "use client";
 
 import { useState } from "react";
-import { ShoppingCart, Truck } from "lucide-react";
 import ProveedoresModule from "@/components/proveedores";
-import { ModuleTabs } from "@/components/ui/ModuleTabs";
 import { ComprasList } from "./components/ComprasList";
 import styles from "./index.module.css";
 
-const TABS = [
-  { key: "compras", label: "Compras", icon: ShoppingCart },
-  { key: "proveedores", label: "Proveedores", icon: Truck },
-] as const;
-
-type TabKey = (typeof TABS)[number]["key"];
+export type ComprasVista = "compras" | "proveedores";
 
 export default function ComprasModule() {
-  const [active, setActive] = useState<TabKey>("compras");
+  const [vista, setVista] = useState<ComprasVista>("compras");
 
   return (
     <div className={styles.wrapper}>
-      <ModuleTabs tabs={TABS} active={active} onChange={setActive} ariaLabel="Vistas de Compras" />
       <div className={styles.content}>
-        {active === "compras" ? <ComprasList /> : <ProveedoresModule />}
+        {vista === "compras" ? (
+          <ComprasList vista={vista} onCambiarVista={setVista} />
+        ) : (
+          <ProveedoresModule vista={vista} onCambiarVista={setVista} />
+        )}
       </div>
     </div>
   );

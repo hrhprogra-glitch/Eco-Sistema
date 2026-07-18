@@ -4,11 +4,30 @@ import { query } from "@/lib/db";
 
 // El "cuaderno": todo movimiento de stock ya confirmado (entradas, salidas, ajustes),
 // más nuevo primero, con los nombres ya resueltos para no tener que pedirlos aparte.
-export async function GET() {
+export async function GET(request: Request) {
   const session = await getSession();
   if (!session) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
+
+  const { searchParams } = new URL(request.url);
+  const tipo = searchParams.get("tipo");
+  const fecha = searchParams.get("fecha");
+
+  const conditions = [];
+  const params = [];
+  
+  if (tipo) {
+    params.push(tipo);
+    conditions.push(`m.tipo = $${params.length}`);
+  }
+  
+  if (fecha) {
+    params.push(fecha);
+    conditions.push(`m.fecha = $${params.length}`);
+  }
+
+  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
 
   const result = await query(
     `SELECT
@@ -20,7 +39,9 @@ export async function GET() {
      LEFT JOIN productos pr ON m.producto_id = pr.id
      LEFT JOIN almacenes al ON m.almacen_id = al.id
      LEFT JOIN lotes lo ON m.lote_id = lo.id
-     ORDER BY m.fecha DESC, m.created_at DESC`
+     ${whereClause}
+     ORDER BY m.fecha DESC, m.created_at DESC`,
+    params
   );
 
   return NextResponse.json(result.rows);

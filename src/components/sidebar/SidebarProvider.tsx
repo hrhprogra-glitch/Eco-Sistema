@@ -4,6 +4,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useSyncExternalStore,
   type ReactNode,
 } from "react";
@@ -59,6 +60,27 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
     window.localStorage.setItem(POSITION_KEY, next);
     window.dispatchEvent(new Event(CHANGE_EVENT));
   }, []);
+
+  // Ctrl+A (Cmd+A en Mac) despliega/colapsa el menú principal sin tocar el mouse -- el
+  // estado ya queda guardado solo (ver COLLAPSED_KEY arriba). Se frena el atajo nativo
+  // solo cuando el foco NO está en un campo de texto: adentro de un input/textarea
+  // Ctrl+A tiene que seguir seleccionando todo el texto como siempre, si no se rompería
+  // el atajo de edición más común de toda la app.
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== "a") return;
+      const activo = document.activeElement;
+      const enCampoDeTexto =
+        activo instanceof HTMLInputElement ||
+        activo instanceof HTMLTextAreaElement ||
+        (activo instanceof HTMLElement && activo.isContentEditable);
+      if (enCampoDeTexto) return;
+      event.preventDefault();
+      toggle();
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [toggle]);
 
   return (
     <SidebarContext.Provider value={{ collapsed, toggle, position, setPosition }}>

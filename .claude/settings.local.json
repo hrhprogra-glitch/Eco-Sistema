@@ -72,7 +72,11 @@
       "Bash(grep -c \"^.next$\")",
       "Bash(powershell.exe -NoProfile -Command \"Get-CimInstance Win32_Process -Filter \\\\\"Name='node.exe'\\\\\" | Select-Object ProcessId, CommandLine | Format-List\")",
       "Read(//tmp/**)",
-      "Bash(curl -sS -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:3000)"
+      "Bash(curl -sS -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:3000)",
+      "Bash(git check-ignore *)",
+      "Bash(vercel --version)",
+      "Bash(timeout 20 npx --yes vercel@latest whoami)",
+      "Bash(git status *)"
     ]
   }
 }

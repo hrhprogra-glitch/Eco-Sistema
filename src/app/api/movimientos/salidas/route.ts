@@ -27,9 +27,21 @@ export async function GET(request: Request) {
   return NextResponse.json(result.rows);
 }
 
-// Registra una salida: descuenta del lote elegido, descuenta productos.stock y deja
-// constancia en el cuaderno -- todo en una transacción, con el lote bloqueado (FOR UPDATE)
-// para no permitir dos salidas simultáneas que dejen la cantidad en negativo.
+type LoteRow = {
+  id: string;
+  producto_id: string;
+  almacen_id: string;
+  cantidad_actual: number;
+  fecha_vencimiento: string | null;
+  created_at: string;
+};
+
+// Registra una salida "carrito": una o más líneas (producto + cantidad), resolviendo el
+// lote de cada una automáticamente por FIFO (más antiguo primero), repartiendo entre
+// varios lotes si hace falta. Todo el carrito se confirma en una sola transacción -- se
+// bloquean de una sola vez todos los lotes involucrados (ORDER BY id, para que dos
+// confirmaciones simultáneas siempre pidan los bloqueos en el mismo orden y no generen
+// un deadlock) antes de tocar ninguno.
 export async function POST(request: Request) {
   const session = await getSession();
   if (!session) {
@@ -37,41 +49,98 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json();
-  const { lote_id, cantidad, motivo, fecha } = body;
+  const { lineas, fecha, motivo } = body as {
+    lineas?: { producto_id: string; cantidad: number }[];
+    fecha?: string;
+    motivo?: string;
+  };
 
-  if (!lote_id || !cantidad || cantidad <= 0 || !motivo) {
-    return NextResponse.json({ error: "Faltan datos: lote, cantidad y motivo son obligatorios." }, { status: 400 });
+  if (!Array.isArray(lineas) || lineas.length === 0) {
+    return NextResponse.json({ error: "El carrito está vacío." }, { status: 400 });
   }
+  for (const linea of lineas) {
+    if (!linea.producto_id || !linea.cantidad || linea.cantidad <= 0) {
+      return NextResponse.json(
+        { error: "Cada línea necesita un producto y una cantidad mayor a 0." },
+        { status: 400 }
+      );
+    }
+  }
+
+  const MOTIVO_POS = motivo ? motivo : "Salida rápida (POS)";
+  const fechaFinal = fecha || new Date().toISOString().split("T")[0];
 
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
 
-    const loteRes = await client.query("SELECT * FROM lotes WHERE id = $1 FOR UPDATE", [lote_id]);
-    if (loteRes.rows.length === 0) {
-      await client.query("ROLLBACK");
-      return NextResponse.json({ error: "Lote no encontrado" }, { status: 404 });
-    }
-    const lote = loteRes.rows[0];
-    if (Number(lote.cantidad_actual) < Number(cantidad)) {
-      await client.query("ROLLBACK");
-      return NextResponse.json(
-        { error: `El lote solo tiene ${lote.cantidad_actual} disponibles.` },
-        { status: 409 }
-      );
-    }
-
-    await client.query("UPDATE lotes SET cantidad_actual = cantidad_actual - $1 WHERE id = $2", [cantidad, lote_id]);
-    await client.query("UPDATE productos SET stock = stock - $1 WHERE id = $2", [cantidad, lote.producto_id]);
-
-    const movRes = await client.query(
-      `INSERT INTO movimientos_stock (producto_id, almacen_id, lote_id, tipo, cantidad, motivo, fecha)
-       VALUES ($1, $2, $3, 'salida', $4, $5, $6) RETURNING *`,
-      [lote.producto_id, lote.almacen_id, lote_id, cantidad, motivo, fecha || new Date().toISOString().split("T")[0]]
+    const productoIds = [...new Set(lineas.map((l) => l.producto_id))];
+    const lotesRes = await client.query<LoteRow>(
+      `SELECT * FROM lotes
+       WHERE producto_id = ANY($1::uuid[]) AND cantidad_actual > 0
+       ORDER BY id ASC
+       FOR UPDATE`,
+      [productoIds]
     );
 
+    const lotesPorProducto = new Map<string, LoteRow[]>();
+    for (const lote of lotesRes.rows) {
+      const arr = lotesPorProducto.get(lote.producto_id) ?? [];
+      arr.push(lote);
+      lotesPorProducto.set(lote.producto_id, arr);
+    }
+    for (const arr of lotesPorProducto.values()) {
+      arr.sort((a, b) => {
+        const av = a.fecha_vencimiento ?? "9999-12-31";
+        const bv = b.fecha_vencimiento ?? "9999-12-31";
+        if (av !== bv) return av < bv ? -1 : 1;
+        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      });
+    }
+
+    const movimientosCreados = [];
+
+    for (const linea of lineas) {
+      let restante = Number(linea.cantidad);
+      const lotesDisponibles = lotesPorProducto.get(linea.producto_id) ?? [];
+      const totalDisponible = lotesDisponibles.reduce((s, l) => s + Number(l.cantidad_actual), 0);
+
+      if (totalDisponible < restante) {
+        await client.query("ROLLBACK");
+        return NextResponse.json(
+          { error: `Stock insuficiente (disponible: ${totalDisponible}, pedido: ${restante}).` },
+          { status: 409 }
+        );
+      }
+
+      for (const lote of lotesDisponibles) {
+        if (restante <= 0) break;
+        const consumir = Math.min(restante, Number(lote.cantidad_actual));
+        if (consumir <= 0) continue;
+
+        await client.query("UPDATE lotes SET cantidad_actual = cantidad_actual - $1 WHERE id = $2", [
+          consumir,
+          lote.id,
+        ]);
+        lote.cantidad_actual = Number(lote.cantidad_actual) - consumir;
+
+        const movRes = await client.query(
+          `INSERT INTO movimientos_stock (producto_id, almacen_id, lote_id, tipo, cantidad, motivo, fecha)
+           VALUES ($1, $2, $3, 'salida', $4, $5, $6) RETURNING *`,
+          [linea.producto_id, lote.almacen_id, lote.id, consumir, MOTIVO_POS, fechaFinal]
+        );
+        movimientosCreados.push(movRes.rows[0]);
+        restante -= consumir;
+      }
+
+      await client.query("UPDATE productos SET stock = stock - $1 WHERE id = $2", [
+        Number(linea.cantidad),
+        linea.producto_id,
+      ]);
+    }
+
     await client.query("COMMIT");
-    return NextResponse.json(movRes.rows[0], { status: 201 });
+    return NextResponse.json({ movimientos: movimientosCreados }, { status: 201 });
   } catch (error) {
     await client.query("ROLLBACK");
     console.error("Error al registrar la salida:", error);

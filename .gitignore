@@ -50,3 +50,6 @@ next-env.d.ts
 
 # graphify (grafo de conocimiento generado, se reconstruye con /graphify)
 /graphify-out/
+
+# facturas/boletas en PDF importadas en Compras (datos del usuario, no del repo)
+/uploads/

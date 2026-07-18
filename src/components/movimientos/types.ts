@@ -38,6 +38,10 @@ export type Entrada = {
   total: number;
   fecha: string;
   notas: string | null;
+  // Ruta del PDF de la factura/boleta importada (ver EntradaForm.tsx), servida vía
+  // GET /api/uploads/factura/[archivo]. null si la compra se cargó a mano, sin importar
+  // ningún PDF.
+  factura_pdf_url: string | null;
   lineas?: EntradaLinea[];
   created_at: string;
   updated_at: string;
@@ -55,11 +59,20 @@ export type EntradaLinea = {
   fecha_vencimiento: string | null;
 };
 
-// Body que espera POST /api/movimientos/salidas para registrar una salida de un lote.
-export type SalidaInput = {
-  lote_id: string;
+// Línea del carrito de la Salida rápida (POS): producto + cantidad, sin lote -- el lote
+// se resuelve por FIFO en el servidor. producto_nombre/stock_disponible son solo para
+// mostrar y validar en la UI, no viajan al servidor tal cual.
+export type SalidaCarritoLinea = {
+  producto_id: string;
+  producto_nombre: string;
   cantidad: number;
-  motivo: string;
+  stock_disponible: number;
+};
+
+// Body que espera POST /api/movimientos/salidas: el carrito completo, confirmado como
+// una única transacción.
+export type SalidaCarritoInput = {
+  lineas: { producto_id: string; cantidad: number }[];
   fecha?: string;
 };
 

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import styles from "./FilterLayout.module.css";
 import { Filter, ChevronRight, ChevronLeft, Search } from "lucide-react";
 import { useSidebar } from "@/components/sidebar/SidebarProvider";
@@ -13,6 +13,10 @@ type FilterLayoutProps = {
   searchValue?: string;
   onSearchChange?: (value: string) => void;
   searchPlaceholder?: string;
+  // El índice A-Z solo tiene sentido al lado de una tabla que se pueda filtrar por
+  // inicial: en sesiones sin tabla (ej. un formulario de detalle) no cumple ninguna
+  // función y solo ocupa espacio, así que cada sesión puede apagarlo.
+  showAlphabetIndex?: boolean;
 };
 
 const ALPHABET = [
@@ -25,6 +29,8 @@ const ALPHABET = [
 // interno sigue siendo "0-9" para no tocar los filtros por letra de cada módulo.
 const ALPHABET_LABELS: Record<string, string> = { "0-9": "0-50" };
 
+const SIDEBAR_VISIBLE_KEY = "eco-sidebar-visible";
+
 export function FilterLayout({
   children,
   sidebarContent,
@@ -32,14 +38,53 @@ export function FilterLayout({
   selectedLetter = "0-9",
   searchValue,
   onSearchChange,
-  searchPlaceholder = "Buscar…"
+  searchPlaceholder = "Buscar…",
+  showAlphabetIndex = true,
 }: FilterLayoutProps) {
-  // El panel arranca siempre cerrado al entrar a la sesión; el usuario lo abre a mano si lo necesita.
-  const [isSidebarVisible, setIsSidebarVisible] = useState(false);
+  // El panel recuerda si estaba abierto o cerrado la última vez -antes arrancaba siempre
+  // cerrado al entrar a cualquier sesión- guardado en localStorage y compartido por todos
+  // los módulos que usan este mismo panel.
+  const [isSidebarVisible, setIsSidebarVisible] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.localStorage.getItem(SIDEBAR_VISIBLE_KEY) === "1";
+  });
+
+  useEffect(() => {
+    window.localStorage.setItem(SIDEBAR_VISIBLE_KEY, isSidebarVisible ? "1" : "0");
+  }, [isSidebarVisible]);
+  const sidebarRef = useRef<HTMLDivElement>(null);
+  const toggleRef = useRef<HTMLButtonElement>(null);
 
   function toggleSidebarVisible() {
     setIsSidebarVisible((prev) => !prev);
   }
+
+  // Clic afuera del panel (y afuera del botón que lo abre, para no reabrirlo en el mismo
+  // gesto) lo cierra — igual que cualquier panel flotante estándar.
+  useEffect(() => {
+    if (!isSidebarVisible) return;
+    function handlePointerDown(event: MouseEvent) {
+      const target = event.target as Node;
+      if (sidebarRef.current?.contains(target)) return;
+      if (toggleRef.current?.contains(target)) return;
+      setIsSidebarVisible(false);
+    }
+    document.addEventListener("mousedown", handlePointerDown);
+    return () => document.removeEventListener("mousedown", handlePointerDown);
+  }, [isSidebarVisible]);
+
+  // Ctrl+S (o Cmd+S en Mac) despliega/oculta el panel de filtro sin tocar el mouse — se
+  // frena el atajo nativo del navegador (que abriría el diálogo "Guardar página").
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
+        event.preventDefault();
+        toggleSidebarVisible();
+      }
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   const { position: navPosition } = useSidebar();
   // El panel de filtros va siempre del lado opuesto al menú principal.
@@ -72,7 +117,7 @@ export function FilterLayout({
     <div className={styles.mainContent}>
       {children}
       {isSidebarVisible && (
-        <div className={styles.sidebarOverlay} data-side={filterSide}>
+        <div ref={sidebarRef} className={styles.sidebarOverlay} data-side={filterSide}>
           {sidebarEl}
         </div>
       )}
@@ -98,16 +143,17 @@ export function FilterLayout({
   const CollapseIcon = filterSide === "right" ? ChevronRight : ChevronLeft;
 
   const toggleEl = (
-    <div className={styles.toggleWrap} data-side={filterSide}>
-      <button
-        type="button"
-        onClick={toggleSidebarVisible}
-        className={styles.toggleButton}
-        title={isSidebarVisible ? "Ocultar filtros y acciones" : "Mostrar filtros y acciones"}
-      >
-        {isSidebarVisible ? <CollapseIcon size={13} /> : <Filter size={13} />}
-      </button>
-    </div>
+    <button
+      ref={toggleRef}
+      type="button"
+      onClick={toggleSidebarVisible}
+      className={styles.toggleWrap}
+      data-side={filterSide}
+      data-open={isSidebarVisible ? "" : undefined}
+      title={isSidebarVisible ? "Ocultar filtros y acciones" : "Mostrar filtros y acciones"}
+    >
+      {isSidebarVisible ? <CollapseIcon size={15} /> : <Filter size={15} />}
+    </button>
   );
 
   return (
@@ -115,13 +161,13 @@ export function FilterLayout({
       {filterSide === "right" ? (
         <>
           {mainContentEl}
-          {alphabetEl}
+          {showAlphabetIndex && alphabetEl}
           {toggleEl}
         </>
       ) : (
         <>
           {toggleEl}
-          {alphabetEl}
+          {showAlphabetIndex && alphabetEl}
           {mainContentEl}
         </>
       )}

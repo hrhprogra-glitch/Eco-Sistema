@@ -75,3 +75,15 @@
   border-color: var(--status-error);
   box-shadow: 0 0 12px rgba(239, 68, 68, 0.35);
 }
+
+.button[data-active] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-contrast);
+}
+
+.button[data-active]:hover:not(:disabled) {
+  background: var(--accent-strong);
+  border-color: var(--accent-strong);
+  color: var(--accent-contrast);
+}
