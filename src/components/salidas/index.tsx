@@ -8,12 +8,14 @@ import { FilterLayout, FilterSection } from "@/components/ui/FilterLayout";
 import { FloatingWindow } from "@/components/ui/FloatingWindow";
 import fieldStyles from "@/components/ui/formFields.module.css";
 import { SalidaPOS } from "./components/SalidaPOS";
+import { useSession } from "@/components/session/SessionProvider";
 import type { MovimientoStock } from "./types";
 
 export type SalidasVista = "rapida" | "historial";
 
 export default function SalidasModule() {
   const [vista, setVista] = useState<SalidasVista>("rapida");
+  const { permisos } = useSession();
   const [salidas, setSalidas] = useState<MovimientoStock[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -83,7 +85,13 @@ export default function SalidasModule() {
   const vistaActions: ModuleAction[] = [
     { key: "rapida", label: "Salida rápida", icon: Zap, active: false, onClick: () => setVista("rapida") },
     { key: "historial", label: "Historial", icon: History, active: true, onClick: () => setVista("historial") },
-  ];
+  ].filter(action => permisos.includes(`salidas.${action.key}`));
+
+  useEffect(() => {
+    if (vistaActions.length > 0 && !vistaActions.find(a => a.key === vista)) {
+      setVista(vistaActions[0].key as SalidasVista);
+    }
+  }, [permisos, vista, vistaActions]);
 
   const salidasFiltradas = salidas.filter((m) => {
     // 1. Buscador texto (producto_nombre o motivo)

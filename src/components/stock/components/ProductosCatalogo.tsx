@@ -9,6 +9,7 @@ import filterStyles from "@/components/ui/FilterLayout.module.css";
 import fieldStyles from "@/components/ui/formFields.module.css";
 import { ProductoForm } from "@/components/inventario/components/ProductoForm";
 import { StockResumen } from "./StockResumen";
+import { useSession } from "@/components/session/SessionProvider";
 import type { Producto } from "@/components/inventario/types";
 import type { StockVista } from "..";
 
@@ -38,6 +39,7 @@ export function ProductosCatalogo({
   const [searchTerm, setSearchTerm] = useState("");
   const [tipoFiltro, setTipoFiltro] = useState("Sin seleccionar");
   const [selectedLetter, setSelectedLetter] = useState("0-9");
+  const { permisos } = useSession();
 
   const loadProductos = useCallback(async () => {
     setLoading(true);
@@ -101,7 +103,7 @@ export function ProductosCatalogo({
     ? [
         { key: "productos", label: "Productos", icon: Package, active: vista === "productos", onClick: () => onCambiarVista("productos") },
         { key: "lotes", label: "Lotes", icon: Layers, active: vista === "lotes", onClick: () => onCambiarVista("lotes") },
-      ]
+      ].filter(action => permisos.includes(`stock.${action.key}`))
     : [];
 
   const sidebarContent = (

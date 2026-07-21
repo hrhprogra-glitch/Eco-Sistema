@@ -1,22 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { UserCog, UserPlus } from "lucide-react";
-import { FilterLayout, FilterSection } from "@/components/ui/FilterLayout";
-import { ModuleActions, type ModuleAction } from "@/components/ui/ModuleActions";
+import { ShieldCheck } from "lucide-react";
+import { FilterLayout } from "@/components/ui/FilterLayout";
 import { DataTable, type Column } from "@/components/ui/DataTable";
 import fieldStyles from "@/components/ui/formFields.module.css";
-import type { Usuario } from "./types";
-import { UsuarioForm } from "./UsuarioForm";
+import type { Usuario } from "@/components/usuarios/types";
+import { PermisosForm } from "./PermisosForm";
 
-export default function UsuariosModule({ adminNavContent }: { adminNavContent?: React.ReactNode }) {
+export default function PermisosUsuariosModule({ adminNavContent }: { adminNavContent?: React.ReactNode }) {
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [view, setView] = useState<
-    { mode: "list" } | { mode: "form"; usuario?: Usuario }
-  >({ mode: "list" });
+  const [view, setView] = useState<{ mode: "list" } | { mode: "form"; usuario: Usuario }>({ mode: "list" });
 
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedLetter, setSelectedLetter] = useState("0-9");
@@ -58,52 +55,36 @@ export default function UsuariosModule({ adminNavContent }: { adminNavContent?: 
 
   const columns: Column<Usuario>[] = [
     { key: "username", header: "Usuario", render: (u) => <span style={{ fontWeight: 600 }}>{u.username}</span> },
+    { key: "nombre_completo", header: "Nombre", render: (u) => u.nombre_completo || "—" },
     {
-      key: "nombre_completo",
-      header: "Nombre completo",
-      render: (u) => u.nombre_completo || <span style={{ color: "var(--text-secondary)" }}>—</span>,
-    },
-    {
-      key: "password_plain",
-      header: "Contraseña",
-      render: (u) => u.password_plain || <span style={{ color: "var(--text-secondary)" }}>—</span>,
-    },
-    {
-      key: "created_at",
-      header: "Fecha de creación",
-      render: (u) => new Date(u.created_at).toLocaleDateString(),
+      key: "permisos",
+      header: "Módulos Asignados",
+      render: (u) => {
+        const count = Array.isArray(u.permisos) ? u.permisos.length : 0;
+        return <span style={{ color: count > 0 ? "var(--accent-color)" : "var(--text-secondary)" }}>{count} accesos</span>;
+      },
     },
   ];
-
-  const actions: ModuleAction[] = [
-    { key: "nuevo-usuario", label: "Nuevo Usuario", icon: UserPlus, tone: "primary", onClick: () => setView({ mode: "form" }) },
-  ];
-
-  const sidebarContent = (
-    <>
-      {adminNavContent}
-      <FilterSection title="Acciones">
-        <ModuleActions actions={actions} variant="sidebar" />
-      </FilterSection>
-    </>
-  );
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", flex: 1, minHeight: 0 }}>
       <FilterLayout
         errorBanner={error ? <p className={fieldStyles.errorBanner}>{error}</p> : null}
-        sidebarContent={sidebarContent}
+        sidebarContent={adminNavContent}
         selectedLetter={selectedLetter}
         onLetterSelect={setSelectedLetter}
         searchValue={searchTerm}
         onSearchChange={setSearchTerm}
-        searchPlaceholder="Buscar por usuario o nombre..."
+        searchPlaceholder="Buscar usuario por nombre..."
       >
         <div style={{ padding: "16px", height: "100%", overflowY: "auto" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "16px" }}>
-            <UserCog size={24} style={{ color: "var(--accent-color)" }} />
-            <h1 style={{ fontSize: "1.2rem", margin: 0 }}>Usuarios del Sistema</h1>
+            <ShieldCheck size={24} style={{ color: "var(--accent-color)" }} />
+            <h1 style={{ fontSize: "1.2rem", margin: 0 }}>Permisos por Usuario</h1>
           </div>
+          <p style={{ color: "var(--text-secondary)", marginBottom: "16px", fontSize: "0.9rem" }}>
+            Selecciona a un usuario de la lista para restringir o habilitar sus accesos a los distintos módulos del sistema.
+          </p>
 
           <DataTable
             data={filtrados}
@@ -115,7 +96,7 @@ export default function UsuariosModule({ adminNavContent }: { adminNavContent?: 
       </FilterLayout>
 
       {view.mode === "form" && (
-        <UsuarioForm
+        <PermisosForm
           usuario={view.usuario}
           onCancel={() => setView({ mode: "list" })}
           onSaved={() => {

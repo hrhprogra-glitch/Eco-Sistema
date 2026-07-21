@@ -55,7 +55,7 @@ export function GroupPage({ groupSlug }: { groupSlug: string }) {
     return <EmptyState icon={group.icon} title={group.name} description={group.description} />;
   }
 
-  const Component = section.implemented ? sectionComponents[section.slug] : undefined;
+  const Component = section.implemented ? (sectionComponents[section.slug] || sectionComponents[group.slug]) : undefined;
 
   if (!Component) {
     return (

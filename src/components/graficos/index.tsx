@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
+import { useSession } from "@/components/session/SessionProvider";
 import { TrendingUp, Calculator, Package, BarChart3 } from "lucide-react";
 import { ModuleTabs } from "@/components/ui/ModuleTabs";
 import styles from "./index.module.css";
@@ -27,18 +28,27 @@ const TAB_COMPONENTS: Record<TabKey, React.ComponentType> = {
 
 export default function GraficosModule() {
   const [active, setActive] = useState<TabKey>("comercial");
+  const { permisos } = useSession();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedLetter, setSelectedLetter] = useState("0-9");
   
   const ActiveChart = TAB_COMPONENTS[active];
 
-  const actions: ModuleAction[] = TABS.map((tab) => ({
-    key: tab.key,
-    label: tab.label,
-    icon: tab.icon,
-    active: active === tab.key,
-    onClick: () => setActive(tab.key),
-  }));
+  const actions: ModuleAction[] = TABS
+    .filter(tab => permisos.includes(`resumen.${tab.key}`))
+    .map((tab) => ({
+      key: tab.key,
+      label: tab.label,
+      icon: tab.icon,
+      active: active === tab.key,
+      onClick: () => setActive(tab.key),
+    }));
+
+  useEffect(() => {
+    if (actions.length > 0 && !actions.find(a => a.key === active)) {
+      setActive(actions[0].key as TabKey);
+    }
+  }, [permisos, active, actions]);
 
   const sidebarContent = (
     <FilterSection title="Categorías">

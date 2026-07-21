@@ -6,6 +6,7 @@ import { ZoomProvider } from "@/components/zoom/ZoomProvider";
 import { SessionProvider } from "@/components/session/SessionProvider";
 import { UndoRedoProvider } from "@/components/undoRedo/UndoRedoProvider";
 import { getSession } from "@/lib/auth";
+import { query } from "@/lib/db";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -32,6 +33,18 @@ export default async function RootLayout({
   const cookieStore = await cookies();
   const theme = cookieStore.get("eco-theme")?.value === "dark" ? "dark" : "light";
 
+  let permisos: string[] = [];
+  if (session?.username) {
+    try {
+      const res = await query<{ permisos: string[] }>("SELECT permisos FROM usuarios WHERE username = $1", [session.username]);
+      if (res.rows.length > 0) {
+        permisos = res.rows[0].permisos || [];
+      }
+    } catch (err) {
+      console.error("Error fetching permissions for user:", session.username, err);
+    }
+  }
+
   return (
     <html
       lang="es"
@@ -40,7 +53,7 @@ export default async function RootLayout({
       suppressHydrationWarning
     >
       <body>
-        <SessionProvider username={session?.username ?? null}>
+        <SessionProvider username={session?.username ?? null} permisos={permisos}>
           <ZoomProvider>
             <ThemeProvider>
               <UndoRedoProvider>{children}</UndoRedoProvider>

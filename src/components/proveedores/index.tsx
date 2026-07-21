@@ -7,6 +7,7 @@ import { DataTable, type Column } from "@/components/ui/DataTable";
 import { FilterLayout, FilterSection } from "@/components/ui/FilterLayout";
 import fieldStyles from "@/components/ui/formFields.module.css";
 import { ProveedorForm } from "./components/ProveedorForm";
+import { useSession } from "@/components/session/SessionProvider";
 import type { Proveedor } from "./types";
 import type { ComprasVista } from "@/components/compras";
 
@@ -25,6 +26,7 @@ export default function ProveedoresModule({
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedLetter, setSelectedLetter] = useState("0-9");
+  const { permisos } = useSession();
 
   const loadProveedores = useCallback(async () => {
     setLoading(true);
@@ -60,7 +62,7 @@ export default function ProveedoresModule({
     ? [
         { key: "compras", label: "Compras", icon: ShoppingCart, active: vista === "compras", onClick: () => onCambiarVista("compras") },
         { key: "proveedores", label: "Proveedores", icon: Truck, active: vista === "proveedores", onClick: () => onCambiarVista("proveedores") },
-      ]
+      ].filter(action => permisos.includes(`compras.${action.key}`))
     : [];
 
   const proveedoresFiltrados = proveedores.filter((proveedor) => {

@@ -35,28 +35,6 @@ export function Topbar() {
             <span className={styles.moduleBadgeName}>{group.name}</span>
           </div>
         )}
-        {group && sections.length > 1 && (
-          <nav
-            className={styles.sectionsNav}
-            style={{ "--module-accent": group.color } as CSSProperties}
-          >
-            {sections.map((sec) => {
-              const SecIcon = sec.icon;
-              const isSectionActive = (activeSectionSlug ?? defaultSectionSlug) === sec.slug;
-              return (
-                <Link
-                  key={sec.slug}
-                  href={`/${group.slug}?s=${sec.slug}`}
-                  className={styles.sectionTab}
-                  data-active={isSectionActive ? "" : undefined}
-                >
-                  <SecIcon size={14} className={styles.sectionIcon} />
-                  <span className={styles.sectionLabel}>{sec.name}</span>
-                </Link>
-              );
-            })}
-          </nav>
-        )}
       </div>
 
       <div className={styles.center}>

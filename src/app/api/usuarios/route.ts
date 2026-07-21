@@ -13,7 +13,7 @@ export async function GET() {
   // password_hash NUNCA se incluye en el SELECT: esta lista es la única puerta
   // de entrada del cliente a la tabla `usuarios` y no debe filtrar el hash.
   const result = await query<Usuario>(
-    "SELECT id, username, nombre_completo, created_at, updated_at FROM usuarios ORDER BY username ASC"
+    "SELECT id, username, nombre_completo, permisos, password_plain, created_at, updated_at FROM usuarios ORDER BY username ASC"
   );
   return NextResponse.json(result.rows);
 }
@@ -42,10 +42,10 @@ export async function POST(request: Request) {
 
   try {
     const result = await query<Usuario>(
-      `INSERT INTO usuarios (username, password_hash, nombre_completo)
-       VALUES ($1, $2, $3)
-       RETURNING id, username, nombre_completo, created_at, updated_at`,
-      [username.trim(), passwordHash, nombre_completo || null]
+      `INSERT INTO usuarios (username, password_hash, password_plain, nombre_completo)
+       VALUES ($1, $2, $3, $4)
+       RETURNING id, username, nombre_completo, permisos, password_plain, created_at, updated_at`,
+      [username.trim(), passwordHash, password, nombre_completo || null]
     );
 
     return NextResponse.json(result.rows[0], { status: 201 });

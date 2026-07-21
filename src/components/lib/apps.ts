@@ -51,6 +51,19 @@ export type ModuleGroup = {
 
 export const appGroups: ModuleGroup[] = [
   {
+    slug: "resumen",
+    name: "Gráficos",
+    description: "Panel visual con gráficos y métricas clave del negocio.",
+    color: "#5E35B1",
+    icon: LineChart,
+    sections: [
+      { slug: "comercial", name: "Comercial", icon: LineChart, implemented: true },
+      { slug: "finanzas", name: "Finanzas", icon: LineChart, implemented: true },
+      { slug: "inventario", name: "Inventario", icon: LineChart, implemented: true },
+      { slug: "analitica", name: "Analítica", icon: LineChart, implemented: true },
+    ],
+  },
+  {
     slug: "contacto",
     name: "Clientes",
     description: "Contactos y clientes de la empresa.",
@@ -80,7 +93,10 @@ export const appGroups: ModuleGroup[] = [
     description: "Salidas de stock por lote.",
     color: "#C62828",
     icon: PackageMinus,
-    sections: [{ slug: "salidas", name: "Salidas", icon: PackageMinus, implemented: true }],
+    sections: [
+      { slug: "rapida", name: "Salida rápida", icon: PackageMinus, implemented: true },
+      { slug: "historial", name: "Historial", icon: PackageMinus, implemented: true },
+    ],
   },
   {
     slug: "compras",
@@ -88,7 +104,10 @@ export const appGroups: ModuleGroup[] = [
     description: "Entradas de stock por factura de proveedor.",
     color: "#B8860B",
     icon: ShoppingCart,
-    sections: [{ slug: "compras", name: "Compras", icon: ShoppingCart, implemented: true }],
+    sections: [
+      { slug: "compras", name: "Compras", icon: ShoppingCart, implemented: true },
+      { slug: "proveedores", name: "Proveedores", icon: ShoppingCart, implemented: true },
+    ],
   },
   {
     slug: "stock",
@@ -96,33 +115,9 @@ export const appGroups: ModuleGroup[] = [
     description: "Existencia actual por producto y almacén.",
     color: "#00695C",
     icon: Boxes,
-    sections: [{ slug: "stock", name: "Stock", icon: Boxes, implemented: true }],
-  },
-  {
-    slug: "recursos-humanos",
-    name: "Recursos Humanos",
-    description: "Empleados, asistencia, nómina, vacaciones, permisos y documentos.",
-    color: "#C2185B",
-    icon: Users,
     sections: [
-      { slug: "asistencia", name: "Asistencia", icon: CalendarCheck, implemented: true },
-      { slug: "nomina", name: "Nómina", icon: Banknote, implemented: true },
-      { slug: "vacaciones-permisos", name: "Vacaciones y Permisos", icon: Palmtree, implemented: true },
-      { slug: "documentos-rrhh", name: "Documentos", icon: FolderArchive, implemented: true },
-    ],
-  },
-  {
-    slug: "operaciones",
-    name: "Operaciones",
-    description: "Proyectos, tareas, órdenes de trabajo, calendario y mantenimientos.",
-    color: "#2E7D32",
-    icon: FolderKanban,
-    sections: [
-      { slug: "proyectos", name: "Proyectos", icon: FolderKanban, implemented: true },
-      { slug: "tareas", name: "Tareas", icon: CheckSquare, implemented: true },
-      { slug: "ordenes-trabajo", name: "Órdenes de Trabajo", icon: ClipboardCheck, implemented: true },
-      { slug: "calendario", name: "Calendario", icon: CalendarDays, implemented: true },
-      { slug: "mantenimientos-operaciones", name: "Mantenimientos", icon: Wrench, implemented: true },
+      { slug: "productos", name: "Productos", icon: Boxes, implemented: true },
+      { slug: "lotes", name: "Lotes", icon: Boxes, implemented: true },
     ],
   },
   {
@@ -131,29 +126,11 @@ export const appGroups: ModuleGroup[] = [
     description: "Vehículos, herramientas y equipos: registro, mantenimiento y alertas de SOAT.",
     color: "#455A64",
     icon: Car,
-    sections: [{ slug: "activos", name: "Activos", icon: Car, implemented: true }],
-  },
-  {
-    slug: "analitica",
-    name: "Analítica",
-    description: "Reportes, indicadores, estadísticas, exportaciones y auditoría.",
-    color: "#00838F",
-    icon: BarChart3,
     sections: [
-      { slug: "reportes", name: "Reportes", icon: FileBarChart, implemented: true },
-      { slug: "kpis", name: "Indicadores (KPIs)", icon: Target, implemented: true },
-      { slug: "estadisticas", name: "Estadísticas", icon: BarChart3, implemented: true },
-      { slug: "exportaciones", name: "Exportaciones", icon: Download, implemented: true },
-      { slug: "auditoria", name: "Auditoría", icon: History, implemented: true },
+      { slug: "nuevo-vehiculo", name: "Nuevo Vehículo", icon: Car, implemented: true },
+      { slug: "nueva-herramienta", name: "Nueva Herramienta / Equipo", icon: Car, implemented: true },
+      { slug: "nuevo-mantenimiento", name: "Registrar Mantenimiento", icon: Car, implemented: true },
     ],
-  },
-  {
-    slug: "resumen",
-    name: "Gráficos",
-    description: "Panel visual con gráficos y métricas clave del negocio.",
-    color: "#5E35B1",
-    icon: LineChart,
-    sections: [{ slug: "resumen", name: "Gráficos", icon: LineChart, implemented: true }],
   },
   {
     slug: "administracion",
@@ -162,7 +139,9 @@ export const appGroups: ModuleGroup[] = [
     color: "#37474F",
     icon: Briefcase,
     sections: [
-      { slug: "administracion", name: "Administración", icon: Briefcase, implemented: true },
+      { slug: "empleados", name: "Empleados", icon: Users, implemented: true },
+      { slug: "usuarios", name: "Usuarios del Sistema", icon: UserCog, implemented: true },
+      { slug: "permisos", name: "Permisos de Usuarios", icon: ShieldCheck, implemented: true },
     ],
   },
   {
@@ -172,7 +151,10 @@ export const appGroups: ModuleGroup[] = [
     color: "#0288D1",
     icon: Waves,
     sections: [
-      { slug: "piscina", name: "Piscinas", icon: Waves, implemented: true },
+      { slug: "piscinas", name: "Piscinas", icon: Waves, implemented: true },
+      { slug: "mantenimientos", name: "Mantenimientos", icon: Wrench, implemented: true },
+      { slug: "equipos", name: "Equipos", icon: HardHat, implemented: true },
+      { slug: "historial", name: "Historial", icon: History, implemented: true },
     ],
   },
 ];

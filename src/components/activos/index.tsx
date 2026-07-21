@@ -9,6 +9,7 @@ import fieldStyles from "@/components/ui/formFields.module.css";
 import type { Activo, EstadoActivo, TipoActivo } from "./types";
 import { ActivoForm } from "./ActivoForm";
 import { MantenimientoForm } from "./MantenimientoForm";
+import { useSession } from "@/components/session/SessionProvider";
 
 const TIPO_VEHICULO_LABEL: Record<string, string> = {
   auto: "Auto",
@@ -86,6 +87,7 @@ export default function ActivosModule() {
   const [filterTipo, setFilterTipo] = useState<FiltroTipo>("todos");
   const [filterEstado, setFilterEstado] = useState<EstadoActivo | "todos">("todos");
   const [soloAlertas, setSoloAlertas] = useState(false);
+  const { permisos } = useSession();
 
   async function loadActivos() {
     setLoading(true);
@@ -171,11 +173,11 @@ export default function ActivosModule() {
     },
   ];
 
-  const actions: ModuleAction[] = [
+  const actions: ModuleAction[] = ([
     { key: "nuevo-vehiculo", label: "Nuevo Vehículo", icon: Car, tone: "primary", onClick: () => setView({ mode: "form", tipoDefecto: "vehiculo" }) },
     { key: "nueva-herramienta", label: "Nueva Herramienta / Equipo", icon: HardHat, onClick: () => setView({ mode: "form", tipoDefecto: "herramienta" }) },
     { key: "nuevo-mantenimiento", label: "Registrar Mantenimiento", icon: Wrench, onClick: () => setView({ mode: "mantenimiento" }) },
-  ];
+  ] as ModuleAction[]).filter(action => permisos.includes(`activos.${action.key}`));
 
   const sidebarContent = (
     <>

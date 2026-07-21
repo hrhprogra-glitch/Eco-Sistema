@@ -8,6 +8,7 @@ import { FilterLayout, FilterSection } from "@/components/ui/FilterLayout";
 import filterStyles from "@/components/ui/FilterLayout.module.css";
 import fieldStyles from "@/components/ui/formFields.module.css";
 import { EntradaForm } from "./EntradaForm";
+import { useSession } from "@/components/session/SessionProvider";
 import type { Entrada } from "../types";
 import type { ComprasVista } from "..";
 
@@ -33,6 +34,7 @@ export function ComprasList({
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedLetter, setSelectedLetter] = useState("0-9");
   const [estadoFiltro, setEstadoFiltro] = useState<string>("Sin seleccionar");
+  const { permisos } = useSession();
 
   const loadCompras = useCallback(async () => {
     setLoading(true);
@@ -93,7 +95,7 @@ export function ComprasList({
     ? [
         { key: "compras", label: "Compras", icon: ShoppingCart, active: vista === "compras", onClick: () => onCambiarVista("compras") },
         { key: "proveedores", label: "Proveedores", icon: Truck, active: vista === "proveedores", onClick: () => onCambiarVista("proveedores") },
-      ]
+      ].filter(action => permisos.includes(`compras.${action.key}`))
     : [];
 
 

@@ -8,6 +8,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import logo from "@/app/imagenes/logo.png";
 import { appGroups } from "@/components/lib/apps";
 import { useSidebar } from "./SidebarProvider";
+import { useSession } from "@/components/session/SessionProvider";
 import styles from "./Sidebar.module.css";
 
 const SIDEBAR_SECTIONS: { label: string; slugs: string[] }[] = [
@@ -20,6 +21,7 @@ const SIDEBAR_SECTIONS: { label: string; slugs: string[] }[] = [
 export function Sidebar() {
   const pathname = usePathname();
   const { collapsed, toggle, position } = useSidebar();
+  const { permisos } = useSession(); // Access permissions
   const activeGroupSlug = pathname.split("/")[1] || null;
   const ChevronIcon = position === "right" ? ChevronRight : ChevronLeft;
   const asideRef = useRef<HTMLElement>(null);
@@ -93,34 +95,40 @@ export function Sidebar() {
       </div>
 
       <nav className={styles.nav}>
-        {SIDEBAR_SECTIONS.map((section) => (
-          <div key={section.label} className={styles.section}>
-            {!collapsed && <div className={styles.navLabel}>{section.label}</div>}
-            {section.slugs.map((slug) => {
-              const group = appGroups.find((g) => g.slug === slug);
-              if (!group) return null;
-              const Icon = group.icon;
-              const isGroupActive = group.slug === activeGroupSlug;
+        {SIDEBAR_SECTIONS.map((section) => {
+          // Filter slugs based on permissions
+          const permittedSlugs = section.slugs.filter(slug => permisos.includes(slug));
+          if (permittedSlugs.length === 0) return null;
 
-              return (
-                <div key={group.slug}>
-                  <Link
-                    href={`/${group.slug}`}
-                    className={styles.item}
-                    data-active={isGroupActive ? "" : undefined}
-                    title={group.name}
-                    style={{ "--module-accent": group.color } as CSSProperties}
-                  >
-                    <span className={styles.iconWrap}>
-                      <Icon size={20} />
-                    </span>
-                    {!collapsed && <span>{group.name}</span>}
-                  </Link>
-                </div>
-              );
-            })}
-          </div>
-        ))}
+          return (
+            <div key={section.label} className={styles.section}>
+              {!collapsed && <div className={styles.navLabel}>{section.label}</div>}
+              {permittedSlugs.map((slug) => {
+                const group = appGroups.find((g) => g.slug === slug);
+                if (!group) return null;
+                const Icon = group.icon;
+                const isGroupActive = group.slug === activeGroupSlug;
+
+                return (
+                  <div key={group.slug}>
+                    <Link
+                      href={`/${group.slug}`}
+                      className={styles.item}
+                      data-active={isGroupActive ? "" : undefined}
+                      title={group.name}
+                      style={{ "--module-accent": group.color } as CSSProperties}
+                    >
+                      <span className={styles.iconWrap}>
+                        <Icon size={20} />
+                      </span>
+                      {!collapsed && <span>{group.name}</span>}
+                    </Link>
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })}
       </nav>
     </aside>
   );

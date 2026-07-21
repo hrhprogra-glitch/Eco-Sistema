@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Waves, Wrench, HardHat, History } from "lucide-react";
+import { useSession } from "@/components/session/SessionProvider";
 import { FilterLayout, FilterSection } from "@/components/ui/FilterLayout";
 import { ModuleActions, type ModuleAction } from "@/components/ui/ModuleActions";
 import { EmptyState } from "@/components/EmptyState";
@@ -9,6 +10,7 @@ type PiscinaView = "piscinas" | "mantenimientos" | "equipos" | "historial";
 
 export default function PiscinaModule() {
   const [activeView, setActiveView] = useState<PiscinaView>("piscinas");
+  const { permisos } = useSession();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedLetter, setSelectedLetter] = useState("0-9");
   const [viewActions, setViewActions] = useState<ModuleAction[]>([]);
@@ -42,7 +44,13 @@ export default function PiscinaModule() {
       active: activeView === "historial", 
       onClick: () => { setActiveView("historial"); setSearchTerm(""); setSelectedLetter("0-9"); } 
     }
-  ];
+  ].filter(action => permisos.includes(`piscina.${action.key}`));
+
+  useEffect(() => {
+    if (vistaActions.length > 0 && !vistaActions.find(a => a.key === activeView)) {
+      setActiveView(vistaActions[0].key as PiscinaView);
+    }
+  }, [permisos, activeView, vistaActions]);
 
   const piscinaNavContent = (
     <FilterSection title="Vista">

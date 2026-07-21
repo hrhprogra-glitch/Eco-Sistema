@@ -6,6 +6,8 @@ export type Usuario = {
   id: string;
   username: string;
   nombre_completo: string | null;
+  permisos: string[] | null;
+  password_plain: string | null;
   created_at: string;
   updated_at: string;
 };

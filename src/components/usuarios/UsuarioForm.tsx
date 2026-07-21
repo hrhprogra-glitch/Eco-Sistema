@@ -17,6 +17,7 @@ export function UsuarioForm({
 }) {
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successData, setSuccessData] = useState<{ username: string; password?: string } | null>(null);
 
   const [username, setUsername] = useState(usuario?.username || "");
   const [nombreCompleto, setNombreCompleto] = useState(usuario?.nombre_completo || "");
@@ -62,7 +63,11 @@ export function UsuarioForm({
         throw new Error(data.error || "Error al guardar el usuario");
       }
 
-      onSaved();
+      if (!usuario) {
+        setSuccessData({ username: username.trim(), password });
+      } else {
+        onSaved();
+      }
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -81,6 +86,25 @@ export function UsuarioForm({
       setError(err.message);
       setGuardando(false);
     }
+  }
+
+  if (successData) {
+    return (
+      <FloatingWindow title="Usuario Creado Exitosamente" onClose={onSaved}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "16px", padding: "16px" }}>
+          <p>El usuario ha sido creado correctamente. Copia estas credenciales para dárselas a la persona:</p>
+          <div style={{ background: "var(--bg-elevated)", padding: "12px", borderRadius: "8px", border: "1px solid var(--border-color)" }}>
+            <p style={{ margin: "0 0 8px 0" }}><strong>Usuario:</strong> {successData.username}</p>
+            <p style={{ margin: 0 }}><strong>Contraseña:</strong> {successData.password}</p>
+          </div>
+          <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "16px" }}>
+            <button type="button" className={fieldStyles.primaryButton} onClick={onSaved}>
+              Aceptar y Cerrar
+            </button>
+          </div>
+        </div>
+      </FloatingWindow>
+    );
   }
 
   return (

@@ -9,6 +9,7 @@ import fieldStyles from "@/components/ui/formFields.module.css";
 import { LotesDetalle } from "./LotesDetalle";
 import { LoteForm } from "./LoteForm";
 import { StockResumen } from "./StockResumen";
+import { useSession } from "@/components/session/SessionProvider";
 import type { Producto } from "@/components/inventario/types";
 import type { Almacen } from "@/components/movimientos/types";
 import type { StockVista } from "..";
@@ -29,6 +30,7 @@ export function StockPorAlmacen({
   const [detalle, setDetalle] = useState<{ producto_id: string; producto_nombre: string } | null>(null);
   const [creandoLote, setCreandoLote] = useState(false);
   const [almacenId, setAlmacenId] = useState("");
+  const { permisos } = useSession();
 
   // Solo hay un almacén (ver sql/023_inventario_catalogos.sql): se completa solo con el
   // único que devuelve /api/almacenes, para "Nuevo lote" desde el panel de acciones.
@@ -82,7 +84,7 @@ export function StockPorAlmacen({
     ? [
         { key: "productos", label: "Productos", icon: Package, active: vista === "productos", onClick: () => onCambiarVista("productos") },
         { key: "lotes", label: "Lotes", icon: Layers, active: vista === "lotes", onClick: () => onCambiarVista("lotes") },
-      ]
+      ].filter(action => permisos.includes(`stock.${action.key}`))
     : [];
 
   const sidebarContent = (
