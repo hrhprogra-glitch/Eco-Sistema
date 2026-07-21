@@ -1,19 +1,14 @@
 import { NextResponse } from "next/server";
 import { randomUUID } from "crypto";
-import { mkdir, writeFile } from "fs/promises";
-import path from "path";
 import { getSession } from "@/lib/auth";
+import { createClient } from "@supabase/supabase-js";
 
-// Carpeta afuera de `public/` y de `.next/`: `public/` se copia una sola vez al empaquetar
-// el build standalone (ver scripts/prepare-standalone.js), asi que un archivo escrito ahi
-// en tiempo de ejecucion no aparece en la build ya empaquetada. Se sirve por su cuenta via
-// GET /api/uploads/factura/[nombre], no como estatico de Next.
-const CARPETA_FACTURAS = path.join(process.cwd(), "uploads", "facturas");
+// Inicializamos el cliente de Supabase
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
-// Guarda la factura/boleta en PDF que se importa en Compras (ver
-// src/components/compras/components/EntradaForm.tsx) para poder volver a verla al reabrir
-// la compra mas adelante -antes solo vivia como blob URL en el navegador y se perdia al
-// recargar la pagina.
 export async function POST(request: Request) {
   const session = await getSession();
   if (!session) {
@@ -26,10 +21,24 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Solo se aceptan archivos PDF." }, { status: 400 });
   }
 
-  await mkdir(CARPETA_FACTURAS, { recursive: true });
   const nombreArchivo = `${randomUUID()}.pdf`;
   const buffer = Buffer.from(await file.arrayBuffer());
-  await writeFile(path.join(CARPETA_FACTURAS, nombreArchivo), buffer);
 
+  // Subir el archivo al bucket "facturas" en Supabase Storage
+  const { data, error } = await supabase.storage
+    .from("facturas")
+    .upload(nombreArchivo, buffer, {
+      contentType: "application/pdf",
+      cacheControl: "3600",
+      upsert: false,
+    });
+
+  if (error) {
+    console.error("Error subiendo a Supabase Storage:", error);
+    return NextResponse.json({ error: "Error al guardar el archivo." }, { status: 500 });
+  }
+
+  // Devolver la misma ruta de siempre (para que la base de datos guarde solo el nombre)
+  // El frontend y la base de datos esperan el formato local, pero ahora el GET redireccionará a Supabase.
   return NextResponse.json({ url: `/api/uploads/factura/${nombreArchivo}` });
 }
