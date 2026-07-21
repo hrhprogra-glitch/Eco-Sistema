@@ -209,17 +209,6 @@ export default function CotizacionesModule() {
           />
         </div>
       </FilterLayout>
-      
-      {view.mode === "form" && (
-        <CotizacionForm
-          cotizacion={view.cotizacion}
-          onCancel={() => setView({ mode: "list" })}
-          onSaved={() => {
-            setView({ mode: "list" });
-            loadCotizaciones();
-          }}
-        />
-      )}
     </div>
   );
 }
