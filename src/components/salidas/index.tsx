@@ -21,6 +21,7 @@ export default function SalidasModule() {
   const [filterFecha, setFilterFecha] = useState("");
   const [filterCliente, setFilterCliente] = useState("");
   const [filterTrabajador, setFilterTrabajador] = useState("");
+  const [selectedLetter, setSelectedLetter] = useState("0-9");
 
   const [editModal, setEditModal] = useState<MovimientoStock | null>(null);
   const [editCantidad, setEditCantidad] = useState("");
@@ -164,9 +165,7 @@ export default function SalidasModule() {
     </>
   );
 
-  if (vista === "rapida") {
-    return <SalidaPOS onSwitchVista={() => setVista("historial")} onSalidaGuardada={() => loadSalidas()} />;
-  }
+
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", flex: 1, minHeight: 0 }}>
