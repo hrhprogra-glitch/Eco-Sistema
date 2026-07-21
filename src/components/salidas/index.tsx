@@ -79,29 +79,37 @@ export default function SalidasModule() {
     },
   ];
 
-  // Esta rama solo se renderiza cuando vista === "historial" (la otra hace un return
-  // temprano más arriba), así que "Salida rápida" nunca está activa acá.
   const vistaActions: ModuleAction[] = [
     { key: "rapida", label: "Salida rápida", icon: Zap, active: false, onClick: () => setVista("rapida") },
     { key: "historial", label: "Historial", icon: History, active: true, onClick: () => setVista("historial") },
   ];
 
   const salidasFiltradas = salidas.filter((m) => {
-    // 1. Buscador general (producto, almacén, motivo base)
-    if (searchTerm.trim()) {
-      const termino = searchTerm.trim().toLowerCase();
-      const matchSearch = [m.producto_nombre, m.motivo, m.almacen_nombre].some((campo) => campo?.toLowerCase().includes(termino));
-      if (!matchSearch) return false;
+    // 1. Buscador texto (producto_nombre o motivo)
+    if (searchTerm) {
+      const pName = m.producto_nombre?.toLowerCase() || "";
+      const mText = m.motivo?.toLowerCase() || "";
+      if (!pName.includes(searchTerm.toLowerCase()) && !mText.includes(searchTerm.toLowerCase())) return false;
     }
 
     // 2. Filtro Fecha
-    if (filterFecha && m.fecha !== filterFecha) return false;
+    if (filterFecha) {
+      const movDate = new Date(m.created_at || m.fecha).toISOString().split("T")[0];
+      if (movDate !== filterFecha) return false;
+    }
 
     // 3. Filtro Cliente (buscamos en el motivo)
     if (filterCliente.trim() && !m.motivo.toLowerCase().includes(`cliente: ${filterCliente.trim().toLowerCase()}`)) return false;
 
     // 4. Filtro Trabajador (buscamos en el motivo)
     if (filterTrabajador.trim() && !m.motivo.toLowerCase().includes(`trab: ${filterTrabajador.trim().toLowerCase()}`)) return false;
+
+    // 5. Filtro Letra Inicial
+    if (selectedLetter !== "0-9") {
+      const pName = m.producto_nombre || m.motivo || "";
+      const inicial = pName.trim().charAt(0).toLowerCase();
+      if (inicial !== selectedLetter) return false;
+    }
 
     return true;
   });
@@ -145,32 +153,43 @@ export default function SalidasModule() {
           </label>
           <label className={fieldStyles.label} style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
             Cliente
-            <input type="text" className={fieldStyles.input} value={filterCliente} onChange={(e) => setFilterCliente(e.target.value)} placeholder="Ej. Juan" />
+            <input type="text" placeholder="Ej. Juan..." className={fieldStyles.input} value={filterCliente} onChange={(e) => setFilterCliente(e.target.value)} />
           </label>
           <label className={fieldStyles.label} style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-            Trabajador
-            <input type="text" className={fieldStyles.input} value={filterTrabajador} onChange={(e) => setFilterTrabajador(e.target.value)} placeholder="Ej. Pedro" />
+            Trabajador / Obra
+            <input type="text" placeholder="Ej. Carlos..." className={fieldStyles.input} value={filterTrabajador} onChange={(e) => setFilterTrabajador(e.target.value)} />
           </label>
         </div>
       </FilterSection>
     </>
   );
 
+  if (vista === "rapida") {
+    return <SalidaPOS onSwitchVista={() => setVista("historial")} onSalidaGuardada={() => loadSalidas()} />;
+  }
+
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", flex: 1, minHeight: 0 }}>
-      {error && <p className={fieldStyles.errorBanner}>{error}</p>}
-
       <FilterLayout
+        errorBanner={error ? <p className={fieldStyles.errorBanner}>{error}</p> : null}
         sidebarContent={sidebarContent}
+        selectedLetter={selectedLetter}
+        onLetterSelect={setSelectedLetter}
         searchValue={searchTerm}
         onSearchChange={setSearchTerm}
         searchPlaceholder="Buscar por producto o motivo…"
       >
-        <DataTable
-          data={salidasFiltradas}
-          columns={columns}
-          emptyMessage={loading ? "Cargando…" : "No hay salidas registradas todavía."}
-        />
+        <div style={{ padding: "16px", height: "100%", overflowY: "auto" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "16px" }}>
+            <History size={24} style={{ color: "var(--accent-color)" }} />
+            <h1 style={{ fontSize: "1.2rem", margin: 0 }}>Historial de Salidas</h1>
+          </div>
+          <DataTable
+            data={salidasFiltradas}
+            columns={columns}
+            emptyMessage={loading ? "Cargando…" : "No hay salidas registradas todavía."}
+          />
+        </div>
       </FilterLayout>
 
       {editModal && (

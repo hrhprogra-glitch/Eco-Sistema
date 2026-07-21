@@ -1,0 +1,2 @@
+ALTER TABLE activos ADD COLUMN IF NOT EXISTS tipo_vehiculo VARCHAR(50);
+ALTER TABLE activos ADD COLUMN IF NOT EXISTS soat_vencimiento DATE;

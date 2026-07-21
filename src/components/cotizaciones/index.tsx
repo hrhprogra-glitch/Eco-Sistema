@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { FileText } from "lucide-react";
 import { ModuleActions } from "@/components/ui/ModuleActions";
 import { buildComercialActions } from "@/components/comercial/comercialActions";
 import { DataTable, type Column } from "@/components/ui/DataTable";
@@ -186,8 +187,8 @@ export default function CotizacionesModule() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", flex: 1, minHeight: 0 }}>
-      {error && <p className={fieldStyles.errorBanner}>{error}</p>}
       <FilterLayout
+        errorBanner={error ? <p className={fieldStyles.errorBanner}>{error}</p> : null}
         sidebarContent={sidebarContent}
         selectedLetter={selectedLetter}
         onLetterSelect={setSelectedLetter}
@@ -195,13 +196,30 @@ export default function CotizacionesModule() {
         onSearchChange={setSearchTerm}
         searchPlaceholder="Buscar cotización…"
       >
-        <DataTable
-          data={cotizacionesFiltradas}
-          columns={columns}
-          onRowClick={openCotizacion}
-          emptyMessage={loading ? "Cargando…" : "No hay cotizaciones que coincidan con el filtro."}
-        />
+        <div style={{ padding: "16px", height: "100%", overflowY: "auto" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "16px" }}>
+            <FileText size={24} style={{ color: "var(--accent-color)" }} />
+            <h1 style={{ fontSize: "1.2rem", margin: 0 }}>Cotizaciones</h1>
+          </div>
+          <DataTable
+            data={cotizacionesFiltradas}
+            columns={columns}
+            onRowClick={openCotizacion}
+            emptyMessage={loading ? "Cargando…" : "No hay cotizaciones que coincidan con el filtro."}
+          />
+        </div>
       </FilterLayout>
+      
+      {view.mode === "form" && (
+        <CotizacionForm
+          cotizacion={view.cotizacion}
+          onCancel={() => setView({ mode: "list" })}
+          onSaved={() => {
+            setView({ mode: "list" });
+            loadCotizaciones();
+          }}
+        />
+      )}
     </div>
   );
 }

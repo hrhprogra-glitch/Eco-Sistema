@@ -17,6 +17,7 @@ type FilterLayoutProps = {
   // inicial: en sesiones sin tabla (ej. un formulario de detalle) no cumple ninguna
   // función y solo ocupa espacio, así que cada sesión puede apagarlo.
   showAlphabetIndex?: boolean;
+  errorBanner?: React.ReactNode;
 };
 
 const ALPHABET = [
@@ -40,6 +41,7 @@ export function FilterLayout({
   onSearchChange,
   searchPlaceholder = "Buscar…",
   showAlphabetIndex = true,
+  errorBanner,
 }: FilterLayoutProps) {
   // El panel recuerda si estaba abierto o cerrado la última vez -antes arrancaba siempre
   // cerrado al entrar a cualquier sesión- guardado en localStorage y compartido por todos
@@ -73,8 +75,6 @@ export function FilterLayout({
     return () => document.removeEventListener("mousedown", handlePointerDown);
   }, [isSidebarVisible]);
 
-  // Ctrl+S (o Cmd+S en Mac) despliega/oculta el panel de filtro sin tocar el mouse — se
-  // frena el atajo nativo del navegador (que abriría el diálogo "Guardar página").
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
@@ -85,6 +85,51 @@ export function FilterLayout({
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, []);
+
+  // Navegación por teclado dentro del panel (cuando está abierto)
+  useEffect(() => {
+    if (!isSidebarVisible) return;
+
+    // Al abrir, enfocar el primer elemento interactivo
+    setTimeout(() => {
+      const focusable = sidebarRef.current?.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      if (focusable && focusable.length > 0) {
+        focusable[0].focus();
+      }
+    }, 10);
+
+    function handlePanelKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        setIsSidebarVisible(false);
+        return;
+      }
+      
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        const nodes = sidebarRef.current?.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        if (!nodes || nodes.length === 0) return;
+        
+        const focusableElements = Array.from(nodes);
+        const currentIndex = focusableElements.indexOf(document.activeElement as HTMLElement);
+        
+        e.preventDefault(); // prevenir scroll
+        
+        if (e.key === "ArrowDown") {
+          const nextIndex = (currentIndex + 1) % focusableElements.length;
+          focusableElements[nextIndex].focus();
+        } else {
+          const nextIndex = currentIndex <= 0 ? focusableElements.length - 1 : currentIndex - 1;
+          focusableElements[nextIndex].focus();
+        }
+      }
+    }
+
+    document.addEventListener("keydown", handlePanelKeyDown);
+    return () => document.removeEventListener("keydown", handlePanelKeyDown);
+  }, [isSidebarVisible]);
 
   const { position: navPosition } = useSidebar();
   // El panel de filtros va siempre del lado opuesto al menú principal.
@@ -115,6 +160,7 @@ export function FilterLayout({
 
   const mainContentEl = (
     <div className={styles.mainContent}>
+      {errorBanner}
       {children}
       {isSidebarVisible && (
         <div ref={sidebarRef} className={styles.sidebarOverlay} data-side={filterSide}>

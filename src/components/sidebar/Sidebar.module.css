@@ -164,7 +164,7 @@
 }
 
 .item {
-  --module-bright: color-mix(in oklch, var(--module-accent, var(--eco-celeste)) 45%, var(--eco-celeste) 55%);
+  --module-bright: color-mix(in oklch, var(--module-accent, var(--eco-celeste)) 88%, var(--eco-celeste) 12%);
   position: relative;
   overflow: hidden;
   display: flex;

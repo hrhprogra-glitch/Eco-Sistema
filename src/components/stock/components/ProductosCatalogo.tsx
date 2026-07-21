@@ -134,9 +134,8 @@ export function ProductosCatalogo({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", flex: 1, minHeight: 0 }}>
-      {error && <p className={fieldStyles.errorBanner}>{error}</p>}
-
       <FilterLayout
+        errorBanner={error ? <p className={fieldStyles.errorBanner}>{error}</p> : null}
         sidebarContent={sidebarContent}
         selectedLetter={selectedLetter}
         onLetterSelect={setSelectedLetter}

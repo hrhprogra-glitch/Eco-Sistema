@@ -5,18 +5,9 @@ import type { EventoCalendario, EventoCalendarioInput } from "@/components/calen
 
 const SELECT_QUERY = `
   SELECT c.id, c.titulo, c.fecha, c.descripcion, c.estado, c.tipo,
-         c.proyecto_id, pr.nombre AS "proyecto_nombre",
          c.piscina_id, pi.nombre AS "piscina_nombre", co.nombre AS "contacto_nombre",
-         c.created_at,
-         COALESCE(
-           (SELECT json_agg(json_build_object('id', e.id, 'nombre', e.nombre) ORDER BY e.nombre)
-            FROM calendario_evento_empleados ce
-            JOIN empleados e ON e.id = ce.empleado_id
-            WHERE ce.evento_id = c.id),
-           '[]'
-         ) AS empleados
+         c.created_at
   FROM calendario_eventos c
-  LEFT JOIN proyectos pr ON pr.id = c.proyecto_id
   LEFT JOIN piscinas pi ON pi.id = c.piscina_id
   LEFT JOIN contactos co ON co.id = pi.contacto_id
 `;
@@ -38,27 +29,19 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json();
-  const { titulo, fecha, descripcion, estado, proyecto_id, piscina_id, tipo, empleado_ids } =
-    body as EventoCalendarioInput;
+  const { titulo, fecha, descripcion, estado, piscina_id, tipo } = body as EventoCalendarioInput;
 
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
 
     const inserted = await client.query<{ id: string }>(
-      `INSERT INTO calendario_eventos (titulo, fecha, descripcion, estado, proyecto_id, piscina_id, tipo)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `INSERT INTO calendario_eventos (titulo, fecha, descripcion, estado, piscina_id, tipo)
+       VALUES ($1, $2, $3, $4, $5, $6)
        RETURNING id`,
-      [titulo, fecha, descripcion, estado ?? "pendiente", proyecto_id, piscina_id, tipo || "nota"]
+      [titulo, fecha, descripcion, estado ?? "pendiente", piscina_id, tipo || "nota"]
     );
     const eventoId = inserted.rows[0].id;
-
-    for (const empleadoId of empleado_ids ?? []) {
-      await client.query(
-        `INSERT INTO calendario_evento_empleados (evento_id, empleado_id) VALUES ($1, $2)`,
-        [eventoId, empleadoId]
-      );
-    }
 
     await client.query("COMMIT");
 

@@ -1,6 +1,6 @@
 "use client";
 
-import type { CSSProperties } from "react";
+import { useEffect, useRef, type CSSProperties } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -14,9 +14,7 @@ const SIDEBAR_SECTIONS: { label: string; slugs: string[] }[] = [
   { label: "Resumen", slugs: ["resumen"] },
   { label: "Comercial", slugs: ["contacto", "cotizaciones", "calendario"] },
   { label: "Inventario", slugs: ["salidas", "compras", "stock", "activos"] },
-  { label: "Operación", slugs: ["recursos-humanos", "operaciones"] },
-  { label: "Gestión", slugs: ["analitica", "administracion"] },
-  { label: "Piscina", slugs: ["piscina"] },
+  { label: "General", slugs: ["administracion", "piscina"] },
 ];
 
 export function Sidebar() {
@@ -24,9 +22,52 @@ export function Sidebar() {
   const { collapsed, toggle, position } = useSidebar();
   const activeGroupSlug = pathname.split("/")[1] || null;
   const ChevronIcon = position === "right" ? ChevronRight : ChevronLeft;
+  const asideRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    if (collapsed) return;
+
+    // Al abrir el menú (Ctrl+A), enfocar el primer elemento interactivo
+    setTimeout(() => {
+      const focusable = asideRef.current?.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      if (focusable && focusable.length > 0) {
+        // En el sidebar, el primer elemento es el toggle, así que lo omitimos
+        // o lo enfocamos. En este caso el toggle es útil para cerrarlo.
+        focusable[0].focus();
+      }
+    }, 10);
+
+    function handlePanelKeyDown(e: KeyboardEvent) {
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        const nodes = asideRef.current?.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        if (!nodes || nodes.length === 0) return;
+        
+        const focusableElements = Array.from(nodes);
+        const currentIndex = focusableElements.indexOf(document.activeElement as HTMLElement);
+        
+        e.preventDefault(); // prevenir scroll
+        
+        if (e.key === "ArrowDown") {
+          const nextIndex = (currentIndex + 1) % focusableElements.length;
+          focusableElements[nextIndex].focus();
+        } else {
+          const nextIndex = currentIndex <= 0 ? focusableElements.length - 1 : currentIndex - 1;
+          focusableElements[nextIndex].focus();
+        }
+      }
+    }
+
+    document.addEventListener("keydown", handlePanelKeyDown);
+    return () => document.removeEventListener("keydown", handlePanelKeyDown);
+  }, [collapsed]);
 
   return (
     <aside
+      ref={asideRef}
       className={styles.rail}
       data-position={position}
       data-collapsed={collapsed ? "" : undefined}

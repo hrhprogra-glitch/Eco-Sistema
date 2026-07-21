@@ -105,7 +105,6 @@ export const appGroups: ModuleGroup[] = [
     color: "#C2185B",
     icon: Users,
     sections: [
-      { slug: "empleados", name: "Empleados", icon: Users, implemented: true },
       { slug: "asistencia", name: "Asistencia", icon: CalendarCheck, implemented: true },
       { slug: "nomina", name: "Nómina", icon: Banknote, implemented: true },
       { slug: "vacaciones-permisos", name: "Vacaciones y Permisos", icon: Palmtree, implemented: true },
@@ -129,16 +128,10 @@ export const appGroups: ModuleGroup[] = [
   {
     slug: "activos",
     name: "Activos",
-    description: "Vehículos, equipos, mantenimientos, documentos e historial de activos.",
+    description: "Vehículos, herramientas y equipos: registro, mantenimiento y alertas de SOAT.",
     color: "#455A64",
     icon: Car,
-    sections: [
-      { slug: "vehiculos", name: "Vehículos", icon: Car, implemented: true },
-      { slug: "equipos", name: "Equipos", icon: HardHat, implemented: true },
-      { slug: "mantenimientos", name: "Mantenimientos", icon: Wrench, implemented: true },
-      { slug: "documentos-activos", name: "Documentos", icon: FolderArchive, implemented: true },
-      { slug: "historial-activos", name: "Historial", icon: History, implemented: true },
-    ],
+    sections: [{ slug: "activos", name: "Activos", icon: Car, implemented: true }],
   },
   {
     slug: "analitica",
@@ -169,11 +162,7 @@ export const appGroups: ModuleGroup[] = [
     color: "#37474F",
     icon: Briefcase,
     sections: [
-      { slug: "usuarios", name: "Usuarios", icon: UserCog, implemented: true },
-      { slug: "roles-permisos", name: "Roles y Permisos", icon: ShieldCheck, implemented: true },
-      { slug: "empresas-sucursales", name: "Empresas y Sucursales", icon: Building2, implemented: true },
-      { slug: "configuraciones", name: "Configuración", icon: Settings, implemented: true },
-      { slug: "integraciones", name: "Integraciones", icon: Plug, implemented: true },
+      { slug: "administracion", name: "Administración", icon: Briefcase, implemented: true },
     ],
   },
   {
@@ -184,10 +173,6 @@ export const appGroups: ModuleGroup[] = [
     icon: Waves,
     sections: [
       { slug: "piscina", name: "Piscinas", icon: Waves, implemented: true },
-      { slug: "mantenimientos-piscina", name: "Mantenimientos", icon: Wrench, implemented: true },
-      { slug: "controles-quimicos", name: "Controles Químicos", icon: FlaskConical, implemented: true },
-      { slug: "equipos-piscina", name: "Equipos", icon: HardHat, implemented: true },
-      { slug: "historial-piscina", name: "Historial", icon: History, implemented: true },
     ],
   },
 ];

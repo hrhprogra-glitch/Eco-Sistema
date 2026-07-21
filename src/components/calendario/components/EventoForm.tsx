@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { FormLayout } from "@/components/ui/FormLayout";
 import fieldStyles from "@/components/ui/formFields.module.css";
-import type { Empleado } from "@/components/empleados/types";
 import type { EstadoEvento, EventoCalendario, EventoCalendarioInput, TipoEvento } from "../types";
 
 const TIPOS: TipoEvento[] = ["nota", "recordatorio", "mantenimiento", "visita", "obra"];
@@ -39,9 +38,7 @@ export function EventoForm({
   onCancel: () => void;
   onDeleted: () => void;
 }) {
-  const [proyectos, setProyectos] = useState<Opcion[]>([]);
   const [piscinas, setPiscinas] = useState<Opcion[]>([]);
-  const [empleados, setEmpleados] = useState<Empleado[]>([]);
   const [titulo, setTitulo] = useState(evento?.titulo ?? "");
   const [fecha, setFecha] = useState(
     evento?.fecha?.slice(0, 10) ?? fechaInicial ?? new Date().toISOString().slice(0, 10)
@@ -49,32 +46,16 @@ export function EventoForm({
   const [descripcion, setDescripcion] = useState(evento?.descripcion ?? "");
   const [estado, setEstado] = useState<EstadoEvento>(evento?.estado ?? "pendiente");
   const [tipo, setTipo] = useState<TipoEvento>(evento?.tipo ?? "nota");
-  const [empleadoIds, setEmpleadoIds] = useState<string[]>(evento?.empleados?.map((e) => e.id) ?? []);
-  const [proyectoId, setProyectoId] = useState(evento?.proyecto_id ?? "");
   const [piscinaId, setPiscinaId] = useState(evento?.piscina_id ?? "");
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/proyectos")
-      .then((res) => (res.ok ? res.json() : []))
-      .then(setProyectos)
-      .catch(() => setProyectos([]));
     fetch("/api/piscinas")
       .then((res) => (res.ok ? res.json() : []))
       .then(setPiscinas)
       .catch(() => setPiscinas([]));
-    fetch("/api/empleados")
-      .then((res) => (res.ok ? res.json() : []))
-      .then(setEmpleados)
-      .catch(() => setEmpleados([]));
   }, []);
-
-  function toggleEmpleado(empleadoId: string) {
-    setEmpleadoIds((prev) =>
-      prev.includes(empleadoId) ? prev.filter((id) => id !== empleadoId) : [...prev, empleadoId]
-    );
-  }
 
   async function handleSave() {
     if (!titulo.trim()) {
@@ -91,8 +72,6 @@ export function EventoForm({
         descripcion: descripcion || null,
         estado,
         tipo,
-        empleado_ids: empleadoIds,
-        proyecto_id: proyectoId || null,
         piscina_id: piscinaId || null,
       };
       const res = await fetch(evento ? `/api/calendario/${evento.id}` : "/api/calendario", {
@@ -177,17 +156,6 @@ export function EventoForm({
 
       <div className={fieldStyles.row}>
         <label className={fieldStyles.field}>
-          <span className={fieldStyles.label}>Proyecto relacionado</span>
-          <select className={fieldStyles.select} value={proyectoId} onChange={(e) => setProyectoId(e.target.value)}>
-            <option value="">Ninguno</option>
-            {proyectos.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.nombre}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className={fieldStyles.field}>
           <span className={fieldStyles.label}>Piscina relacionada</span>
           <select className={fieldStyles.select} value={piscinaId} onChange={(e) => setPiscinaId(e.target.value)}>
             <option value="">Ninguna</option>
@@ -198,29 +166,6 @@ export function EventoForm({
             ))}
           </select>
         </label>
-      </div>
-
-      <div className={fieldStyles.field}>
-        <span className={fieldStyles.label}>Trabajadores asignados</span>
-        {empleados.length > 0 ? (
-          <div style={{ display: "flex", flexDirection: "column", gap: 4, maxHeight: 160, overflowY: "auto" }}>
-            {empleados.map((empleado) => (
-              <label key={empleado.id} className={fieldStyles.checkboxRow}>
-                <input
-                  type="checkbox"
-                  checked={empleadoIds.includes(empleado.id)}
-                  onChange={() => toggleEmpleado(empleado.id)}
-                />
-                {empleado.nombre}
-                {empleado.puesto ? ` — ${empleado.puesto}` : ""}
-              </label>
-            ))}
-          </div>
-        ) : (
-          <p style={{ fontSize: 12.5, color: "var(--text-secondary)", margin: 0 }}>
-            No hay empleados cargados todavía.
-          </p>
-        )}
       </div>
 
       <label className={fieldStyles.field}>

@@ -31,7 +31,8 @@ export function ComprasList({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [estadoFiltro, setEstadoFiltro] = useState("Sin seleccionar");
+  const [selectedLetter, setSelectedLetter] = useState("0-9");
+  const [estadoFiltro, setEstadoFiltro] = useState<string>("Sin seleccionar");
 
   const loadCompras = useCallback(async () => {
     setLoading(true);
@@ -95,6 +96,8 @@ export function ComprasList({
       ]
     : [];
 
+
+
   const comprasFiltradas = compras.filter((compra) => {
     if (searchTerm.trim()) {
       const termino = searchTerm.trim().toLowerCase();
@@ -103,6 +106,12 @@ export function ComprasList({
       if (!coincide) return false;
     }
     if (estadoFiltro !== "Sin seleccionar" && ESTADO_LABEL[compra.estado] !== estadoFiltro) return false;
+    
+    if (selectedLetter !== "0-9") {
+      const inicial = (compra.proveedor_nombre || "").trim().charAt(0).toLowerCase();
+      if (inicial !== selectedLetter) return false;
+    }
+    
     return true;
   });
 
@@ -155,20 +164,27 @@ export function ComprasList({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", flex: 1, minHeight: 0 }}>
-      {error && <p className={fieldStyles.errorBanner}>{error}</p>}
-
       <FilterLayout
+        errorBanner={error ? <p className={fieldStyles.errorBanner}>{error}</p> : null}
         sidebarContent={sidebarContent}
+        selectedLetter={selectedLetter}
+        onLetterSelect={setSelectedLetter}
         searchValue={searchTerm}
         onSearchChange={setSearchTerm}
         searchPlaceholder="Buscar por proveedor o N° de factura…"
       >
-        <DataTable
-          data={comprasFiltradas}
-          columns={columns}
-          onRowClick={abrirCompra}
-          emptyMessage={loading ? "Cargando…" : "No hay compras que coincidan con el filtro."}
-        />
+        <div style={{ padding: "16px", height: "100%", overflowY: "auto" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "16px" }}>
+            <ShoppingCart size={24} style={{ color: "var(--accent-color)" }} />
+            <h1 style={{ fontSize: "1.2rem", margin: 0 }}>Compras y Entradas</h1>
+          </div>
+          <DataTable
+            data={comprasFiltradas}
+            columns={columns}
+            onRowClick={abrirCompra}
+            emptyMessage={loading ? "Cargando…" : "No hay compras que coincidan con el filtro."}
+          />
+        </div>
       </FilterLayout>
     </div>
   );

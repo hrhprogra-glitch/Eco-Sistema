@@ -33,7 +33,7 @@
 }
 
 .moduleBadge {
-  --module-bright: color-mix(in oklch, var(--module-accent, var(--eco-celeste)) 45%, var(--eco-celeste) 55%);
+  --module-bright: color-mix(in oklch, var(--module-accent, var(--eco-celeste)) 88%, var(--eco-celeste) 12%);
   display: flex;
   align-items: center;
   gap: 9px;
@@ -63,7 +63,7 @@
 }
 
 .sectionsNav {
-  --module-bright: color-mix(in oklch, var(--module-accent, var(--eco-celeste)) 45%, var(--eco-celeste) 55%);
+  --module-bright: color-mix(in oklch, var(--module-accent, var(--eco-celeste)) 88%, var(--eco-celeste) 12%);
   display: flex;
   align-items: flex-end;
   gap: 2px;

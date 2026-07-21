@@ -94,9 +94,8 @@ export default function ProveedoresModule({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", flex: 1, minHeight: 0 }}>
-      {error && <p className={fieldStyles.errorBanner}>{error}</p>}
-
       <FilterLayout
+        errorBanner={error ? <p className={fieldStyles.errorBanner}>{error}</p> : null}
         sidebarContent={sidebarContent}
         selectedLetter={selectedLetter}
         onLetterSelect={setSelectedLetter}
@@ -104,12 +103,18 @@ export default function ProveedoresModule({
         onSearchChange={setSearchTerm}
         searchPlaceholder="Buscar proveedor…"
       >
-        <DataTable
-          data={proveedoresFiltrados}
-          columns={columns}
-          onRowClick={(proveedor) => setView({ mode: "form", proveedor })}
-          emptyMessage={loading ? "Cargando…" : "No hay proveedores que coincidan con el filtro."}
-        />
+        <div style={{ padding: "16px", height: "100%", overflowY: "auto" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "16px" }}>
+            <Truck size={24} style={{ color: "var(--accent-color)" }} />
+            <h1 style={{ fontSize: "1.2rem", margin: 0 }}>Proveedores</h1>
+          </div>
+          <DataTable
+            data={proveedoresFiltrados}
+            columns={columns}
+            onRowClick={(proveedor) => setView({ mode: "form", proveedor })}
+            emptyMessage={loading ? "Cargando…" : "No hay proveedores que coincidan con el filtro."}
+          />
+        </div>
       </FilterLayout>
 
       {view.mode === "form" && (

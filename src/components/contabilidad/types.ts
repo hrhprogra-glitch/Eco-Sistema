@@ -1,4 +1,11 @@
-export type ContabilidadVista = "resumen" | "diario" | "mayor" | "balance" | "plan_cuentas";
+export type ContabilidadVista =
+  | "resumen"
+  | "diario"
+  | "mayor"
+  | "balance"
+  | "plan_cuentas"
+  | "estado_resultados"
+  | "balance_general";
 
 export type TipoCuenta = "activo" | "pasivo" | "patrimonio" | "ingreso" | "gasto";
 
@@ -32,6 +39,43 @@ export type AsientoContable = {
   estado: EstadoAsiento;
   created_at: string;
   lineas: AsientoLinea[];
+};
+
+// --- Estado de Resultados (Income Statement) ---
+
+export type LineaEstadoContable = {
+  cuenta_id: string;
+  codigo: string;
+  nombre: string;
+  monto: number;
+};
+
+export type EstadoResultados = {
+  desde: string;
+  hasta: string;
+  ingresos: LineaEstadoContable[];
+  gastos: LineaEstadoContable[];
+  totalIngresos: number;
+  totalGastos: number;
+  utilidadNeta: number;
+};
+
+// --- Estado de Situación Financiera / Balance General (Balance Sheet) ---
+
+export type BalanceGeneral = {
+  fecha: string;
+  activos: LineaEstadoContable[];
+  pasivos: LineaEstadoContable[];
+  patrimonios: LineaEstadoContable[];
+  totalActivo: number;
+  totalPasivo: number;
+  totalPatrimonio: number;
+  // Utilidad calculada en vivo (ingresos - gastos confirmados desde el inicio hasta
+  // "fecha") porque todavía no existe un mecanismo de cierre de periodo que la
+  // traslade a Resultados Acumulados; se muestra como línea aparte bajo patrimonio.
+  utilidadEjercicio: number;
+  totalPasivoPatrimonio: number;
+  cuadra: boolean;
 };
 
 export type ContabilidadTables = {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { Users } from "lucide-react";
 import { ModuleActions } from "@/components/ui/ModuleActions";
 import { buildComercialActions } from "@/components/comercial/comercialActions";
 import { FilterLayout, FilterSection } from "@/components/ui/FilterLayout";
@@ -148,9 +149,8 @@ export default function ContactoModule() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', flex: 1, minHeight: 0 }}>
-      {error && <p className={fieldStyles.errorBanner}>{error}</p>}
-      
       <FilterLayout
+        errorBanner={error ? <p className={fieldStyles.errorBanner}>{error}</p> : null}
         sidebarContent={sidebarContent}
         selectedLetter={selectedLetter}
         onLetterSelect={setSelectedLetter}
@@ -158,12 +158,18 @@ export default function ContactoModule() {
         onSearchChange={setSearchTerm}
         searchPlaceholder="Buscar cliente…"
       >
-        <DataTable
-          data={contactosFiltrados}
-          columns={columns}
-          onRowClick={(contacto) => setView({ mode: "form", contacto })}
-          emptyMessage={loading ? "Cargando…" : "No hay clientes que coincidan con el filtro."}
-        />
+        <div style={{ padding: "16px", height: "100%", overflowY: "auto" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "16px" }}>
+            <Users size={24} style={{ color: "var(--accent-color)" }} />
+            <h1 style={{ fontSize: "1.2rem", margin: 0 }}>Clientes y Contactos</h1>
+          </div>
+          <DataTable
+            data={contactosFiltrados}
+            columns={columns}
+            onRowClick={(contacto) => setView({ mode: "form", contacto })}
+            emptyMessage={loading ? "Cargando…" : "No hay clientes que coincidan con el filtro."}
+          />
+        </div>
       </FilterLayout>
 
       {view.mode === "form" && (

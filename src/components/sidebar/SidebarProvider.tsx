@@ -70,11 +70,21 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
     function handleKeyDown(event: KeyboardEvent) {
       if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== "a") return;
       const activo = document.activeElement;
-      const enCampoDeTexto =
-        activo instanceof HTMLInputElement ||
-        activo instanceof HTMLTextAreaElement ||
-        (activo instanceof HTMLElement && activo.isContentEditable);
-      if (enCampoDeTexto) return;
+      const isInput = activo instanceof HTMLInputElement;
+      const isTextArea = activo instanceof HTMLTextAreaElement;
+      const isContentEditable = activo instanceof HTMLElement && activo.isContentEditable;
+      
+      const enCampoDeTexto = isInput || isTextArea || isContentEditable;
+      
+      // Si está en un campo de texto pero está vacío, permitimos el atajo
+      // porque "seleccionar todo" no tiene sentido en un campo sin texto.
+      // Esto arregla el problema en módulos como Salidas donde el buscador tiene autoFocus.
+      let tieneTexto = false;
+      if (isInput) tieneTexto = (activo as HTMLInputElement).value.length > 0;
+      if (isTextArea) tieneTexto = (activo as HTMLTextAreaElement).value.length > 0;
+      if (isContentEditable) tieneTexto = (activo as HTMLElement).textContent?.length ? (activo as HTMLElement).textContent!.length > 0 : false;
+
+      if (enCampoDeTexto && tieneTexto) return;
       event.preventDefault();
       toggle();
     }
