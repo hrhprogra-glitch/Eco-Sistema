@@ -10,11 +10,11 @@ import { appGroups } from "@/components/lib/apps";
 
 const MODULOS = appGroups.flatMap(g => {
   const items = [{ id: g.slug, label: `Módulo: ${g.name}` }];
-  g.sections.forEach(s => {
-    if (s.slug !== g.slug) {
+  if (g.sections.length > 1) {
+    g.sections.forEach(s => {
       items.push({ id: `${g.slug}.${s.slug}`, label: `Sesión: ${s.name}` });
-    }
-  });
+    });
+  }
   return items;
 });
 
