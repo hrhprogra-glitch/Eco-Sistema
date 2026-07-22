@@ -181,8 +181,12 @@ function detectarNotas(texto: string): string | null {
   return candidato.length >= 3 ? candidato : null;
 }
 
+// "Op. gravada" (el neto sujeto a IGV) se imprime con distintas etiquetas según el
+// software de facturación -- "OP. GRAVADA", "VENTA GRAVADA", "OPERACIÓN GRAVADA" son
+// todas el mismo concepto. Sin cubrir estas variantes, la detección de si los precios
+// de línea ya incluyen IGV directamente no se dispara y quedan sin ajustar.
 function detectarOpGravada(texto: string): number | null {
-  const m = texto.match(/OP\.\s*GRAVADA\s*S\/\s*([\d.,]+)/i);
+  const m = texto.match(/(?:OP(?:ERACI[OÓ]N)?\.?\s*GRA[VB]ADAS?|VENTA\s*GRA[VB]ADA)\s*:?\s*S\/\s*([\d.,]+)/i);
   if (!m) return null;
   return parseNumberPe(m[1]);
 }
@@ -193,8 +197,16 @@ function detectarIgvMonto(texto: string): number | null {
   return parseNumberPe(m[1]);
 }
 
+// Misma idea que detectarOpGravada: el total final (con IGV) también se imprime con
+// etiquetas distintas -- "TOTAL", "IMPORTE TOTAL", "TOTAL A PAGAR", "TOTAL PRECIO
+// VENTA", "PRECIO TOTAL". Las frases más específicas van primero en la alternancia
+// para que un "TOTAL IGV" o "SUB TOTAL" cercano no se cuelen como si fueran el total
+// general -- si ninguna frase específica calza justo antes de "S/", la palabra suelta
+// "TOTAL" solo matchea cuando está pegada a "S/" sin texto intermedio.
 function detectarTotalConIgv(texto: string): number | null {
-  const m = texto.match(/(?:TOTAL|IMPORTE\s+TOTAL)\s*S\/\s*([\d.,]+)/i);
+  const m = texto.match(
+    /(?:TOTAL\s+PRECIO\s+VENTA|PRECIO\s+TOTAL|IMPORTE\s+TOTAL|TOTAL\s+A\s+PAGAR|TOTAL)\s*:?\s*S\/\s*([\d.,]+)/i
+  );
   if (!m) return null;
   return parseNumberPe(m[1]);
 }
