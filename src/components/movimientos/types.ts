@@ -19,6 +19,8 @@ export type MovimientoStock = {
   tipo: "entrada" | "salida" | "ajuste";
   cantidad: number;
   motivo: string;
+  cliente: string | null;
+  trabajador: string | null;
   entrada_id: string | null;
   fecha: string;
   created_at: string;
@@ -32,7 +34,7 @@ export type Entrada = {
   proveedor_id: string;
   proveedor_nombre?: string;
   numero_factura_proveedor: string | null;
-  estado: "borrador" | "confirmada" | "cancelada";
+  estado: "borrador" | "confirmada" | "cancelada" | "devuelta";
   // Precios de entrada_lineas.costo_unitario y total siempre se cargan sin IGV.
   moneda: "PEN" | "USD";
   total: number;

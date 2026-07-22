@@ -97,7 +97,6 @@ export default function PermisosUsuariosModule({ adminNavContent }: { adminNavCo
 
       {view.mode === "form" && (
         <PermisosForm
-          usuario={view.usuario}
           onCancel={() => setView({ mode: "list" })}
           onSaved={() => {
             setView({ mode: "list" });

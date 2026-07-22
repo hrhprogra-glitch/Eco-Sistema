@@ -49,10 +49,12 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json();
-  const { lineas, fecha, motivo } = body as {
+  const { lineas, fecha, motivo, cliente, trabajador } = body as {
     lineas?: { producto_id: string; cantidad: number }[];
     fecha?: string;
     motivo?: string;
+    cliente?: string;
+    trabajador?: string;
   };
 
   if (!Array.isArray(lineas) || lineas.length === 0) {
@@ -68,6 +70,8 @@ export async function POST(request: Request) {
   }
 
   const MOTIVO_POS = motivo ? motivo : "Salida rápida (POS)";
+  const clienteFinal = cliente?.trim() || null;
+  const trabajadorFinal = trabajador?.trim() || null;
   const fechaFinal = fecha || new Date().toISOString().split("T")[0];
 
   const client = await pool.connect();
@@ -125,9 +129,9 @@ export async function POST(request: Request) {
         lote.cantidad_actual = Number(lote.cantidad_actual) - consumir;
 
         const movRes = await client.query(
-          `INSERT INTO movimientos_stock (producto_id, almacen_id, lote_id, tipo, cantidad, motivo, fecha)
-           VALUES ($1, $2, $3, 'salida', $4, $5, $6) RETURNING *`,
-          [linea.producto_id, lote.almacen_id, lote.id, consumir, MOTIVO_POS, fechaFinal]
+          `INSERT INTO movimientos_stock (producto_id, almacen_id, lote_id, tipo, cantidad, motivo, cliente, trabajador, fecha)
+           VALUES ($1, $2, $3, 'salida', $4, $5, $6, $7, $8) RETURNING *`,
+          [linea.producto_id, lote.almacen_id, lote.id, consumir, MOTIVO_POS, clienteFinal, trabajadorFinal, fechaFinal]
         );
         movimientosCreados.push(movRes.rows[0]);
         restante -= consumir;

@@ -162,6 +162,18 @@
   white-space: nowrap;
 }
 
+.editandoAviso {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent-text);
+  background: rgba(56, 189, 248, 0.08);
+  border-bottom: 1px solid var(--border-color);
+}
+
 .cajaVacia {
   padding: 16px 4px;
   font-size: 13px;
@@ -280,81 +292,33 @@
   background: #ca8a04; /* Yellow-600 */
 }
 
-.esperaContainer {
-  padding: 12px 16px;
-  background: var(--bg-page);
-  border-bottom: 1px dashed var(--border-color);
-}
-
-.esperaTitle {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-secondary);
-  margin-bottom: 8px;
-}
-
-.esperaItems {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.esperaItem {
+.esperaNumeros {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  background: var(--bg-surface);
-  border: 1px solid var(--border-color);
-  padding: 8px 12px;
-  border-radius: var(--radius);
+  gap: 5px;
+  flex-wrap: nowrap;
+  flex-shrink: 0;
 }
 
-.esperaInfo {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.esperaTime {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.esperaCount {
-  font-size: 11px;
-  color: var(--text-secondary);
-}
-
-.esperaActions {
+.esperaNumBox {
   display: flex;
   align-items: center;
-  gap: 8px;
-}
-
-.esperaBtnRecuperar {
-  background: var(--accent);
-  color: var(--accent-contrast);
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  background: #eab308;
+  color: #fff;
   border: none;
-  border-radius: var(--radius);
-  padding: 4px 10px;
+  border-radius: 4px;
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
+  line-height: 1;
+  transition: background-color 0.2s;
 }
 
-.esperaBtnRecuperar:hover {
-  background: var(--accent-strong);
-}
-
-.esperaBtnDescartar {
-  background: transparent;
-  color: var(--status-error);
-  border: none;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  padding: 4px;
+.esperaNumBox:hover {
+  background: #ca8a04;
 }
 
 .confirmarBtn {

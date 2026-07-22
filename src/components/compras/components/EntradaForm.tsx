@@ -329,6 +329,11 @@ export function EntradaForm({
     if (lineas.length === 0) return "Agregá al menos una línea.";
     for (const l of lineas) {
       if (!l.producto_id && !l.productoPendiente?.nombre.trim()) return "Todas las líneas necesitan un producto.";
+      // Si no hay almacén asignado pero existe uno disponible, usar el primero automáticamente
+      if (!l.almacen_id && almacenes.length > 0) {
+        // Esto no debería pasar normalmente, pero por seguridad validamos
+        continue;
+      }
       if (!l.almacen_id) return "No se encontró el almacén (revisá que exista al menos uno registrado).";
       if (l.cantidad <= 0) return "La cantidad tiene que ser mayor a 0.";
     }
@@ -349,6 +354,14 @@ export function EntradaForm({
       // alta en el catálogo los productos que quedaron pendientes: así el usuario tuvo
       // toda la oportunidad de corregir el nombre antes de que quede grabado.
       let lineasAGuardar = lineas;
+      // Asegurar que todas las líneas tengan almacén_id (usar el único disponible si falta)
+      const almacenDefecto = almacenes[0]?.id;
+      if (almacenDefecto) {
+        lineasAGuardar = lineasAGuardar.map(l => ({
+          ...l,
+          almacen_id: l.almacen_id || almacenDefecto
+        }));
+      }
       if (lineas.some((l) => !l.producto_id && l.productoPendiente?.nombre.trim())) {
         const resueltas: LineaEditable[] = [];
         const productosCreados: Producto[] = [];
@@ -614,8 +627,8 @@ export function EntradaForm({
                 <input
                   type="number"
                   min={0}
-                  step="0.01"
-                  value={linea.cantidad}
+                  step="0.001"
+                  value={parseFloat(linea.cantidad.toFixed(3))}
                   disabled={!puedeEditar}
                   onChange={(e) => actualizarLinea(index, { cantidad: Number(e.target.value) })}
                 />
@@ -624,14 +637,14 @@ export function EntradaForm({
                 <input
                   type="number"
                   min={0}
-                  step="0.01"
-                  value={linea.costo_unitario}
+                  step="0.001"
+                  value={parseFloat(linea.costo_unitario.toFixed(3))}
                   disabled={!puedeEditar}
                   onChange={(e) => actualizarLinea(index, { costo_unitario: Number(e.target.value) })}
                 />
               </td>
               <td className={styles.precioConIgvCell}>
-                {linea.costo_unitario > 0 ? `${simboloMoneda} ${(linea.costo_unitario * (1 + IGV)).toFixed(2)}` : "—"}
+                {linea.costo_unitario > 0 ? `${simboloMoneda} ${(linea.costo_unitario * (1 + IGV)).toFixed(3)}` : "—"}
               </td>
               {puedeEditar && (
                 <td>

@@ -45,11 +45,18 @@ export function FilterLayout({
 }: FilterLayoutProps) {
   // El panel recuerda si estaba abierto o cerrado la última vez -antes arrancaba siempre
   // cerrado al entrar a cualquier sesión- guardado en localStorage y compartido por todos
-  // los módulos que usan este mismo panel.
-  const [isSidebarVisible, setIsSidebarVisible] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return window.localStorage.getItem(SIDEBAR_VISIBLE_KEY) === "1";
-  });
+  // los módulos que usan este mismo panel. El valor inicial arranca siempre en `false`
+  // (igual que en el servidor, que no tiene `window`) y recién se corrige leyendo
+  // localStorage en un efecto -leerlo directo en el estado inicial hace que el primer
+  // render del cliente no coincida con el HTML que mandó el servidor y dispara un error
+  // de hidratación.
+  const [isSidebarVisible, setIsSidebarVisible] = useState(false);
+
+  useEffect(() => {
+    if (window.localStorage.getItem(SIDEBAR_VISIBLE_KEY) === "1") {
+      setIsSidebarVisible(true);
+    }
+  }, []);
 
   useEffect(() => {
     window.localStorage.setItem(SIDEBAR_VISIBLE_KEY, isSidebarVisible ? "1" : "0");

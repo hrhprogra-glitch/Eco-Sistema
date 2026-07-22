@@ -34,7 +34,8 @@ export async function GET(request: Request) {
        m.id, m.producto_id, pr.nombre as producto_nombre,
        m.almacen_id, al.nombre as almacen_nombre,
        m.lote_id, lo.numero_lote as lote_numero,
-       m.tipo, m.cantidad, m.motivo, m.entrada_id, m.fecha, m.created_at
+       m.tipo, m.cantidad, m.motivo, m.cliente, m.trabajador,
+       m.entrada_id, m.fecha, m.created_at
      FROM movimientos_stock m
      LEFT JOIN productos pr ON m.producto_id = pr.id
      LEFT JOIN almacenes al ON m.almacen_id = al.id

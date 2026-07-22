@@ -20,13 +20,25 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   }
 
   const lineas = await query(
-    `SELECT el.*, pr.nombre as producto_nombre FROM entrada_lineas el
+    `SELECT
+      el.*,
+      pr.nombre as producto_nombre,
+      COALESCE(SUM(ncl.cantidad), 0) as cantidad_devuelta
+     FROM entrada_lineas el
      LEFT JOIN productos pr ON el.producto_id = pr.id
-     WHERE el.entrada_id = $1`,
+     LEFT JOIN notas_credito_lineas ncl ON el.id = ncl.entrada_linea_id
+     WHERE el.entrada_id = $1
+     GROUP BY el.id, pr.nombre`,
     [id]
   );
 
-  return NextResponse.json({ ...result.rows[0], lineas: lineas.rows });
+  // Calcular cantidad disponible para devolver
+  const lineasConDisponible = lineas.rows.map((l: any) => ({
+    ...l,
+    cantidad_disponible: Number(l.cantidad) - Number(l.cantidad_devuelta),
+  }));
+
+  return NextResponse.json({ ...result.rows[0], lineas: lineasConDisponible });
 }
 
 // Solo se puede editar mientras está en "borrador" -- una vez confirmada, ya generó
@@ -116,6 +128,11 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   }
 }
 
+// Se puede borrar en dos casos: "borrador" (nunca tocó stock) o "devuelta" (ya se
+// revirtió el 100% del stock vía nota de crédito, así que no queda ningún efecto de
+// inventario pendiente). Una entrada "confirmada" con stock activo NO se puede borrar
+// directamente -- primero hay que devolverla (ver /api/notas-credito) para no perder
+// el rastro de qué pasó con ese stock.
 export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getSession();
   if (!session) {
@@ -123,11 +140,48 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
   }
 
   const { id } = await params;
-  const existing = await query("SELECT estado FROM entradas WHERE id = $1", [id]);
-  if (existing.rows.length > 0 && existing.rows[0].estado !== "borrador") {
-    return NextResponse.json({ error: "No se puede borrar una entrada ya confirmada." }, { status: 409 });
-  }
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
 
-  await query("DELETE FROM entradas WHERE id = $1", [id]);
-  return NextResponse.json({ success: true });
+    const existing = await client.query("SELECT estado FROM entradas WHERE id = $1 FOR UPDATE", [id]);
+    if (existing.rows.length === 0) {
+      await client.query("ROLLBACK");
+      return NextResponse.json({ error: "Entrada no encontrada" }, { status: 404 });
+    }
+
+    const estado = existing.rows[0].estado;
+    if (estado !== "borrador" && estado !== "devuelta") {
+      await client.query("ROLLBACK");
+      return NextResponse.json(
+        { error: "Solo se puede borrar una entrada en borrador, o una ya devuelta por completo." },
+        { status: 409 }
+      );
+    }
+
+    if (estado === "devuelta") {
+      // Borrar primero las notas de crédito y movimientos asociados -- tienen
+      // ON DELETE NO ACTION hacia entradas, así que bloquearían el DELETE si quedan.
+      await client.query(
+        `DELETE FROM notas_credito_lineas WHERE nota_credito_id IN (
+           SELECT id FROM notas_credito WHERE entrada_id = $1
+         )`,
+        [id]
+      );
+      await client.query("DELETE FROM notas_credito WHERE entrada_id = $1", [id]);
+      await client.query("DELETE FROM movimientos_stock WHERE entrada_id = $1", [id]);
+    }
+
+    // entrada_lineas se borra en cascada automáticamente.
+    await client.query("DELETE FROM entradas WHERE id = $1", [id]);
+
+    await client.query("COMMIT");
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    await client.query("ROLLBACK");
+    console.error("Error deleting entrada:", error);
+    return NextResponse.json({ error: "Error al borrar la entrada" }, { status: 500 });
+  } finally {
+    client.release();
+  }
 }

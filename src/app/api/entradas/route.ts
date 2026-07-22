@@ -9,9 +9,18 @@ export async function GET() {
   }
 
   const result = await query(
-    `SELECT e.*, p.nombre as proveedor_nombre
+    `SELECT
+      e.*,
+      p.nombre as proveedor_nombre,
+      COALESCE(
+        SUM(el.cantidad) - COALESCE(SUM(ncl.cantidad), 0),
+        0
+      ) as cantidad_disponible_devolucion
      FROM entradas e
      LEFT JOIN proveedores p ON e.proveedor_id = p.id
+     LEFT JOIN entrada_lineas el ON e.id = el.entrada_id
+     LEFT JOIN notas_credito_lineas ncl ON el.id = ncl.entrada_linea_id
+     GROUP BY e.id, p.nombre
      ORDER BY e.created_at DESC`
   );
 

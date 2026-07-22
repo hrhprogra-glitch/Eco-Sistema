@@ -1,13 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { FileInput, ShoppingCart, Truck } from "lucide-react";
+import { FileInput, ShoppingCart, Truck, RotateCcw, Trash2 } from "lucide-react";
 import { ModuleActions, type ModuleAction } from "@/components/ui/ModuleActions";
 import { DataTable, type Column } from "@/components/ui/DataTable";
 import { FilterLayout, FilterSection } from "@/components/ui/FilterLayout";
 import filterStyles from "@/components/ui/FilterLayout.module.css";
 import fieldStyles from "@/components/ui/formFields.module.css";
 import { EntradaForm } from "./EntradaForm";
+import { DevolverModal } from "./DevolverModal";
 import { useSession } from "@/components/session/SessionProvider";
 import type { Entrada } from "../types";
 import type { ComprasVista } from "..";
@@ -18,6 +19,7 @@ const ESTADO_LABEL: Record<Entrada["estado"], string> = {
   borrador: "Borrador",
   confirmada: "Confirmada",
   cancelada: "Cancelada",
+  devuelta: "Devuelta",
 };
 
 export function ComprasList({
@@ -34,13 +36,20 @@ export function ComprasList({
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedLetter, setSelectedLetter] = useState("0-9");
   const [estadoFiltro, setEstadoFiltro] = useState<string>("Sin seleccionar");
+  const [entradaDevolver, setEntradaDevolver] = useState<Entrada | null>(null);
   const { permisos } = useSession();
 
   const loadCompras = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/entradas");
+      const res = await fetch("/api/entradas", {
+        cache: "no-store",
+        headers: {
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+          "Pragma": "no-cache",
+        },
+      });
       if (!res.ok) throw new Error("No se pudieron cargar las compras.");
       setCompras(await res.json());
     } catch (err) {
@@ -61,6 +70,33 @@ export function ComprasList({
     }
   }
 
+  async function abrirDevolucion(resumen: Entrada) {
+    const res = await fetch(`/api/entradas/${resumen.id}`);
+    if (res.ok) {
+      setEntradaDevolver(await res.json());
+    }
+  }
+
+  async function eliminarCompra(entrada: Entrada) {
+    const confirmado = window.confirm(
+      `¿Eliminar definitivamente la compra "${entrada.numero_factura_proveedor || entrada.numero}"?\n\n` +
+      `Ya fue devuelta por completo, así que no afecta el stock actual. ` +
+      `Esta acción borra también su nota de crédito y no se puede deshacer.`
+    );
+    if (!confirmado) return;
+
+    try {
+      const res = await fetch(`/api/entradas/${entrada.id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "No se pudo eliminar la compra.");
+      }
+      loadCompras();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error desconocido.");
+    }
+  }
+
   const columns: Column<Entrada>[] = [
     { key: "numero", header: "N°" },
     { key: "proveedor_nombre", header: "Proveedor (razón social)", render: (e) => e.proveedor_nombre || "—" },
@@ -72,7 +108,7 @@ export function ComprasList({
       render: (e) => (
         <span
           style={{
-            color: e.estado === "confirmada" ? "var(--status-online)" : e.estado === "cancelada" ? "var(--status-error)" : "var(--text-secondary)",
+            color: e.estado === "confirmada" ? "var(--status-online)" : e.estado === "devuelta" ? "#f59e0b" : e.estado === "cancelada" ? "var(--status-error)" : "var(--text-secondary)",
             fontWeight: 600,
           }}
         >
@@ -84,6 +120,107 @@ export function ComprasList({
       key: "total",
       header: "Total (sin IGV)",
       render: (e) => `${e.moneda === "USD" ? "US$" : "S/"} ${Number(e.total).toFixed(2)}`,
+    },
+    {
+      key: "__acciones__" as any,
+      header: "Acciones",
+      render: (e: any) => {
+        const estaDeshabilitado = Number(e.cantidad_disponible_devolucion) <= 0;
+
+        return (
+          <div style={{ display: "flex", gap: "8px" }}>
+            <button
+              onClick={(evt) => {
+                evt.stopPropagation();
+                if (!estaDeshabilitado) {
+                  abrirDevolucion(e);
+                }
+              }}
+              disabled={estaDeshabilitado}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "6px",
+                padding: "8px 16px",
+                backgroundColor: estaDeshabilitado ? "#9ca3af" : "#38bdf8",
+                border: "none",
+                borderRadius: "0px",
+                cursor: estaDeshabilitado ? "not-allowed" : "pointer",
+                color: "white",
+                fontSize: "0.9rem",
+                fontWeight: 600,
+                transition: "all 0.2s ease",
+                boxShadow: estaDeshabilitado ? "none" : "0 2px 4px rgba(56, 189, 248, 0.4)",
+                minWidth: "100px",
+                opacity: estaDeshabilitado ? 0.6 : 1,
+              }}
+              onMouseEnter={(e) => {
+                if (!estaDeshabilitado) {
+                  e.currentTarget.style.backgroundColor = "#0ea5e9";
+                  e.currentTarget.style.boxShadow = "0 4px 8px rgba(56, 189, 248, 0.5)";
+                  e.currentTarget.style.transform = "translateY(-2px)";
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!estaDeshabilitado) {
+                  e.currentTarget.style.backgroundColor = "#38bdf8";
+                  e.currentTarget.style.boxShadow = "0 2px 4px rgba(56, 189, 248, 0.4)";
+                  e.currentTarget.style.transform = "translateY(0)";
+                }
+              }}
+              onMouseDown={(e) => {
+                if (!estaDeshabilitado) {
+                  e.currentTarget.style.transform = "translateY(1px)";
+                }
+              }}
+              onMouseUp={(e) => {
+                if (!estaDeshabilitado) {
+                  e.currentTarget.style.transform = "translateY(-2px)";
+                }
+              }}
+            >
+              <RotateCcw size={16} />
+              Devolver
+            </button>
+
+            {e.estado === "devuelta" && (
+              <button
+                onClick={(evt) => {
+                  evt.stopPropagation();
+                  eliminarCompra(e);
+                }}
+                title="Eliminar compra devuelta por completo"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "6px",
+                  padding: "8px 12px",
+                  backgroundColor: "transparent",
+                  border: "1px solid var(--status-error, #dc2626)",
+                  borderRadius: "0px",
+                  cursor: "pointer",
+                  color: "var(--status-error, #dc2626)",
+                  fontSize: "0.9rem",
+                  fontWeight: 600,
+                  transition: "all 0.2s ease",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = "var(--status-error, #dc2626)";
+                  e.currentTarget.style.color = "white";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = "transparent";
+                  e.currentTarget.style.color = "var(--status-error, #dc2626)";
+                }}
+              >
+                <Trash2 size={16} />
+              </button>
+            )}
+          </div>
+        );
+      },
     },
   ];
 
@@ -188,6 +325,17 @@ export function ComprasList({
           />
         </div>
       </FilterLayout>
+
+      {entradaDevolver && (
+        <DevolverModal
+          entrada={entradaDevolver}
+          onClose={() => setEntradaDevolver(null)}
+          onSuccess={() => {
+            setEntradaDevolver(null);
+            loadCompras();
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -5,7 +5,6 @@ import { Zap, History } from "lucide-react";
 import { ModuleActions, type ModuleAction } from "@/components/ui/ModuleActions";
 import { DataTable, type Column } from "@/components/ui/DataTable";
 import { FilterLayout, FilterSection } from "@/components/ui/FilterLayout";
-import { FloatingWindow } from "@/components/ui/FloatingWindow";
 import fieldStyles from "@/components/ui/formFields.module.css";
 import { SalidaPOS } from "./components/SalidaPOS";
 import { useSession } from "@/components/session/SessionProvider";
@@ -25,10 +24,9 @@ export default function SalidasModule() {
   const [filterTrabajador, setFilterTrabajador] = useState("");
   const [selectedLetter, setSelectedLetter] = useState("0-9");
 
-  const [editModal, setEditModal] = useState<MovimientoStock | null>(null);
-  const [editCantidad, setEditCantidad] = useState("");
-  const [editMotivo, setEditMotivo] = useState("");
-  const [guardando, setGuardando] = useState(false);
+  // Fila del Historial elegida para editar: hacer clic en ella manda a Salida rápida ya
+  // precargada con esa línea, en vez de abrir un modal de edición aparte.
+  const [movimientoAEditar, setMovimientoAEditar] = useState<MovimientoStock | null>(null);
 
   const loadSalidas = useCallback(async () => {
     setLoading(true);
@@ -51,8 +49,30 @@ export default function SalidasModule() {
     if (vista === "historial") loadSalidas();
   }, [vista, loadSalidas]);
 
+  const vistaActions: ModuleAction[] = [
+    { key: "rapida", label: "Salida rápida", icon: Zap, active: vista === "rapida", onClick: () => setVista("rapida") },
+    { key: "historial", label: "Historial", icon: History, active: vista === "historial", onClick: () => setVista("historial") },
+  ].filter(action => permisos.includes(`salidas.${action.key}`));
+
+  // Los hooks tienen que llamarse siempre en el mismo orden en cada render -- este efecto
+  // no puede vivir después del "return" temprano de más abajo, porque entonces solo se
+  // ejecutaría cuando vista !== "rapida" y React perdería la cuenta de los hooks al
+  // alternar entre vistas (el error de "Rules of Hooks").
+  useEffect(() => {
+    if (vistaActions.length > 0 && !vistaActions.find(a => a.key === vista)) {
+      setVista(vistaActions[0].key as SalidasVista);
+    }
+  }, [permisos, vista, vistaActions]);
+
   if (vista === "rapida") {
-    return <SalidaPOS vista={vista} onCambiarVista={setVista} />;
+    return (
+      <SalidaPOS
+        vista={vista}
+        onCambiarVista={setVista}
+        movimientoEditar={movimientoAEditar}
+        onTerminarEdicion={() => setMovimientoAEditar(null)}
+      />
+    );
   }
 
   const columns: Column<MovimientoStock>[] = [
@@ -61,37 +81,9 @@ export default function SalidasModule() {
     { key: "almacen_nombre", header: "Almacén" },
     { key: "lote_numero", header: "Lote", render: (m) => m.lote_numero || (m.lote_id ? `Lote ${m.lote_id.slice(0, 8)}` : "—") },
     { key: "cantidad", header: "Cantidad", render: (m) => <span style={{ color: "var(--status-error)", fontWeight: 600 }}>-{m.cantidad}</span> },
-    { key: "motivo", header: "Motivo" },
-    {
-      key: "acciones" as keyof MovimientoStock,
-      header: "",
-      render: (m) => (
-        <button
-          type="button"
-          className={fieldStyles.button}
-          style={{ padding: "4px 8px", fontSize: "11px", background: "var(--bg-surface)", color: "var(--text-primary)", border: "1px solid var(--border-color)" }}
-          onClick={() => {
-            setEditModal(m);
-            setEditCantidad(m.cantidad.toString());
-            setEditMotivo(m.motivo);
-          }}
-        >
-          Editar
-        </button>
-      ),
-    },
+    { key: "cliente", header: "Cliente", render: (m) => m.cliente || "—" },
+    { key: "trabajador", header: "Trabajador", render: (m) => m.trabajador || "—" },
   ];
-
-  const vistaActions: ModuleAction[] = [
-    { key: "rapida", label: "Salida rápida", icon: Zap, active: false, onClick: () => setVista("rapida") },
-    { key: "historial", label: "Historial", icon: History, active: true, onClick: () => setVista("historial") },
-  ].filter(action => permisos.includes(`salidas.${action.key}`));
-
-  useEffect(() => {
-    if (vistaActions.length > 0 && !vistaActions.find(a => a.key === vista)) {
-      setVista(vistaActions[0].key as SalidasVista);
-    }
-  }, [permisos, vista, vistaActions]);
 
   const salidasFiltradas = salidas.filter((m) => {
     // 1. Buscador texto (producto_nombre o motivo)
@@ -107,11 +99,11 @@ export default function SalidasModule() {
       if (movDate !== filterFecha) return false;
     }
 
-    // 3. Filtro Cliente (buscamos en el motivo)
-    if (filterCliente.trim() && !m.motivo.toLowerCase().includes(`cliente: ${filterCliente.trim().toLowerCase()}`)) return false;
+    // 3. Filtro Cliente
+    if (filterCliente.trim() && !(m.cliente || "").toLowerCase().includes(filterCliente.trim().toLowerCase())) return false;
 
-    // 4. Filtro Trabajador (buscamos en el motivo)
-    if (filterTrabajador.trim() && !m.motivo.toLowerCase().includes(`trab: ${filterTrabajador.trim().toLowerCase()}`)) return false;
+    // 4. Filtro Trabajador
+    if (filterTrabajador.trim() && !(m.trabajador || "").toLowerCase().includes(filterTrabajador.trim().toLowerCase())) return false;
 
     // 5. Filtro Letra Inicial
     if (selectedLetter !== "0-9") {
@@ -122,32 +114,6 @@ export default function SalidasModule() {
 
     return true;
   });
-
-  async function handleGuardarEdicion() {
-    if (!editModal || !editCantidad || Number(editCantidad) <= 0) return;
-    setGuardando(true);
-    setError(null);
-    try {
-      const res = await fetch(`/api/movimientos/${editModal.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          cantidad: Number(editCantidad),
-          motivo: editMotivo,
-        }),
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "Error al actualizar salida.");
-      }
-      setEditModal(null);
-      loadSalidas();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Error desconocido.");
-    } finally {
-      setGuardando(false);
-    }
-  }
 
   const sidebarContent = (
     <>
@@ -173,8 +139,6 @@ export default function SalidasModule() {
     </>
   );
 
-
-
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", flex: 1, minHeight: 0 }}>
       <FilterLayout
@@ -194,53 +158,14 @@ export default function SalidasModule() {
           <DataTable
             data={salidasFiltradas}
             columns={columns}
+            onRowClick={(m) => {
+              setMovimientoAEditar(m);
+              setVista("rapida");
+            }}
             emptyMessage={loading ? "Cargando…" : "No hay salidas registradas todavía."}
           />
         </div>
       </FilterLayout>
-
-      {editModal && (
-        <FloatingWindow title="Editar Salida" onClose={() => setEditModal(null)}>
-          <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-            <p style={{ fontSize: "13px", color: "var(--text-secondary)" }}>
-              Editando salida de <strong>{editModal.producto_nombre}</strong>.
-            </p>
-            <label className={fieldStyles.label} style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-              Cantidad
-              <input
-                type="number"
-                min="1"
-                step="1"
-                className={fieldStyles.input}
-                value={editCantidad}
-                onChange={(e) => setEditCantidad(e.target.value)}
-              />
-            </label>
-            <label className={fieldStyles.label} style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-              Motivo / Detalles
-              <input
-                type="text"
-                className={fieldStyles.input}
-                value={editMotivo}
-                onChange={(e) => setEditMotivo(e.target.value)}
-              />
-            </label>
-            <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end", marginTop: "8px" }}>
-              <button type="button" className={fieldStyles.button} onClick={() => setEditModal(null)}>
-                Cancelar
-              </button>
-              <button
-                type="button"
-                className={fieldStyles.buttonPrimary}
-                onClick={handleGuardarEdicion}
-                disabled={guardando || !editCantidad || Number(editCantidad) <= 0}
-              >
-                {guardando ? "Guardando…" : "Guardar Cambios"}
-              </button>
-            </div>
-          </div>
-        </FloatingWindow>
-      )}
     </div>
   );
 }

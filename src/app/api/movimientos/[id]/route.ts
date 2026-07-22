@@ -15,7 +15,7 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
 
   try {
     const body = await request.json();
-    const { cantidad, motivo } = body;
+    const { cantidad, motivo, cliente, trabajador } = body;
 
     if (!cantidad || cantidad <= 0) {
       return NextResponse.json({ error: "Cantidad inválida" }, { status: 400 });
@@ -72,10 +72,16 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
         }
       }
 
-      // 3. Actualizar el movimiento en sí (cantidad y motivo)
+      // 3. Actualizar el movimiento en sí (cantidad, motivo, cliente y trabajador)
       await client.query(
-        "UPDATE movimientos_stock SET cantidad = $1, motivo = $2 WHERE id = $3",
-        [newCantidad, motivo || mov.motivo, id]
+        "UPDATE movimientos_stock SET cantidad = $1, motivo = $2, cliente = $3, trabajador = $4 WHERE id = $5",
+        [
+          newCantidad,
+          motivo || mov.motivo,
+          cliente !== undefined ? (cliente?.trim() || null) : mov.cliente,
+          trabajador !== undefined ? (trabajador?.trim() || null) : mov.trabajador,
+          id,
+        ]
       );
 
       await client.query("COMMIT");

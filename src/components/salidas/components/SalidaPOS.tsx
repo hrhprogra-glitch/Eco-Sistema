@@ -1,15 +1,18 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { Search, ShoppingCart, Trash2, PackageMinus, Package, Minus, Plus, Zap, History, Pause } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Search, ShoppingCart, Trash2, PackageMinus, Package, Minus, Plus, Zap, History, Pause, Pencil } from "lucide-react";
 import { FilterLayout, FilterSection } from "@/components/ui/FilterLayout";
 import { ModuleActions, type ModuleAction } from "@/components/ui/ModuleActions";
 import { WidgetCard } from "@/components/ui/WidgetCard";
 import { EmptyState } from "@/components/EmptyState";
 import { FloatingWindow } from "@/components/ui/FloatingWindow";
+import { NombreBuscador } from "@/components/ui/NombreBuscador";
 import fieldStyles from "@/components/ui/formFields.module.css";
 import type { Producto } from "@/components/inventario/types";
-import type { SalidaCarritoLinea } from "../types";
+import type { Contacto } from "@/components/contacto/types";
+import type { Empleado } from "@/components/empleados/types";
+import type { SalidaCarritoLinea, MovimientoStock } from "../types";
 import type { SalidasVista } from "..";
 import styles from "./SalidaPOS.module.css";
 
@@ -41,27 +44,46 @@ type CajaEnEspera = {
 export function SalidaPOS({
   vista,
   onCambiarVista,
+  movimientoEditar,
+  onTerminarEdicion,
 }: {
   vista: SalidasVista;
   onCambiarVista: (vista: SalidasVista) => void;
+  // Cuando viene seteado, la Caja arranca precargada con esa línea (una salida ya
+  // confirmada, elegida haciendo clic en una fila del Historial) en vez de vacía, y
+  // "Confirmar salida" pasa a editar ese movimiento (PUT) en lugar de crear uno nuevo.
+  movimientoEditar?: MovimientoStock | null;
+  onTerminarEdicion?: () => void;
 }) {
   const [productos, setProductos] = useState<Producto[]>([]);
   const [busqueda, setBusqueda] = useState("");
   const [carrito, setCarrito] = useState<SalidaCarritoLinea[]>([]);
   const [guardando, setGuardando] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [mensajeExito, setMensajeExito] = useState<string | null>(null);
   const [salidasHoy, setSalidasHoy] = useState<MovimientoHoy[]>([]);
   const [modalAbierto, setModalAbierto] = useState(false);
   const [cajasEnEspera, setCajasEnEspera] = useState<CajaEnEspera[]>([]);
   const [cliente, setCliente] = useState("");
   const [trabajador, setTrabajador] = useState("");
+  const [contactos, setContactos] = useState<Contacto[]>([]);
+  const [empleados, setEmpleados] = useState<Empleado[]>([]);
+  const [editandoId, setEditandoId] = useState<string | null>(null);
+  const prefillEditRef = useRef<string | null>(null);
 
   useEffect(() => {
     fetch("/api/productos")
       .then((r) => (r.ok ? r.json() : []))
       .then((data: Producto[]) => setProductos(data.filter((p) => p.rastrear_inventario)))
       .catch(() => setProductos([]));
+
+    fetch("/api/contactos")
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data: Contacto[]) => setContactos(data.filter((c) => c.tipo === "cliente")))
+      .catch(() => setContactos([]));
+
+    fetch("/api/empleados")
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data: Empleado[]) => setEmpleados(data))
+      .catch(() => setEmpleados([]));
   }, []);
 
   const fetchSalidasHoy = async () => {
@@ -81,11 +103,39 @@ export function SalidaPOS({
     fetchSalidasHoy();
   }, []);
 
+  // Precarga la Caja con la línea del movimiento elegido en el Historial. El stock
+  // disponible para validar la cantidad es el stock actual del producto MÁS lo que este
+  // mismo movimiento ya había descontado (si no, "cuánto puedo poner" quedaría corto en
+  // exactamente lo que esta salida ya se llevó). Como el catálogo de productos llega por
+  // un fetch aparte, puede no estar listo todavía en el primer pase -- por eso el efecto
+  // también corre de nuevo cuando `productos` cambia, pero solo para corregir el stock
+  // disponible de esa línea sin pisar lo que el usuario ya haya tocado.
   useEffect(() => {
-    if (!mensajeExito) return;
-    const timeout = setTimeout(() => setMensajeExito(null), 3000);
-    return () => clearTimeout(timeout);
-  }, [mensajeExito]);
+    if (!movimientoEditar) return;
+    const prod = productos.find((p) => p.id === movimientoEditar.producto_id);
+    const stockDisponible = (prod?.stock ?? 0) + Number(movimientoEditar.cantidad);
+
+    if (prefillEditRef.current !== movimientoEditar.id) {
+      prefillEditRef.current = movimientoEditar.id;
+      setCarrito([
+        {
+          producto_id: movimientoEditar.producto_id,
+          producto_nombre: movimientoEditar.producto_nombre,
+          cantidad: Number(movimientoEditar.cantidad),
+          stock_disponible: stockDisponible,
+        },
+      ]);
+      setCliente(movimientoEditar.cliente || "");
+      setTrabajador(movimientoEditar.trabajador || "");
+      setEditandoId(movimientoEditar.id);
+    } else {
+      setCarrito((prev) =>
+        prev.map((l) =>
+          l.producto_id === movimientoEditar.producto_id ? { ...l, stock_disponible: stockDisponible } : l
+        )
+      );
+    }
+  }, [movimientoEditar, productos]);
 
   // El buscador arranca vacío a propósito: recién se muestran resultados cuando el
   // usuario empieza a escribir, no una vidriera con todo el catálogo de entrada.
@@ -98,7 +148,7 @@ export function SalidaPOS({
   }, [productos, busqueda]);
 
   function agregarAlCarrito(producto: Producto) {
-    setMensajeExito(null);
+    if (editandoId) return;
     setCarrito((prev) => {
       const existente = prev.find((l) => l.producto_id === producto.id);
       if (existente) {
@@ -128,7 +178,11 @@ export function SalidaPOS({
     setCarrito([]);
     setCliente("");
     setTrabajador("");
-    setError(null);
+    if (editandoId) {
+      setEditandoId(null);
+      prefillEditRef.current = null;
+      onTerminarEdicion?.();
+    }
   }
 
   function ponerEnEspera() {
@@ -161,10 +215,6 @@ export function SalidaPOS({
     setCajasEnEspera((prev) => prev.filter((c) => c.id !== id));
   }
 
-  function descartarCajaEnEspera(id: string) {
-    setCajasEnEspera((prev) => prev.filter((c) => c.id !== id));
-  }
-
   const hayLineaInvalida = carrito.some((l) => mensajeInvalido(l) !== null);
   const puedeConfirmar = carrito.length > 0 && !hayLineaInvalida && !guardando;
   const totalUnidades = carrito.reduce((sum, l) => sum + (Number(l.cantidad) || 0), 0);
@@ -172,14 +222,30 @@ export function SalidaPOS({
   async function handleConfirmar() {
     if (!puedeConfirmar) return;
     setGuardando(true);
-    setError(null);
     try {
-      let motivoStr = "Salida rápida (POS)";
-      const parts = [];
-      if (cliente.trim()) parts.push(`Cliente: ${cliente.trim()}`);
-      if (trabajador.trim()) parts.push(`Trab: ${trabajador.trim()}`);
-      if (parts.length > 0) {
-        motivoStr = `${motivoStr} | ${parts.join(" | ")}`;
+      if (editandoId) {
+        const linea = carrito[0];
+        const res = await fetch(`/api/movimientos/${editandoId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            cantidad: Number(linea.cantidad),
+            cliente: cliente.trim() || null,
+            trabajador: trabajador.trim() || null,
+          }),
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error || "No se pudo guardar la edición.");
+        }
+        setCarrito([]);
+        setCliente("");
+        setTrabajador("");
+        setEditandoId(null);
+        prefillEditRef.current = null;
+        onTerminarEdicion?.();
+        onCambiarVista("historial");
+        return;
       }
 
       const res = await fetch("/api/movimientos/salidas", {
@@ -187,7 +253,8 @@ export function SalidaPOS({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           lineas: carrito.map((l) => ({ producto_id: l.producto_id, cantidad: Number(l.cantidad) })),
-          motivo: motivoStr,
+          cliente: cliente.trim() || undefined,
+          trabajador: trabajador.trim() || undefined,
         }),
       });
       if (!res.ok) {
@@ -195,10 +262,9 @@ export function SalidaPOS({
         throw new Error(data.error || "No se pudo registrar la salida.");
       }
       setCarrito([]);
-      setMensajeExito("Salida registrada correctamente.");
       fetchSalidasHoy();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error desconocido.");
+      console.error("Error al confirmar salida:", err);
     } finally {
       setGuardando(false);
     }
@@ -217,9 +283,6 @@ export function SalidaPOS({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", flex: 1, minHeight: 0 }}>
-      {error && <p className={fieldStyles.errorBanner}>{error}</p>}
-      {mensajeExito && <p className={fieldStyles.successBanner}>{mensajeExito}</p>}
-
       <FilterLayout sidebarContent={sidebarContent} showAlphabetIndex={false}>
         <div className={styles.pos}>
           <div className={styles.buscador}>
@@ -290,72 +353,61 @@ export function SalidaPOS({
               icon={ShoppingCart}
               className={styles.cajaCard}
               headerAction={
-                <div style={{ display: "flex", gap: "8px" }}>
+                <div style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "nowrap", maxWidth: "100%", overflowX: "auto" }}>
                   {carrito.length > 0 && (
                     <button type="button" className={styles.btnEspera} onClick={ponerEnEspera}>
                       <Pause size={13} fill="currentColor" />
                       ESPERA
                     </button>
                   )}
+                  {cajasEnEspera.length > 0 && (
+                    <div className={styles.esperaNumeros}>
+                      {cajasEnEspera.map((c, idx) => (
+                        <button
+                          key={c.id}
+                          type="button"
+                          className={styles.esperaNumBox}
+                          onClick={() => recuperarCaja(c.id)}
+                          title={`${c.hora} · ${c.totalUnidades} prod. — clic para atender`}
+                        >
+                          {idx + 1}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                   {carrito.length > 0 && (
                     <button type="button" className={fieldStyles.deleteButton} onClick={vaciarCarrito}>
                       <Trash2 size={13} />
-                      Vaciar
+                      {editandoId ? "Cancelar edición" : "Vaciar"}
                     </button>
                   )}
                 </div>
               }
             >
-              {cajasEnEspera.length > 0 && (
-                <div className={styles.esperaContainer}>
-                  <p className={styles.esperaTitle}>Cajas en espera ({cajasEnEspera.length})</p>
-                  <div className={styles.esperaItems}>
-                    {cajasEnEspera.map((c) => (
-                      <div key={c.id} className={styles.esperaItem}>
-                        <div className={styles.esperaInfo}>
-                          <span className={styles.esperaTime}>{c.hora}</span>
-                          <span className={styles.esperaCount}>{c.totalUnidades} prod.</span>
-                        </div>
-                        <div className={styles.esperaActions}>
-                          <button
-                            type="button"
-                            onClick={() => recuperarCaja(c.id)}
-                            className={styles.esperaBtnRecuperar}
-                          >
-                            Recuperar
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => descartarCajaEnEspera(c.id)}
-                            className={styles.esperaBtnDescartar}
-                            aria-label="Descartar caja en espera"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+              {editandoId && (
+                <div className={styles.editandoAviso}>
+                  <Pencil size={13} />
+                  Editando salida de {carrito[0]?.producto_nombre}
                 </div>
               )}
 
               <div style={{ display: "flex", gap: "10px", padding: "12px", borderBottom: "1px solid var(--border-color)", background: "var(--bg-surface)" }}>
-                <input
-                  type="text"
-                  className={fieldStyles.input}
-                  style={{ flex: 1 }}
-                  placeholder="Nombre del Cliente (Opcional)"
-                  value={cliente}
-                  onChange={(e) => setCliente(e.target.value)}
-                />
-                <input
-                  type="text"
-                  className={fieldStyles.input}
-                  style={{ flex: 1 }}
-                  placeholder="Nombre del Trabajador (Opcional)"
-                  value={trabajador}
-                  onChange={(e) => setTrabajador(e.target.value)}
-                />
+                <div style={{ flex: 1 }}>
+                  <NombreBuscador
+                    value={cliente}
+                    onChange={setCliente}
+                    placeholder="Nombre del Cliente (Opcional)"
+                    opciones={contactos.map((c) => ({ id: c.id, nombre: c.nombre, subtitulo: c.telefono || c.email || undefined }))}
+                  />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <NombreBuscador
+                    value={trabajador}
+                    onChange={setTrabajador}
+                    placeholder="Nombre del Trabajador (Opcional)"
+                    opciones={empleados.map((e) => ({ id: e.id, nombre: e.nombre, subtitulo: e.puesto || undefined }))}
+                  />
+                </div>
               </div>
 
               {carrito.length === 0 ? (
@@ -388,14 +440,16 @@ export function SalidaPOS({
                             {mensaje && <span className={styles.avisoStock}>{mensaje}</span>}
                           </td>
                           <td>
-                            <button
-                              type="button"
-                              className={styles.removeBtn}
-                              onClick={() => quitarDelCarrito(linea.producto_id)}
-                              aria-label="Quitar del carrito"
-                            >
-                              <Trash2 size={14} />
-                            </button>
+                            {!editandoId && (
+                              <button
+                                type="button"
+                                className={styles.removeBtn}
+                                onClick={() => quitarDelCarrito(linea.producto_id)}
+                                aria-label="Quitar del carrito"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            )}
                           </td>
                         </tr>
                       );
@@ -413,7 +467,7 @@ export function SalidaPOS({
 
               <button type="button" className={styles.confirmarBtn} disabled={!puedeConfirmar} onClick={handleConfirmar}>
                 <PackageMinus size={16} />
-                {guardando ? "Registrando…" : "Confirmar salida"}
+                {guardando ? "Guardando…" : editandoId ? "Guardar cambios" : "Confirmar salida"}
               </button>
             </WidgetCard>
           </div>
