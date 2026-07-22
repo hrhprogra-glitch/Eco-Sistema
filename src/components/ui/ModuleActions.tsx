@@ -9,6 +9,8 @@ export type ModuleAction = {
   icon: LucideIcon;
   onClick: () => void;
   disabled?: boolean;
+  /** Tooltip nativo -- útil para explicar por qué una acción está deshabilitada. */
+  title?: string;
   /** "primary" resalta la acción principal de la sesión (ej. "Nuevo…"). */
   tone?: "primary" | "danger";
   /** Resalta el botón como la opción actualmente seleccionada (ej. switch de vista). */
@@ -40,6 +42,7 @@ export function ModuleActions({ actions, variant }: { actions: ModuleAction[]; v
           data-tone={action.tone}
           data-active={action.active ? "" : undefined}
           disabled={action.disabled}
+          title={action.title}
           onClick={action.onClick}
         >
           <action.icon size={16} strokeWidth={2} />

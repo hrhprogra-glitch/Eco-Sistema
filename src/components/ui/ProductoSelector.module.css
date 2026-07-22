@@ -3,14 +3,67 @@
   min-width: 160px;
 }
 
-.input {
-  width: 100%;
+/* El fantasma va DETRÁS del input real (mismo tamaño/padding/fuente, ver .ghost) y el
+   input queda con fondo transparente: donde el input todavía no tiene texto tipeado, se
+   ve a través suyo el fantasma que vive atrás -ahí aparece la sugerencia en gris. El
+   marco visual (borde/fondo) se movió acá, a .inputWrap, porque el input ya no puede
+   tener fondo propio sin taparlo. */
+.inputWrap {
+  position: relative;
   border: 1px solid var(--border-color);
   border-radius: var(--radius);
   background: var(--bg-surface);
+}
+
+/* El input real quedó con borde transparente (ver .input) para no taparlo con el
+   fantasma detrás -el foco se marca acá, en el marco visible, mismo tratamiento que
+   el resto de los inputs de la app (ver formFields.module.css). */
+.inputWrap:focus-within {
+  border-color: var(--eco-celeste);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--eco-celeste) 25%, transparent);
+}
+
+.ghost {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  font-size: 12.5px;
+  padding: 5px 6px;
+  white-space: pre;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* Ocupa el mismo ancho que lo ya tipeado (para que la sugerencia arranque justo donde
+   termina el cursor) sin mostrarse -el texto tipeado ya lo pinta el input, encima. */
+.ghostTyped {
+  visibility: hidden;
+}
+
+.ghostSuggestion {
+  color: var(--text-secondary);
+}
+
+.input {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  background: transparent;
   color: var(--text-primary);
   font-size: 12.5px;
   padding: 5px 6px;
+}
+
+.input:focus {
+  outline: none;
+}
+
+.input::placeholder {
+  color: var(--text-secondary);
 }
 
 .dropdown {

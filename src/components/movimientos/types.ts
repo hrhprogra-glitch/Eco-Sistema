@@ -59,6 +59,9 @@ export type EntradaLinea = {
   costo_unitario: number;
   subtotal: number;
   fecha_vencimiento: string | null;
+  // Cantidad - lo ya devuelto por nota de crédito -- solo viene calculado en el GET de
+  // una entrada individual (ver /api/entradas/[id]), no en el listado.
+  cantidad_disponible?: number;
 };
 
 // Línea del carrito de la Salida rápida (POS): producto + cantidad, sin lote -- el lote

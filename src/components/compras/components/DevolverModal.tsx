@@ -28,7 +28,10 @@ export function DevolverModal({
   onClose,
   onSuccess,
 }: {
-  entrada: Entrada;
+  // Solo lee id y lineas -- Pick en vez de Entrada completo para poder abrirlo también
+  // desde el detalle de la compra (EntradaForm), donde no siempre está cargado el resto
+  // de los campos del documento.
+  entrada: Pick<Entrada, "id" | "lineas">;
   onClose: () => void;
   onSuccess: () => void;
 }) {

@@ -54,16 +54,31 @@
   background: var(--ribbon-hover-bg);
 }
 
+.proveedorCrearBox {
+  border-top: 1px solid var(--border-color);
+  padding: 8px 12px 10px;
+}
+
+.proveedorRucInput {
+  width: 100%;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  background: var(--bg-page);
+  color: var(--text-primary);
+  font-size: 12px;
+  padding: 5px 8px;
+  margin-bottom: 6px;
+}
+
 .proveedorOptionCrear {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 12px;
+  padding: 6px 4px;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   color: var(--accent-text);
-  border-top: 1px solid var(--border-color);
 }
 
 .proveedorOptionCrear:hover {

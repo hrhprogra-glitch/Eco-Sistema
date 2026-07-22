@@ -1,17 +1,18 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Save, CheckCircle2, Trash2, Plus, Upload, FileText, ChevronLeft, ShoppingCart, Truck, Package, StickyNote } from "lucide-react";
+import { Save, CheckCircle2, Trash2, Plus, Upload, FileText, ChevronLeft, ShoppingCart, Truck, Package, StickyNote, RotateCcw } from "lucide-react";
 import { FilterLayout, FilterSection } from "@/components/ui/FilterLayout";
 import { ModuleActions, type ModuleAction } from "@/components/ui/ModuleActions";
 import { WidgetCard } from "@/components/ui/WidgetCard";
 import fieldStyles from "@/components/ui/formFields.module.css";
 import type { Producto } from "@/components/inventario/types";
 import type { Proveedor } from "@/components/proveedores/types";
-import type { Entrada, Almacen } from "@/components/movimientos/types";
+import type { Entrada, EntradaLinea, Almacen } from "@/components/movimientos/types";
 import type { ComprasVista } from "..";
 import { extraerTextoPdf, parsearFacturaPdf } from "../importarFacturaPdf";
 import { ProductoSelector } from "@/components/ui/ProductoSelector";
+import { DevolverModal } from "./DevolverModal";
 import { useRegistrarUndoRedo } from "@/components/undoRedo/UndoRedoProvider";
 import styles from "./EntradaForm.module.css";
 
@@ -21,20 +22,80 @@ import styles from "./EntradaForm.module.css";
 const IGV = 0.18;
 
 type LineaEditable = {
-  // Siempre tiene que ser el id de un producto que ya existe en el catálogo -nunca se
-  // crea uno nuevo desde acá-: cada proveedor nombra el mismo producto distinto, y dar de
-  // alta automático por descripción terminaba duplicando el catálogo. Si el producto
-  // todavía no existe en Stock, hay que crearlo ahí primero y recién después elegirlo acá.
+  // Vacío hasta que se elige un producto YA existente del catálogo, o se acepta uno
+  // nuevo (ver productoPendiente). Nunca se crea un producto solo, sin que el usuario lo
+  // vea y lo acepte explícitamente -cada proveedor nombra el mismo producto distinto, y
+  // dar de alta automático por descripción terminaba duplicando el catálogo.
   producto_id: string;
   // Ya no se elige a mano (solo hay un almacén): se completa solo con el único que
   // devuelve /api/almacenes y no se muestra en la tabla.
   almacen_id: string;
   cantidad: number;
   costo_unitario: number;
+  // Nombre/código tal como figura en la factura importada -se muestra en gris como
+  // sugerencia dentro del campo mientras está vacío (Tab la acepta), nunca se asume sola.
+  descripcionFactura?: { nombre: string; codigo: string | null };
+  // Se llena recién cuando el usuario acepta explícitamente (Tab sobre la sugerencia
+  // fantasma, o tipeando un nombre que no matchea ningún producto del catálogo) que una
+  // línea es un producto nuevo: queda editable en la misma línea y recién se da de alta
+  // como Producto real al guardar la compra, nunca antes.
+  productoPendiente?: { nombre: string; codigo: string | null };
 };
 
 function lineaVacia(almacenId: string): LineaEditable {
   return { producto_id: "", almacen_id: almacenId, cantidad: 1, costo_unitario: 0 };
+}
+
+function slugSku(texto: string): string {
+  const base = texto
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 20);
+  return base || "PROD";
+}
+
+// Da de alta un producto que el usuario aceptó explícitamente como nuevo (ver
+// productoPendiente) -- el código de la factura (si se detectó) se usa como SKU; si no,
+// se genera uno a partir del nombre más un sufijo al azar para no chocar con el UNIQUE de
+// sku.
+async function crearProductoAutomatico(l: {
+  descripcion: string;
+  codigo: string | null;
+  costo_unitario: number;
+}): Promise<Producto | null> {
+  const sku = l.codigo || `${slugSku(l.descripcion)}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+  try {
+    const res = await fetch("/api/productos", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        nombre: l.descripcion,
+        sku,
+        stock: 0,
+        precio: 0,
+        favorito: false,
+        foto_url: null,
+        limite_stock: 0,
+        tipo: "bienes",
+        rastrear_inventario: true,
+        unidad: "Unidad",
+        impuesto_venta: null,
+        codigo_detraccion: null,
+        costo: l.costo_unitario,
+        categoria: null,
+        referencia: null,
+        codigo_barras: null,
+        notas_internas: null,
+      }),
+    });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
 }
 
 // Todo lo editable de la compra vive en un solo objeto (no en useState sueltos) para
@@ -90,6 +151,20 @@ export function EntradaForm({
   const [proveedorQuery, setProveedorQuery] = useState(entrada?.proveedor_nombre ?? "");
   const [proveedorDropdownAbierto, setProveedorDropdownAbierto] = useState(false);
   const [isCreandoProveedor, setIsCreandoProveedor] = useState(false);
+  // RUC opcional para el alta rápida de proveedor -sin esto, un proveedor creado a mano
+  // acá y otro creado después al importar un PDF de la misma empresa (que sí trae RUC)
+  // terminaban siendo dos registros distintos para el mismo proveedor real: el índice
+  // único de la base solo puede evitar duplicados por RUC si el RUC está cargado.
+  const [rucNuevoProveedor, setRucNuevoProveedor] = useState("");
+  // Lo que se detecta al importar un PDF (proveedor nuevo por dar de alta, o nombre
+  // desactualizado de uno ya existente) NO se escribe en la base ahí mismo -solo importar
+  // un PDF no puede generar cambios persistentes-: queda acá pendiente y recién se aplica
+  // al guardar la compra de verdad (ver guardar()), mismo criterio que productoPendiente.
+  const [proveedorPendiente, setProveedorPendiente] = useState<
+    | { modo: "crear"; nombre: string; ruc: string | null }
+    | { modo: "sincronizar"; proveedor: Proveedor; nombreNuevo: string }
+    | null
+  >(null);
 
   // documento/pasado/futuro viven juntos en UN solo estado (no en useState sueltos):
   // deshacer/rehacer necesitan tocar varios campos a la vez, y un solo setState por acción
@@ -130,6 +205,13 @@ export function EntradaForm({
     });
   }, []);
 
+  // El alta de productos pendientes justo antes de guardar (ver guardar()) actualiza el
+  // documento sin apilar un paso de deshacer, para no ofrecer un "Ctrl+Z" que vuelva a un
+  // estado a medio armar que el usuario nunca tipeó.
+  const actualizarDocumentoSinHistorial = useCallback((cambios: Partial<DocumentoCompra>) => {
+    setHistorial((h) => ({ ...h, documento: { ...h.documento, ...cambios } }));
+  }, []);
+
   const deshacer = useCallback(() => {
     setHistorial((h) => {
       if (h.pasado.length === 0) return h;
@@ -156,6 +238,24 @@ export function EntradaForm({
   const [estado, setEstado] = useState(entrada?.estado ?? "borrador");
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Líneas con su `cantidad_disponible` (cantidad - lo ya devuelto) para decidir si
+  // todavía queda algo para devolver. `entrada.lineas` ya viene con eso calculado cuando
+  // se abre una compra existente desde el listado -alcanza como valor inicial-, pero si
+  // la compra se confirma en esta misma sesión (sin recargar la página) todavía no hay
+  // ids de línea locales para eso: por eso se vuelve a pedir al servidor justo después de
+  // confirmar o de devolver, en vez de un useEffect atado a `estado` (que también se
+  // actualiza acá adentro y termina disparándose a sí mismo).
+  const [lineasDisponibles, setLineasDisponibles] = useState<EntradaLinea[]>(entrada?.lineas ?? []);
+  const [mostrandoDevolucion, setMostrandoDevolucion] = useState(false);
+
+  const refrescarEstadoYLineas = useCallback(async (id: string) => {
+    const res = await fetch(`/api/entradas/${id}`);
+    if (!res.ok) return;
+    const data = await res.json();
+    setLineasDisponibles(data.lineas ?? []);
+    setEstado(data.estado);
+  }, []);
 
   // --- Importar factura en PDF: la previsualización va al costado del formulario (o
   // reemplaza a "Líneas de productos" si no hay PDF, ver el layout más abajo), y lo que se
@@ -204,6 +304,17 @@ export function EntradaForm({
     setProveedorQuery(proveedor.nombre);
     setProveedorDetectadoHint(null);
     setProveedorDropdownAbierto(false);
+    setRucNuevoProveedor("");
+    setProveedorPendiente(null);
+  }
+
+  // El desplegable ahora tiene dos campos enfocables (el buscador y el RUC del alta
+  // rápida): sin este chequeo, pasar el foco de uno al otro con un clic disparaba el
+  // onBlur del primero y cerraba el desplegable a mitad de tipear el RUC.
+  const proveedorDropdownRef = useRef<HTMLDivElement>(null);
+  function onBlurAreaProveedor(e: React.FocusEvent) {
+    if (proveedorDropdownRef.current?.contains(e.relatedTarget as Node)) return;
+    setTimeout(() => setProveedorDropdownAbierto(false), 150);
   }
 
   // Escribir un nombre nuevo NO lo da de alta solo: hace falta este paso explícito
@@ -213,17 +324,37 @@ export function EntradaForm({
     const nombre = proveedorQuery.trim();
     if (!nombre || isCreandoProveedor) return;
 
+    const rucLimpio = rucNuevoProveedor.trim();
+    // Si ya existe un proveedor con ese RUC en la lista cargada, es el mismo proveedor
+    // real -se selecciona en vez de mandar otro alta (que igual convergería al mismo
+    // registro por el UPSERT del servidor, pero así se evita el viaje de red de más).
+    if (rucLimpio) {
+      const existentePorRuc = proveedores.find((p) => p.ruc && p.ruc.replace(/\D/g, "") === rucLimpio.replace(/\D/g, ""));
+      if (existentePorRuc) {
+        seleccionarProveedor(existentePorRuc);
+        setRucNuevoProveedor("");
+        return;
+      }
+    }
+
     setIsCreandoProveedor(true);
     try {
       const res = await fetch("/api/proveedores", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nombre }),
+        body: JSON.stringify({ nombre, ruc: rucLimpio || null }),
       });
       if (!res.ok) throw new Error();
-      const nuevoProveedor: Proveedor = await res.json();
-      setProveedores((prev) => [...prev, nuevoProveedor]);
-      seleccionarProveedor(nuevoProveedor);
+      const proveedorGuardado: Proveedor = await res.json();
+      // Por RUC repetido el servidor hace UPSERT y devuelve el registro YA existente (con
+      // el nombre actualizado): reemplaza esa entrada en vez de duplicarla en la lista.
+      setProveedores((prev) =>
+        prev.some((p) => p.id === proveedorGuardado.id)
+          ? prev.map((p) => (p.id === proveedorGuardado.id ? proveedorGuardado : p))
+          : [...prev, proveedorGuardado]
+      );
+      seleccionarProveedor(proveedorGuardado);
+      setRucNuevoProveedor("");
     } catch {
       setError("No se pudo crear el proveedor.");
     } finally {
@@ -233,7 +364,22 @@ export function EntradaForm({
 
   function actualizarLinea(index: number, patch: Partial<LineaEditable>) {
     actualizarDocumento({
-      lineas: lineas.map((l, i) => (i === index ? { ...l, ...patch } : l)),
+      lineas: lineas.map((l, i) => (i === index ? { ...l, ...patch, productoPendiente: patch.producto_id ? undefined : l.productoPendiente } : l)),
+    });
+  }
+
+  // El nombre pendiente se puede corregir a mano (ej. sacar una letra de más) sin que eso
+  // dispare ninguna alta en el catálogo -recién se crea el Producto real al guardar la
+  // compra, ver guardar(). `codigo` solo viene informado cuando se aceptó tal cual la
+  // sugerencia fantasma de la factura (con Tab); si el usuario tipea a mano, se conserva
+  // el código ya detectado (si había) en vez de perderlo.
+  function actualizarNombrePendiente(index: number, nombre: string, codigo?: string | null) {
+    actualizarDocumento({
+      lineas: lineas.map((l, i) => {
+        if (i !== index || l.producto_id) return l;
+        if (!nombre) return { ...l, productoPendiente: undefined };
+        return { ...l, productoPendiente: { nombre, codigo: codigo ?? l.productoPendiente?.codigo ?? l.descripcionFactura?.codigo ?? null } };
+      }),
     });
   }
 
@@ -250,12 +396,15 @@ export function EntradaForm({
   const simboloMoneda = moneda === "USD" ? "US$" : "S/";
 
   function validar(): string | null {
-    if (!proveedorId) return "Elegí un proveedor.";
+    // O ya hay un proveedor elegido, o quedó uno pendiente por crear/sincronizar al
+    // importar el PDF (ver handleImportarFacturaFile) -eso se resuelve recién en
+    // guardar(), nunca antes.
+    if (!proveedorId && !proveedorPendiente) return "Elegí un proveedor.";
     if (lineas.length === 0) return "Agregá al menos una línea.";
     for (const l of lineas) {
-      // El producto tiene que existir ya en el catálogo (Stock): nunca se crea uno nuevo
-      // al guardar la compra, para no duplicar productos que cada proveedor nombra distinto.
-      if (!l.producto_id) return "Todas las líneas necesitan un producto ya existente en Stock -si todavía no está en el catálogo, creálo ahí primero.";
+      // O ya existe en el catálogo, o el usuario aceptó explícitamente que es un
+      // producto nuevo (productoPendiente) -nunca queda una línea completamente vacía.
+      if (!l.producto_id && !l.productoPendiente?.nombre.trim()) return "Todas las líneas necesitan un producto -elegí uno de Stock, o aceptá/escribí uno nuevo.";
       // Si no hay almacén asignado pero existe uno disponible, usar el primero automáticamente
       if (!l.almacen_id && almacenes.length > 0) {
         // Esto no debería pasar normalmente, pero por seguridad validamos
@@ -277,7 +426,44 @@ export function EntradaForm({
     setIsSaving(true);
     setError(null);
     try {
-      // Asegurar que todas las líneas tengan almacén_id (usar el único disponible si falta)
+      // Recién acá -al guardar la compra de verdad, no al importar el PDF- se resuelve el
+      // proveedor que quedó pendiente: se crea si era nuevo, o se sincroniza el nombre si
+      // ya existía pero la factura traía uno distinto. Así el usuario tuvo toda la
+      // oportunidad de corregirlo antes de que quede grabado en la base.
+      let proveedorIdFinal = proveedorId;
+      if (proveedorPendiente?.modo === "crear" && !proveedorIdFinal) {
+        const res = await fetch("/api/proveedores", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ nombre: proveedorPendiente.nombre, ruc: proveedorPendiente.ruc }),
+        });
+        if (!res.ok) {
+          setError(`No se pudo crear el proveedor "${proveedorPendiente.nombre}".`);
+          setIsSaving(false);
+          return null;
+        }
+        const nuevoProveedor: Proveedor = await res.json();
+        setProveedores((prev) => [...prev, nuevoProveedor]);
+        proveedorIdFinal = nuevoProveedor.id;
+      } else if (proveedorPendiente?.modo === "sincronizar") {
+        try {
+          const res = await fetch(`/api/proveedores/${proveedorPendiente.proveedor.id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ ...proveedorPendiente.proveedor, nombre: proveedorPendiente.nombreNuevo }),
+          });
+          if (res.ok) {
+            const actualizado: Proveedor = await res.json();
+            setProveedores((prev) => prev.map((p) => (p.id === actualizado.id ? actualizado : p)));
+          }
+        } catch {
+          // Si falla la sincronización del nombre no se corta el guardado de la compra.
+        }
+      }
+      setProveedorPendiente(null);
+
+      // Recién acá también se dan de alta en el catálogo los productos que quedaron
+      // pendientes: mismo criterio que el proveedor, nunca antes de guardar de verdad.
       let lineasAGuardar = lineas;
       const almacenDefecto = almacenes[0]?.id;
       if (almacenDefecto) {
@@ -286,9 +472,34 @@ export function EntradaForm({
           almacen_id: l.almacen_id || almacenDefecto
         }));
       }
+      if (lineas.some((l) => !l.producto_id && l.productoPendiente?.nombre.trim())) {
+        const resueltas: LineaEditable[] = [];
+        const productosCreados: Producto[] = [];
+        for (const l of lineasAGuardar) {
+          if (l.producto_id || !l.productoPendiente?.nombre.trim()) {
+            resueltas.push(l);
+            continue;
+          }
+          const creado = await crearProductoAutomatico({
+            descripcion: l.productoPendiente.nombre.trim(),
+            codigo: l.productoPendiente.codigo,
+            costo_unitario: l.costo_unitario,
+          });
+          if (!creado) {
+            setError(`No se pudo crear el producto "${l.productoPendiente.nombre}".`);
+            setIsSaving(false);
+            return null;
+          }
+          productosCreados.push(creado);
+          resueltas.push({ producto_id: creado.id, almacen_id: l.almacen_id, cantidad: l.cantidad, costo_unitario: l.costo_unitario });
+        }
+        lineasAGuardar = resueltas;
+        setProductos((prev) => [...prev, ...productosCreados]);
+        actualizarDocumentoSinHistorial({ lineas: resueltas });
+      }
 
       const payload = {
-        proveedor_id: proveedorId,
+        proveedor_id: proveedorIdFinal,
         numero_factura_proveedor: numeroFactura || null,
         fecha,
         moneda,
@@ -349,7 +560,16 @@ export function EntradaForm({
 
   async function handleEliminar() {
     if (!entradaId) return onCancel();
-    if (!window.confirm("¿Eliminar esta compra? Esta acción no se puede deshacer.")) return;
+    // Para un borrador (nunca tocó stock) el aviso es simple. Para una compra ya
+    // devuelta al 100% -único otro caso en que este botón queda habilitado- hay que
+    // dejar clarísimo qué se va a borrar de verdad: los productos y el lote que entraron
+    // ya se revirtieron al devolver, así que esto borra el papeleo (la compra y su nota
+    // de crédito), como si nunca se hubiera registrado.
+    const advertencia =
+      estado === "borrador"
+        ? "¿Eliminar este borrador de compra? Esta acción no se puede deshacer."
+        : "¿Eliminar definitivamente esta compra?\n\nLos productos y el lote que ingresó ya se revirtieron al devolverla -esto borra la compra y su nota de crédito, como si nunca la hubieras registrado. Esta acción no se puede deshacer.";
+    if (!window.confirm(advertencia)) return;
 
     setIsSaving(true);
     try {
@@ -394,53 +614,23 @@ export function EntradaForm({
           seleccionarProveedor(proveedorExistente);
           // El proveedor ya existe (matcheado por RUC), pero el nombre guardado puede no
           // ser exactamente el que figura en ESTA factura -razón social actualizada,
-          // mayúsculas distintas, etc.-: se sincroniza para que el proveedor siempre
-          // quede registrado con el nombre tal cual está impreso en el comprobante.
+          // mayúsculas distintas, etc.-: queda pendiente para sincronizarlo recién al
+          // guardar la compra (ver guardar()) -importar el PDF solo no puede escribir
+          // nada en la base todavía.
           const nombreDetectado = detectado.razonSocialEmisor?.trim();
           if (nombreDetectado && nombreDetectado !== proveedorExistente.nombre.trim()) {
-            try {
-              const res = await fetch(`/api/proveedores/${proveedorExistente.id}`, {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ ...proveedorExistente, nombre: nombreDetectado }),
-              });
-              if (res.ok) {
-                const actualizado: Proveedor = await res.json();
-                setProveedores((prev) => prev.map((p) => (p.id === actualizado.id ? actualizado : p)));
-                seleccionarProveedor(actualizado);
-              }
-            } catch {
-              // Si falla la sincronización del nombre no se corta el resto del import.
-            }
+            setProveedorPendiente({ modo: "sincronizar", proveedor: proveedorExistente, nombreNuevo: nombreDetectado });
           }
         }
       } else if (detectado.razonSocialEmisor) {
-        // El RUC detectado no matchea ningún proveedor ya registrado: en vez de dejar
-        // el campo vacío con solo una pista, se da de alta el proveedor con la razón
-        // social tal cual figura en la factura -así el campo siempre queda con el mismo
-        // nombre que la empresa del comprobante importado- y se selecciona directo.
-        try {
-          const res = await fetch("/api/proveedores", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ nombre: detectado.razonSocialEmisor, ruc: detectado.rucEmisor || null }),
-          });
-          if (res.ok) {
-            const nuevoProveedor: Proveedor = await res.json();
-            setProveedores((prev) => [...prev, nuevoProveedor]);
-            seleccionarProveedor(nuevoProveedor);
-          } else {
-            setProveedorQuery(detectado.razonSocialEmisor);
-            setProveedorDetectadoHint(
-              `Detectado en el PDF: ${detectado.razonSocialEmisor}${detectado.rucEmisor ? ` — RUC ${detectado.rucEmisor}` : ""} (no se pudo crear el proveedor automáticamente, elegilo o crealo a mano).`
-            );
-          }
-        } catch {
-          setProveedorQuery(detectado.razonSocialEmisor);
-          setProveedorDetectadoHint(
-            `Detectado en el PDF: ${detectado.razonSocialEmisor}${detectado.rucEmisor ? ` — RUC ${detectado.rucEmisor}` : ""} (no se pudo crear el proveedor automáticamente, elegilo o crealo a mano).`
-          );
-        }
+        // El RUC detectado no matchea ningún proveedor ya registrado: en vez de crearlo
+        // ahí mismo, queda pendiente con la razón social tal cual figura en la factura
+        // -recién se da de alta al guardar la compra, nunca con solo importar el PDF.
+        setProveedorQuery(detectado.razonSocialEmisor);
+        setProveedorPendiente({ modo: "crear", nombre: detectado.razonSocialEmisor, ruc: detectado.rucEmisor || null });
+        setProveedorDetectadoHint(
+          `Detectado en el PDF: ${detectado.razonSocialEmisor}${detectado.rucEmisor ? ` — RUC ${detectado.rucEmisor}` : ""} (se da de alta al guardar la compra).`
+        );
       } else if (detectado.rucEmisor) {
         setProveedorDetectadoHint(
           `Detectado en el PDF: RUC ${detectado.rucEmisor} (no coincide con ningún proveedor registrado y no se pudo leer la razón social, elegilo o crealo a mano).`
@@ -455,17 +645,19 @@ export function EntradaForm({
       if (detectado.notas) cambiosDetectados.notas = detectado.notas;
       if (detectado.lineas.length > 0) {
         const almacenId = almacenes[0]?.id ?? "";
-        // El producto NUNCA se completa solo desde el PDF -a propósito-: cada proveedor
-        // escribe el mismo producto con un nombre distinto, y auto-matchear/auto-crear
-        // por descripción terminaba generando productos duplicados en el catálogo. Acá
-        // solo se importa cantidad y precio (ya ajustado sin IGV); el producto de cada
-        // línea lo elige el usuario a mano con el buscador, que para eso tiene navegación
-        // por teclado y búsqueda por SKU (ver ProductoSelector).
+        // El producto NUNCA se auto-selecciona ni se auto-crea desde el PDF -a
+        // propósito-: cada proveedor escribe el mismo producto con un nombre distinto, y
+        // auto-matchear/auto-crear por descripción terminaba generando productos
+        // duplicados en el catálogo. Solo se guarda el nombre tal cual figura en la
+        // factura como `descripcionFactura` -una sugerencia fantasma en el buscador
+        // (campo vacío) que el usuario tiene que aceptar a propósito con Tab para que
+        // recién ahí pase a ser un producto pendiente real (ver ProductoSelector).
         cambiosDetectados.lineas = detectado.lineas.map((l) => ({
           producto_id: "",
           almacen_id: almacenId,
           cantidad: l.cantidad,
           costo_unitario: l.costo_unitario,
+          descripcionFactura: l.descripcion ? { nombre: l.descripcion, codigo: l.codigo } : undefined,
         }));
       }
       if (Object.keys(cambiosDetectados).length > 0) actualizarDocumento(cambiosDetectados);
@@ -480,6 +672,14 @@ export function EntradaForm({
     }
   }
 
+  // Una vez confirmada, "Devolver" y "Eliminar" van lado a lado: Devolver revierte
+  // stock/lote (con nota de crédito, para no perder el rastro) y queda habilitado
+  // mientras quede algo para devolver; Eliminar solo borra de verdad -y por eso solo se
+  // habilita- cuando ya no queda nada pendiente (borrador, que nunca tocó stock, o
+  // devuelta al 100%, que ya lo revirtió todo).
+  const hayAlgoParaDevolver = lineasDisponibles.some((l) => (l.cantidad_disponible ?? l.cantidad) > 0);
+  const puedeEliminarDeVerdad = estado === "borrador" || estado === "devuelta";
+
   const actions: ModuleAction[] = [
     { key: "guardar", icon: Save, label: "Guardar borrador", onClick: handleGuardar, disabled: isSaving || !puedeEditar, tone: "primary" },
     ...(puedeEditar
@@ -488,8 +688,26 @@ export function EntradaForm({
     ...(puedeEditar
       ? [{ key: "importar-pdf", icon: Upload, label: "Importar factura o boleta (PDF)", onClick: handleImportarFacturaClick, disabled: isImportandoPdf }]
       : []),
+    ...(entradaId && estado !== "borrador"
+      ? [{
+          key: "devolver",
+          icon: RotateCcw,
+          label: "Devolver",
+          onClick: () => setMostrandoDevolucion(true),
+          disabled: isSaving || !hayAlgoParaDevolver,
+          title: hayAlgoParaDevolver ? undefined : "Ya se devolvió todo lo que ingresó esta compra.",
+        }]
+      : []),
     ...(entradaId
-      ? [{ key: "eliminar", icon: Trash2, label: "Eliminar", onClick: handleEliminar, disabled: isSaving, tone: "danger" as const }]
+      ? [{
+          key: "eliminar",
+          icon: Trash2,
+          label: "Eliminar",
+          onClick: handleEliminar,
+          disabled: isSaving || !puedeEliminarDeVerdad,
+          tone: "danger" as const,
+          title: puedeEliminarDeVerdad ? undefined : "Primero tenés que devolver todo lo que ingresó esta compra.",
+        }]
       : []),
   ];
 
@@ -536,6 +754,10 @@ export function EntradaForm({
                   value={linea.producto_id}
                   productos={productos}
                   disabled={!puedeEditar}
+                  sugerenciaVacio={linea.descripcionFactura}
+                  pendingName={linea.productoPendiente?.nombre}
+                  onPendingNameChange={(nombre, codigo) => actualizarNombrePendiente(index, nombre, codigo)}
+                  hint={linea.productoPendiente ? "Producto nuevo: se crea en el catálogo al guardar la compra." : undefined}
                   onSelect={(productoId) => actualizarLinea(index, { producto_id: productoId })}
                 />
               </td>
@@ -606,9 +828,11 @@ export function EntradaForm({
         style={{ display: "none" }}
       />
 
-      {error && <p className={fieldStyles.errorBanner}>{error}</p>}
-
-      <FilterLayout sidebarContent={sidebarContent} showAlphabetIndex={false}>
+      <FilterLayout
+        sidebarContent={sidebarContent}
+        showAlphabetIndex={false}
+        errorBanner={error ? <p className={fieldStyles.errorBanner}>{error}</p> : null}
+      >
         <div className={styles.page}>
           <button type="button" className={styles.volverBtn} onClick={onCancel}>
             <ChevronLeft size={15} />
@@ -642,12 +866,14 @@ export function EntradaForm({
                           actualizarDocumento({ proveedorId: "" });
                           setProveedorDetectadoHint(null);
                           setProveedorDropdownAbierto(true);
+                          setRucNuevoProveedor("");
+                          setProveedorPendiente(null);
                         }}
                         onFocus={() => setProveedorDropdownAbierto(true)}
-                        onBlur={() => setTimeout(() => setProveedorDropdownAbierto(false), 150)}
+                        onBlur={onBlurAreaProveedor}
                       />
                       {proveedorDropdownAbierto && (
-                        <div className={styles.proveedorDropdown}>
+                        <div className={styles.proveedorDropdown} ref={proveedorDropdownRef}>
                           {proveedoresFiltrados.map((p) => (
                             <div
                               key={p.id}
@@ -658,12 +884,19 @@ export function EntradaForm({
                             </div>
                           ))}
                           {proveedorQuery.trim() && !hayCoincidenciaExacta && (
-                            <div
-                              className={styles.proveedorOptionCrear}
-                              onMouseDown={crearProveedorDesdeQuery}
-                            >
-                              <Plus size={13} />
-                              Crear proveedor “{proveedorQuery.trim()}”
+                            <div className={styles.proveedorCrearBox}>
+                              <input
+                                className={styles.proveedorRucInput}
+                                placeholder="RUC (opcional, evita duplicados)"
+                                value={rucNuevoProveedor}
+                                onChange={(e) => setRucNuevoProveedor(e.target.value)}
+                                onFocus={() => setProveedorDropdownAbierto(true)}
+                                onBlur={onBlurAreaProveedor}
+                              />
+                              <div className={styles.proveedorOptionCrear} onMouseDown={crearProveedorDesdeQuery}>
+                                <Plus size={13} />
+                                Crear proveedor “{proveedorQuery.trim()}”
+                              </div>
                             </div>
                           )}
                           {proveedoresFiltrados.length === 0 && !proveedorQuery.trim() && (
@@ -743,6 +976,17 @@ export function EntradaForm({
           </div>
         </div>
       </FilterLayout>
+
+      {mostrandoDevolucion && entradaId && (
+        <DevolverModal
+          entrada={{ id: entradaId, lineas: lineasDisponibles }}
+          onClose={() => setMostrandoDevolucion(false)}
+          onSuccess={() => {
+            setMostrandoDevolucion(false);
+            refrescarEstadoYLineas(entradaId);
+          }}
+        />
+      )}
     </div>
   );
 }

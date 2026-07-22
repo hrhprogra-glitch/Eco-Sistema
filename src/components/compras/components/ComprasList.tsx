@@ -78,10 +78,16 @@ export function ComprasList({
   }
 
   async function eliminarCompra(entrada: Entrada) {
+    // Para un borrador (nunca tocó stock) el aviso es simple. Para una compra ya
+    // devuelta al 100% -el único otro caso en que esto queda habilitado- hay que dejar
+    // claro que lo que se borra es el papeleo (la compra y su nota de crédito), porque el
+    // stock y el lote que había ingresado ya se revirtieron al devolverla.
     const confirmado = window.confirm(
-      `¿Eliminar definitivamente la compra "${entrada.numero_factura_proveedor || entrada.numero}"?\n\n` +
-      `Ya fue devuelta por completo, así que no afecta el stock actual. ` +
-      `Esta acción borra también su nota de crédito y no se puede deshacer.`
+      entrada.estado === "borrador"
+        ? `¿Eliminar este borrador de compra "${entrada.numero_factura_proveedor || entrada.numero}"? Esta acción no se puede deshacer.`
+        : `¿Eliminar definitivamente la compra "${entrada.numero_factura_proveedor || entrada.numero}"?\n\n` +
+          `Ya fue devuelta por completo, así que no afecta el stock actual. ` +
+          `Esta acción borra también su nota de crédito y no se puede deshacer.`
     );
     if (!confirmado) return;
 
@@ -125,7 +131,13 @@ export function ComprasList({
       key: "__acciones__" as any,
       header: "Acciones",
       render: (e: any) => {
-        const estaDeshabilitado = Number(e.cantidad_disponible_devolucion) <= 0;
+        // Devolver y Eliminar van siempre los dos, uno al lado del otro -mismo criterio
+        // que en el detalle de la compra (EntradaForm)-: nunca se esconden, solo se
+        // deshabilita el que no corresponde en cada estado. Un borrador nunca tocó stock
+        // -no hay nada que devolver todavía- y Eliminar solo sirve de verdad para un
+        // borrador o una compra ya devuelta al 100% (ver eliminarCompra).
+        const estaDeshabilitado = e.estado === "borrador" || Number(e.cantidad_disponible_devolucion) <= 0;
+        const puedeEliminar = e.estado === "borrador" || e.estado === "devuelta";
 
         return (
           <div style={{ display: "flex", gap: "8px" }}>
@@ -137,6 +149,13 @@ export function ComprasList({
                 }
               }}
               disabled={estaDeshabilitado}
+              title={
+                e.estado === "borrador"
+                  ? "Un borrador todavía no tiene stock que devolver."
+                  : estaDeshabilitado
+                  ? "Ya se devolvió todo lo que ingresó esta compra."
+                  : undefined
+              }
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -184,40 +203,50 @@ export function ComprasList({
               Devolver
             </button>
 
-            {e.estado === "devuelta" && (
-              <button
-                onClick={(evt) => {
-                  evt.stopPropagation();
-                  eliminarCompra(e);
-                }}
-                title="Eliminar compra devuelta por completo"
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: "6px",
-                  padding: "8px 12px",
-                  backgroundColor: "transparent",
-                  border: "1px solid var(--status-error, #dc2626)",
-                  borderRadius: "0px",
-                  cursor: "pointer",
-                  color: "var(--status-error, #dc2626)",
-                  fontSize: "0.9rem",
-                  fontWeight: 600,
-                  transition: "all 0.2s ease",
-                }}
-                onMouseEnter={(e) => {
+            <button
+              onClick={(evt) => {
+                evt.stopPropagation();
+                if (puedeEliminar) eliminarCompra(e);
+              }}
+              disabled={!puedeEliminar}
+              title={
+                puedeEliminar
+                  ? e.estado === "borrador"
+                    ? "Eliminar borrador"
+                    : "Eliminar compra devuelta por completo"
+                  : "Primero tenés que devolver todo lo que ingresó esta compra."
+              }
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "6px",
+                padding: "8px 12px",
+                backgroundColor: "transparent",
+                border: `1px solid ${puedeEliminar ? "var(--status-error, #dc2626)" : "#9ca3af"}`,
+                borderRadius: "0px",
+                cursor: puedeEliminar ? "pointer" : "not-allowed",
+                color: puedeEliminar ? "var(--status-error, #dc2626)" : "#9ca3af",
+                fontSize: "0.9rem",
+                fontWeight: 600,
+                transition: "all 0.2s ease",
+                opacity: puedeEliminar ? 1 : 0.6,
+              }}
+              onMouseEnter={(e) => {
+                if (puedeEliminar) {
                   e.currentTarget.style.backgroundColor = "var(--status-error, #dc2626)";
                   e.currentTarget.style.color = "white";
-                }}
-                onMouseLeave={(e) => {
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (puedeEliminar) {
                   e.currentTarget.style.backgroundColor = "transparent";
                   e.currentTarget.style.color = "var(--status-error, #dc2626)";
-                }}
-              >
-                <Trash2 size={16} />
-              </button>
-            )}
+                }
+              }}
+            >
+              <Trash2 size={16} />
+            </button>
           </div>
         );
       },
