@@ -97,7 +97,7 @@ export default function TestPdfImportPage() {
 
             <div className={styles.factura}>
               <h3>Información de Factura</h3>
-              <table>
+              <table className={styles.table}>
                 <tbody>
                   <tr>
                     <td><strong>Tipo:</strong></td>
@@ -130,7 +130,7 @@ export default function TestPdfImportPage() {
             {resultado.factura.lineas.length > 0 && (
               <div className={styles.lineas}>
                 <h3>Productos Detectados ({resultado.factura.lineas.length})</h3>
-                <table>
+                <table className={styles.table}>
                   <thead>
                     <tr>
                       <th>Descripción</th>
