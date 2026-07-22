@@ -79,7 +79,12 @@ function detectarTipoComprobante(texto: string): string | null {
 
 function detectarNumeroDocumento(texto: string): string | null {
   const m = texto.match(/\b([A-Z]{1,4}\d{1,3}-\d{1,8})\b/);
-  return m ? m[1] : null;
+  if (m) return m[1];
+  // Algunos proveedores separan serie y correlativo con "Nº"/"N°"/"N." en vez de un
+  // guion (ej. "F001 Nº044205") -- se normaliza al mismo formato con guion.
+  const m2 = texto.match(/\b([A-Z]{1,4}\d{1,3})\s*N[º°.]\s*(\d{1,8})\b/);
+  if (m2) return `${m2[1]}-${m2[2]}`;
+  return null;
 }
 
 function detectarFecha(texto: string): string | null {
@@ -252,6 +257,64 @@ function separarCodigo(descripcion: string): { codigo: string | null; descripcio
   return { codigo: m[1], descripcion: descripcion.slice(m[0].length).trim() };
 }
 
+// RUC de Orbes Agrícola: su software de facturación imprime cada fila con la
+// descripción primero y el resto de las columnas totalmente revuelto al final --
+// "DESCRIPCION ITEM V.UNITARIO PRECIO_TOTAL CÓDIGO UNIDAD CANTIDAD P.UNITARIO" en vez
+// del orden visual real (ITEM CÓDIGO UNIDAD CANTIDAD DESCRIPCION P.UNIT V.UNIT TOTAL).
+// Además "KG" (una unidad de medida válida) aparece dentro del nombre de varios
+// productos ("... 14 KG ..."), lo que rompe la heurística general de "buscar el primer
+// token que sea una unidad" -- por eso este RUC usa un extractor aparte, basado en que
+// los últimos 7 tokens de cada fila de producto son siempre esas 7 columnas en ese
+// orden fijo, verificado contra la factura real.
+const RUC_ORBES_AGRICOLA = "20421367605";
+
+// Razones sociales que no se pueden recuperar del texto del PDF porque el proveedor
+// las imprime como logo/imagen en vez de texto real -- ninguna heurística sobre texto
+// extraído puede encontrar algo que no está ahí. Se completa a mano por RUC conocido.
+const RAZON_SOCIAL_POR_RUC: Record<string, string> = {
+  [RUC_ORBES_AGRICOLA]: "ORBES AGRICOLA S.A.C.",
+};
+
+function detectarLineasOrbesAgricola(filas: string[], productos: Producto[]): LineaDetectada[] {
+  const lineas: LineaDetectada[] = [];
+  const cleanToken = (t: string) => t.replace(/^(?:S\/\.?|\$|USD)\s*/i, "");
+  const isNumber = (t: string) => /^[\d.,]*\d[\d.,]*$/.test(cleanToken(t));
+  const isUnidadCorta = (t: string) => ["ROL", "ROLLO", "UNI", "UND", "UNID", "NIU", "KG", "PZA", "CJA"].includes(t.toUpperCase());
+
+  const { inicio, fin } = acotarTablaItems(filas);
+
+  for (let idx = inicio; idx < fin; idx++) {
+    const tokens = filas[idx].split(/\s+/);
+    if (tokens.length < 7) continue;
+
+    const cola = tokens.slice(-7);
+    const [itemStr, vUnitStr, totalStr, codigoStr, unidadStr, cantStr, pUnitStr] = cola;
+
+    if (!/^\d{1,4}$/.test(itemStr)) continue;
+    if (!isUnidadCorta(unidadStr)) continue;
+    if (!isNumber(vUnitStr) || !isNumber(totalStr) || !isNumber(cantStr) || !isNumber(pUnitStr)) continue;
+
+    const descripcion = tokens.slice(0, -7).join(" ").replace(/\s+/g, " ").trim();
+    if (descripcion.length < 3) continue;
+
+    const cantidad = parseNumberPe(cantStr);
+    // costo_unitario se guarda siempre sin IGV (mismo criterio que el resto del
+    // importador). El comprobante imprime V.UNITARIO (sin IGV) redondeado a 2
+    // decimales, y sumar esos 8+ valores ya redondeados por línea acumula un
+    // desvío notorio contra el TOTAL real -- en cambio P.UNITARIO (con IGV) sí
+    // multiplicado por cantidad reconstruye el PRECIO TOTAL impreso de forma exacta,
+    // así que se divide por 1.18 SIN redondear (misma idea que el resto del
+    // importador cuando detecta precios con IGV incluido).
+    const costo_unitario = parseNumberPe(pUnitStr) / 1.18;
+    if (!cantidad || !costo_unitario) continue;
+
+    const producto = matchearProducto(descripcion, productos);
+    lineas.push({ descripcion, codigo: cleanToken(codigoStr), cantidad, costo_unitario, producto_id: producto?.id ?? null });
+  }
+
+  return lineas;
+}
+
 // Ubica el rango de líneas donde vive la tabla de ítems: entre la fila de encabezado de
 // columnas (DESCRIPCIÓN/CANT/P.UNIT/...) y el bloque de totales (TOTAL/IGV/Op. Gravada).
 // Sin este límite, la heurística de filas no tiene forma de distinguir "estoy dentro de
@@ -302,7 +365,7 @@ function detectarLineas(texto: string, productos: Producto[], formatoScrambled: 
   const cleanToken = (t: string) => t.replace(/^(?:S\/\.?|\$|USD)\s*/i, '');
   const isUnidad = (t: string) => {
     const normalized = t.toUpperCase().replace(/\.$/, '');
-    return ["NIU", "UND", "U", "KG", "KGM", "MTR", "LTR", "CJA", "GLN", "PZA", "UNIDAD", "CAJA", "M2", "M3", "PAR", "BOLSA", "SACO", "SERV", "UN", "UNID", "UNIDAD", "ROLLO", "ROL", "C62", "PZAS", "PZ", "PC"].includes(normalized);
+    return ["NIU", "UND", "U", "UNI", "KG", "KGM", "MTR", "LTR", "CJA", "GLN", "PZA", "UNIDAD", "CAJA", "M2", "M3", "PAR", "BOLSA", "SACO", "SERV", "UN", "UNID", "UNIDAD", "ROLLO", "ROL", "C62", "PZAS", "PZ", "PC"].includes(normalized);
   };
   const isNumber = (t: string) => /^[\d.,]*\d[\d.,]*$/.test(cleanToken(t));
   const isCurrency = (t: string) => ["S/", "$", "USD", "S/."].includes(t.toUpperCase());
@@ -532,7 +595,17 @@ export function parsearFacturaPdf(
   const rucEmisor = detectarRuc(texto);
   const proveedor = matchearProveedorPorRuc(rucEmisor, proveedores);
 
-  let lineas = detectarLineas(texto, productos, !!rucEmisor && RUCS_FORMATO_SCRAMBLED.has(rucEmisor));
+  let lineas: LineaDetectada[];
+  if (rucEmisor === RUC_ORBES_AGRICOLA) {
+    const esSeparadorFila = (f: string) => /^[-–—_\s.=]{3,}$/.test(f.trim());
+    const filas = texto
+      .split("\n")
+      .map((f) => f.trim())
+      .filter((f) => f && !esSeparadorFila(f));
+    lineas = detectarLineasOrbesAgricola(filas, productos);
+  } else {
+    lineas = detectarLineas(texto, productos, !!rucEmisor && RUCS_FORMATO_SCRAMBLED.has(rucEmisor));
+  }
 
   // Detectar si precios incluyen IGV y ajustarlos si es necesario
   const opGravada = detectarOpGravada(texto);
@@ -560,7 +633,7 @@ export function parsearFacturaPdf(
     fecha: detectarFecha(texto),
     moneda: detectarMoneda(texto),
     rucEmisor,
-    razonSocialEmisor: detectarRazonSocial(texto, rucEmisor),
+    razonSocialEmisor: (rucEmisor && RAZON_SOCIAL_POR_RUC[rucEmisor]) || detectarRazonSocial(texto, rucEmisor),
     proveedorId: proveedor?.id ?? null,
     notas: detectarNotas(texto),
     lineas,
