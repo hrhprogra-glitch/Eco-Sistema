@@ -115,9 +115,13 @@ function detectarMoneda(texto: string): "PEN" | "USD" | null {
 // Sufijos societarios peruanos típicos (con y sin puntos) -- una línea que termina en
 // uno de estos casi siempre es el nombre de una empresa, sin importar dónde caiga
 // respecto del RUC en el texto extraído (el orden de lectura de pdf.js no siempre
-// sigue el orden visual real del documento).
+// sigue el orden visual real del documento). El tramo antes del sufijo solo admite
+// espacios/tabs, no saltos de línea -si no, una etiqueta suelta en mayúsculas de la línea
+// de arriba (ej. "F. PAGO: CONTADO | EFECTIVO SOLES") se pega al nombre real de la línea
+// de abajo (caso real: Ferretera APU detectada como "EFECTIVO SOLES FERRETERA APU S.A.C"
+// en vez de "FERRETERA APU S.A.C.").
 const SUFIJO_EMPRESA =
-  /[A-ZÁÉÍÓÚÑ0-9&.,'’\s-]{4,90}\b(S\.?\s?A\.?\s?C\.?|S\.?\s?R\.?\s?L\.?|S\.?\s?A\.?\s?A\.?|E\.?\s?I\.?\s?R\.?\s?L\.?|S\.?\s?A\.?|S\.?\s?C\.?\s?R\.?\s?L\.?)\b/;
+  /[A-ZÁÉÍÓÚÑ0-9&.,'’ \t-]{4,90}\b(S\.?\s?A\.?\s?C\.?|S\.?\s?R\.?\s?L\.?|S\.?\s?A\.?\s?A\.?|E\.?\s?I\.?\s?R\.?\s?L\.?|S\.?\s?A\.?|S\.?\s?C\.?\s?R\.?\s?L\.?)\b/;
 
 function limpiarCandidatoRazonSocial(texto: string): string | null {
   const limpio = texto.trim().replace(/\s+/g, " ").replace(/^[-–—.,\s]+/, "");
@@ -137,8 +141,30 @@ const ZONA_COMPRADOR = /\b(SRS|SR\.?ES?|SE[ÑN]OR(?:\(ES\))?|CLIENTE|ADQUIRIENTE
 // sufijo societario, S.A.C./S.R.L./etc., buscando en un radio amplio alrededor del
 // RUC, saltando cualquier candidato que caiga dentro del bloque del comprador) y recién
 // si eso falla se cae al tramo en mayúsculas inmediatamente anterior.
+// Algunos sistemas de facturación (ej. thefactoryhka.com.pe) imprimen "Datos del emisor"
+// y "Adquiriente / Usuario" como dos columnas que pdf.js aplana en una sola tira de
+// texto -- el nombre del comprador puede terminar apareciendo 300-400 caracteres después
+// de la etiqueta "Adquiriente", muy lejos del radio corto que usa ZONA_COMPRADOR (pensado
+// para el caso más común de "SRS: <comprador>" pegado al nombre real del proveedor unas
+// pocas líneas después). Acá en cambio se aprovecha que este formato imprime "RUC:" y
+// "Nombre:" como etiquetas explícitas: atando el nombre al RUC exacto del emisor ya
+// detectado no hace falta ningún radio -no importa cuán lejos esté el bloque del
+// comprador, nunca se confunde porque el suyo usa otra etiqueta ("Identificación:" /
+// "Número de identificación:", no "RUC:"). Caso real que motivó esto: factura de Yadira y
+// Nicoll, donde "ECO SISTEMAS URH S.A.C." (la propia empresa compradora) aparecía dentro
+// del radio y se detectaba como si fuera el proveedor.
+function detectarRazonSocialPorEtiqueta(texto: string, ruc: string): string | null {
+  const m = texto.match(new RegExp(`RUC\\s*:\\s*${ruc}\\s*\\n?\\s*Nombre\\s*:\\s*([\\s\\S]+?)\\s*\\n\\s*Direcci[oó]n\\s*:`, "i"));
+  if (!m) return null;
+  return limpiarCandidatoRazonSocial(m[1]);
+}
+
 function detectarRazonSocial(texto: string, ruc: string | null): string | null {
   if (!ruc) return null;
+
+  const porEtiqueta = detectarRazonSocialPorEtiqueta(texto, ruc);
+  if (porEtiqueta) return porEtiqueta;
+
   const idx = texto.indexOf(ruc);
   if (idx < 0) return null;
 
@@ -280,11 +306,18 @@ function separarCodigo(descripcion: string): { codigo: string | null; descripcio
 // orden fijo, verificado contra la factura real.
 const RUC_ORBES_AGRICOLA = "20421367605";
 
+// RUC de Import Huaraca: su comprobante imprime el nombre del proveedor únicamente como
+// logo/imagen -el texto extraído nunca contiene "IMPORT HUARACA" en ningún lado, ni
+// siquiera en los metadatos del PDF- así que necesita el mismo tratamiento que Orbes
+// Agrícola.
+const RUC_IMPORT_HUARACA = "20612959481";
+
 // Razones sociales que no se pueden recuperar del texto del PDF porque el proveedor
 // las imprime como logo/imagen en vez de texto real -- ninguna heurística sobre texto
 // extraído puede encontrar algo que no está ahí. Se completa a mano por RUC conocido.
 const RAZON_SOCIAL_POR_RUC: Record<string, string> = {
   [RUC_ORBES_AGRICOLA]: "ORBES AGRICOLA S.A.C.",
+  [RUC_IMPORT_HUARACA]: "IMPORT HUARACA E.I.R.L.",
 };
 
 function detectarLineasOrbesAgricola(filas: string[], productos: Producto[]): LineaDetectada[] {

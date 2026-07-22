@@ -35,8 +35,15 @@
   color: var(--text-primary);
 }
 
-.option:hover {
+.option:hover,
+.optionActiva {
   background: var(--ribbon-hover-bg);
+}
+
+.optionSku {
+  margin-left: 6px;
+  font-size: 11px;
+  color: var(--text-secondary);
 }
 
 .empty {
