@@ -20,12 +20,6 @@ const TIPO_LABEL: Record<Contacto["tipo"], string> = {
   otro: "Otro",
 };
 
-const ESTADOS_TIPO: Record<string, Contacto["tipo"]> = {
-  Cliente: "cliente",
-  Proveedor: "proveedor",
-  Otro: "otro",
-};
-
 const DIAS_MS = 24 * 60 * 60 * 1000;
 
 export default function ContactoModule() {
@@ -33,7 +27,7 @@ export default function ContactoModule() {
   const [contactos, setContactos] = useState<Contacto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [tipoFilter, setTipoFilter] = useState("Sin seleccionar");
+  const [empresaFilter, setEmpresaFilter] = useState("Sin seleccionar");
   const [recienteFilter, setRecienteFilter] = useState("todos");
   const [selectedLetter, setSelectedLetter] = useState("0-9");
   const [searchTerm, setSearchTerm] = useState("");
@@ -62,6 +56,11 @@ export default function ContactoModule() {
       header: "Nombre",
       render: (c) => <span style={{ color: "var(--accent-text)", fontWeight: 600 }}>{c.nombre}</span>,
     },
+    {
+      key: "identificaciones",
+      header: "RUC / DNI",
+      render: (c) => (c.identificaciones?.[0] ? `${c.identificaciones[0].tipo}: ${c.identificaciones[0].numero}` : "—"),
+    },
     { key: "telefono", header: "Teléfono" },
     { key: "email", header: "E-mail" },
     { key: "movil", header: "Móvil" },
@@ -89,8 +88,9 @@ export default function ContactoModule() {
       if (inicial !== selectedLetter) return false;
     }
 
-    if (tipoFilter !== "Sin seleccionar" && contacto.tipo !== ESTADOS_TIPO[tipoFilter]) {
-      return false;
+    if (empresaFilter !== "Sin seleccionar") {
+      const esEmpresa = empresaFilter === "Empresa";
+      if (contacto.esEmpresa !== esEmpresa) return false;
     }
 
     if (recienteFilter !== "todos") {
@@ -111,16 +111,16 @@ export default function ContactoModule() {
         <ModuleActions actions={actions} variant="sidebar" />
       </FilterSection>
 
-      <FilterSection title="Estados">
-        {["Sin seleccionar", "Cliente", "Proveedor", "Otro"].map((estado) => (
-          <label key={estado} className={styles.radioLabel}>
+      <FilterSection title="Tipo">
+        {["Sin seleccionar", "Empresa", "Persona natural"].map((opcion) => (
+          <label key={opcion} className={styles.radioLabel}>
             <input
               type="checkbox"
               className={styles.radioInput}
-              checked={tipoFilter === estado}
-              onChange={() => setTipoFilter(estado)}
+              checked={empresaFilter === opcion}
+              onChange={() => setEmpresaFilter(opcion)}
             />
-            {estado}
+            {opcion}
           </label>
         ))}
       </FilterSection>

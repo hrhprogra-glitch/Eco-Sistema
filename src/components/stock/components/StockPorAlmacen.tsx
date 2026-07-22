@@ -5,6 +5,7 @@ import { Package, Layers, PackagePlus } from "lucide-react";
 import { DataTable, type Column } from "@/components/ui/DataTable";
 import { FilterLayout, FilterSection } from "@/components/ui/FilterLayout";
 import { ModuleActions, type ModuleAction } from "@/components/ui/ModuleActions";
+import filterStyles from "@/components/ui/FilterLayout.module.css";
 import fieldStyles from "@/components/ui/formFields.module.css";
 import { LotesDetalle } from "./LotesDetalle";
 import { LoteForm } from "./LoteForm";
@@ -12,6 +13,7 @@ import { StockResumen } from "./StockResumen";
 import { useSession } from "@/components/session/SessionProvider";
 import type { Producto } from "@/components/inventario/types";
 import type { Almacen } from "@/components/movimientos/types";
+import { nivelStock, NIVEL_STOCK_LABEL, type NivelStock } from "../types";
 import type { StockVista } from "..";
 
 export function StockPorAlmacen({
@@ -27,6 +29,7 @@ export function StockPorAlmacen({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [nivelFiltro, setNivelFiltro] = useState<NivelStock | "Sin seleccionar">("Sin seleccionar");
   const [detalle, setDetalle] = useState<{ producto_id: string; producto_nombre: string } | null>(null);
   const [creandoLote, setCreandoLote] = useState(false);
   const [almacenId, setAlmacenId] = useState("");
@@ -64,16 +67,39 @@ export function StockPorAlmacen({
     loadProductos();
   }, [loadProductos, refreshKey]);
 
+  const NIVEL_COLOR: Record<NivelStock, string> = {
+    "sin-stock": "var(--status-error)",
+    bajo: "var(--status-pending)",
+    medio: "var(--status-offline)",
+    alto: "var(--status-online)",
+  };
+
   const columns: Column<Producto>[] = [
     { key: "nombre", header: "Producto", render: (p) => <span style={{ color: "var(--accent-text)", fontWeight: 600 }}>{p.nombre}</span> },
     { key: "sku", header: "SKU" },
     { key: "stock", header: "Cantidad", render: (p) => `${p.stock} ${p.unidad}` },
+    {
+      key: "limite_stock",
+      header: "Nivel",
+      render: (p) => {
+        const nivel = nivelStock(p.stock, p.limite_stock);
+        return <span style={{ color: NIVEL_COLOR[nivel], fontWeight: 600 }}>{NIVEL_STOCK_LABEL[nivel]}</span>;
+      },
+    },
   ];
 
   const productosFiltrados = productos.filter((p) => {
-    if (!searchTerm.trim()) return true;
-    const termino = searchTerm.trim().toLowerCase();
-    return [p.nombre, p.sku].some((campo) => campo?.toLowerCase().includes(termino));
+    if (searchTerm.trim()) {
+      const termino = searchTerm.trim().toLowerCase();
+      const coincide = [p.nombre, p.sku].some((campo) => campo?.toLowerCase().includes(termino));
+      if (!coincide) return false;
+    }
+
+    if (nivelFiltro !== "Sin seleccionar" && nivelStock(p.stock, p.limite_stock) !== nivelFiltro) {
+      return false;
+    }
+
+    return true;
   });
 
   const actions: ModuleAction[] = [
@@ -96,6 +122,20 @@ export function StockPorAlmacen({
       )}
       <FilterSection title="Acciones">
         <ModuleActions actions={actions} variant="sidebar" />
+      </FilterSection>
+
+      <FilterSection title="Nivel de stock">
+        {(["Sin seleccionar", "sin-stock", "bajo", "medio", "alto"] as const).map((nivel) => (
+          <label key={nivel} className={filterStyles.radioLabel}>
+            <input
+              type="checkbox"
+              className={filterStyles.radioInput}
+              checked={nivelFiltro === nivel}
+              onChange={() => setNivelFiltro(nivel)}
+            />
+            {nivel === "Sin seleccionar" ? nivel : NIVEL_STOCK_LABEL[nivel]}
+          </label>
+        ))}
       </FilterSection>
     </>
   );

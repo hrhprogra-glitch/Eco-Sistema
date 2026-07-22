@@ -7,8 +7,8 @@ import type { Contacto } from "../types";
 
 type ContactoFormData = Pick<
   Contacto,
-  "nombre" | "tipo" | "telefono" | "email" | "movil" | "personaContacto" | "ubicacionUrl"
-> & { direccion: string };
+  "nombre" | "tipo" | "telefono" | "email" | "movil" | "personaContacto" | "ubicacionUrl" | "notas"
+> & { direccion: string; documentoTipo: string; documentoNumero: string };
 
 const DATOS_VACIOS: ContactoFormData = {
   nombre: "",
@@ -19,6 +19,9 @@ const DATOS_VACIOS: ContactoFormData = {
   personaContacto: "",
   direccion: "",
   ubicacionUrl: "",
+  notas: "",
+  documentoTipo: "RUC",
+  documentoNumero: "",
 };
 
 export function ContactoForm({
@@ -43,6 +46,9 @@ export function ContactoForm({
           personaContacto: contacto.personaContacto ?? "",
           direccion: contacto.direccion?.calle ?? "",
           ubicacionUrl: contacto.ubicacionUrl ?? "",
+          notas: contacto.notas ?? "",
+          documentoTipo: contacto.identificaciones?.[0]?.tipo || "RUC",
+          documentoNumero: contacto.identificaciones?.[0]?.numero ?? "",
         }
       : DATOS_VACIOS
   );
@@ -62,9 +68,11 @@ export function ContactoForm({
     setIsSaving(true);
     setError(null);
     try {
+      const { documentoTipo, documentoNumero, ...resto } = data;
       const payload = {
-        ...data,
+        ...resto,
         direccion: { calle: data.direccion, calle2: "", distrito: "", ciudad: "", estado: "", zip: "", pais: "" },
+        identificaciones: documentoNumero.trim() ? [{ tipo: documentoTipo, numero: documentoNumero.trim() }] : [],
       };
       const res = await fetch(contacto ? `/api/contactos/${contacto.id}` : "/api/contactos", {
         method: contacto ? "PATCH" : "POST",
@@ -193,6 +201,39 @@ export function ContactoForm({
             placeholder="https://maps.google.com/…"
             value={data.ubicacionUrl}
             onChange={(e) => setField("ubicacionUrl", e.target.value)}
+          />
+        </label>
+      </div>
+
+      <div className={fieldStyles.row}>
+        <label className={fieldStyles.field} style={{ maxWidth: "140px" }}>
+          <span className={fieldStyles.label}>Tipo de documento</span>
+          <select
+            className={fieldStyles.select}
+            value={data.documentoTipo}
+            onChange={(e) => setField("documentoTipo", e.target.value)}
+          >
+            <option value="RUC">RUC</option>
+            <option value="DNI">DNI</option>
+          </select>
+        </label>
+        <label className={fieldStyles.field}>
+          <span className={fieldStyles.label}>N° de RUC / DNI</span>
+          <input
+            className={fieldStyles.input}
+            value={data.documentoNumero}
+            onChange={(e) => setField("documentoNumero", e.target.value)}
+          />
+        </label>
+      </div>
+
+      <div className={fieldStyles.row}>
+        <label className={fieldStyles.field}>
+          <span className={fieldStyles.label}>Notas</span>
+          <input
+            className={fieldStyles.input}
+            value={data.notas}
+            onChange={(e) => setField("notas", e.target.value)}
           />
         </label>
       </div>

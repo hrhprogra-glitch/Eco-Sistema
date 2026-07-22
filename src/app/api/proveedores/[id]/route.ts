@@ -22,7 +22,7 @@ export async function PATCH(
        nombre = $1, ruc = $2, contacto = $3, telefono = $4, email = $5, notas = $6
      WHERE id = $7
      RETURNING *`,
-    [nombre, ruc || null, contacto || null, telefono || null, email || null, notas || null, id]
+    [nombre?.trim(), ruc?.trim() || null, contacto?.trim() || null, telefono?.trim() || null, email?.trim() || null, notas?.trim() || null, id]
   );
 
   if (result.rowCount === 0) {

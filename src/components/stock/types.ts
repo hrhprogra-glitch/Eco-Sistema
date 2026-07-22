@@ -22,3 +22,30 @@ export type LoteDetalle = {
   fecha_vencimiento: string | null;
   created_at: string;
 };
+
+export type NivelStock = "sin-stock" | "bajo" | "medio" | "alto";
+
+export const NIVEL_STOCK_LABEL: Record<NivelStock, string> = {
+  "sin-stock": "Sin stock",
+  bajo: "Stock bajo",
+  medio: "Stock medio",
+  alto: "Stock alto",
+};
+
+// Clasifica un producto por nivel de stock, para filtrar rápido "qué se está por
+// terminar" sin tener que leer la cantidad exacta de cada fila. Si el producto tiene
+// un límite de stock propio cargado (limite_stock > 0), se usa como referencia: bajo
+// es estar en o por debajo del límite, alto es tener el triple o más. Si no hay límite
+// cargado (el caso más común hoy, recién arrancando el catálogo), se cae a umbrales
+// genéricos por cantidad -- igual sirve para separar "casi nada" de "bastante".
+export function nivelStock(stock: number, limiteStock: number): NivelStock {
+  if (stock <= 0) return "sin-stock";
+  if (limiteStock > 0) {
+    if (stock <= limiteStock) return "bajo";
+    if (stock <= limiteStock * 3) return "medio";
+    return "alto";
+  }
+  if (stock <= 10) return "bajo";
+  if (stock <= 50) return "medio";
+  return "alto";
+}

@@ -11,15 +11,23 @@ import { ProductoForm } from "@/components/inventario/components/ProductoForm";
 import { StockResumen } from "./StockResumen";
 import { useSession } from "@/components/session/SessionProvider";
 import type { Producto } from "@/components/inventario/types";
+import { nivelStock, NIVEL_STOCK_LABEL, type NivelStock } from "../types";
 import type { StockVista } from "..";
 
 type View = { mode: "list" } | { mode: "form"; producto?: Producto };
 
-const TIPO_LABEL: Record<Producto["tipo"], string> = {
-  bienes: "Bienes",
-  servicio: "Servicio",
-  combo: "Combo",
-};
+const CATEGORIAS = [
+  "Tubos",
+  "Accesorios PVC",
+  "Accesorios PP/PE",
+  "Electrobombas",
+  "Válvulas y Electroválvulas",
+  "Eléctrico y Control",
+  "Tanques y Filtros",
+  "Cajas y Gabinetes",
+  "Herramientas e Insumos",
+  "Otros / Varios",
+];
 
 export function ProductosCatalogo({
   vista,
@@ -37,7 +45,8 @@ export function ProductosCatalogo({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [tipoFiltro, setTipoFiltro] = useState("Sin seleccionar");
+  const [nivelFiltro, setNivelFiltro] = useState<NivelStock | "Sin seleccionar">("Sin seleccionar");
+  const [categoriaFiltro, setCategoriaFiltro] = useState("Sin seleccionar");
   const [selectedLetter, setSelectedLetter] = useState("0-9");
   const { permisos } = useSession();
 
@@ -59,6 +68,13 @@ export function ProductosCatalogo({
     loadProductos();
   }, [loadProductos]);
 
+  const NIVEL_COLOR: Record<NivelStock, string> = {
+    "sin-stock": "var(--status-error)",
+    bajo: "var(--status-pending)",
+    medio: "var(--status-offline)",
+    alto: "var(--status-online)",
+  };
+
   const columns: Column<Producto>[] = [
     { key: "nombre", header: "Nombre", render: (p) => <span style={{ color: "var(--accent-text)", fontWeight: 600 }}>{p.nombre}</span> },
     { key: "sku", header: "SKU" },
@@ -66,11 +82,14 @@ export function ProductosCatalogo({
     {
       key: "stock",
       header: "Stock",
-      render: (p) => (
-        <span style={{ color: p.rastrear_inventario && p.stock <= p.limite_stock ? "var(--status-error)" : "inherit" }}>
-          {p.rastrear_inventario ? `${p.stock} ${p.unidad}` : "—"}
-        </span>
-      ),
+      render: (p) =>
+        p.rastrear_inventario ? (
+          <span style={{ color: NIVEL_COLOR[nivelStock(p.stock, p.limite_stock)], fontWeight: 600 }}>
+            {p.stock} {p.unidad}
+          </span>
+        ) : (
+          "—"
+        ),
     },
     { key: "precio", header: "Precio", render: (p) => Number(p.precio).toFixed(2) },
   ];
@@ -92,7 +111,11 @@ export function ProductosCatalogo({
       if (inicial !== selectedLetter) return false;
     }
 
-    if (tipoFiltro !== "Sin seleccionar" && TIPO_LABEL[producto.tipo] !== tipoFiltro) {
+    if (nivelFiltro !== "Sin seleccionar" && nivelStock(producto.stock, producto.limite_stock) !== nivelFiltro) {
+      return false;
+    }
+
+    if (categoriaFiltro !== "Sin seleccionar" && producto.categoria !== categoriaFiltro) {
       return false;
     }
 
@@ -118,16 +141,30 @@ export function ProductosCatalogo({
         <ModuleActions actions={actions} variant="sidebar" />
       </FilterSection>
 
-      <FilterSection title="Tipo">
-        {["Sin seleccionar", ...Object.values(TIPO_LABEL)].map((tipo) => (
-          <label key={tipo} className={filterStyles.radioLabel}>
+      <FilterSection title="Nivel de stock">
+        {(["Sin seleccionar", "sin-stock", "bajo", "medio", "alto"] as const).map((nivel) => (
+          <label key={nivel} className={filterStyles.radioLabel}>
             <input
               type="checkbox"
               className={filterStyles.radioInput}
-              checked={tipoFiltro === tipo}
-              onChange={() => setTipoFiltro(tipo)}
+              checked={nivelFiltro === nivel}
+              onChange={() => setNivelFiltro(nivel)}
             />
-            {tipo}
+            {nivel === "Sin seleccionar" ? nivel : NIVEL_STOCK_LABEL[nivel]}
+          </label>
+        ))}
+      </FilterSection>
+
+      <FilterSection title="Categoría">
+        {["Sin seleccionar", ...CATEGORIAS].map((cat) => (
+          <label key={cat} className={filterStyles.radioLabel}>
+            <input
+              type="checkbox"
+              className={filterStyles.radioInput}
+              checked={categoriaFiltro === cat}
+              onChange={() => setCategoriaFiltro(cat)}
+            />
+            {cat}
           </label>
         ))}
       </FilterSection>
